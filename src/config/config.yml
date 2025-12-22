@@ -1,0 +1,194 @@
+audio:
+  Ali:
+    access_key_id: LTAI5tAGcBFi9pg4oFrHbtTV
+    access_key_secret: REDACTED
+    app_key: UwjC1qMrxjoKRbzV
+  Azure:
+    service_region: SERVICE_REGION
+    speech_key: SPEECH_KEY
+  Tencent:
+    access_key_id: ACCESS_KEY_ID
+    access_key_secret: ACCESS_KEY_SECRET
+    app_key: APP_KEY
+  local_recognition:
+    fasterwhisper:
+      compute_type: int8
+      device_type: cuda
+      model_name: tiny
+    provider: fasterwhisper
+  local_tts:
+    GPTSoVITS:
+      server_location: http://0.0.0.0:9874/
+    chatTTS:
+      server_location: http://127.0.0.1:8080/
+    provider: GPTSoVITS
+  provider: Ali
+captioning:
+  provider: Azure
+llm:
+  Azure:
+    api_key: YOUR_API_KEY
+    base_url: http://base.url.openai
+    model_name: null
+  Baichuan:
+    api_key: YOUR_API_KEY
+    model_name: Baichuan3-Turbo
+  DeepSeek:
+    api_key: sk-9c347331a20346c599f47feecc61f7b9
+    base_url: https://api.deepseek.com/
+    model_name: deepseek-chat
+  Moonshot:
+    api_key: YOUR_API_KEY
+    model_name: moonshot-v1-8k
+  Ollama:
+    api_key: YOUR_API_KEY
+    base_url: http://127.0.0.1:11434/
+    model_name: llama3
+  OpenAI:
+    api_key: YOUR_API_KEY
+    model_name: gpt-3.5-turbo
+  Qianfan:
+    api_key: YOUR_API_KEY
+    model_name: ERNIE-Bot-turbo
+    secret_key: YOUR_SK_KEY
+  Tongyi:
+    api_key: YOUR_API_KEY
+    model_name: qwen-turbo
+  provider: DeepSeek
+publisher:
+  auto_publish: true
+  bilibili:
+    enable: true
+    section:
+      enable: true
+      level1: ''
+      level2: ''
+  common:
+    collection: 集合名称
+    enable: true
+    tags: []
+    title_prefix: 标题前缀
+  content_location: null
+  douyin:
+    collection: 集合名称
+    enable: true
+    title_prefix: 标题前缀
+  driver_location: null
+  driver_type: chrome
+  kuaishou:
+    collection: 集合名称
+    domain:
+      enable: true
+      level1: 教育
+      level2: 语言教育
+    enable: true
+    title_prefix: 标题前缀
+  shipinhao:
+    collection: 集合名称
+    enable: true
+    original: false
+    title_prefix: 标题前缀
+  xiaohongshu:
+    collection: 集合名称
+    enable: true
+    title_prefix: 标题前缀
+resource:
+  pexels:
+    api_key: 5xO6VKcXuR9xksX0V0LQDSTeRv09xjHSszIItG4AcErJyejPFRNoEgqL
+  pixabay:
+    api_key: API_KEY
+  provider: pexels
+test_mode: false
+ui:
+  language: zh-CN
+video: null
+#=============================================================================
+cache: false
+env: feature
+device: cpu
+feishu_robot: "https://open.feishu.cn/open-apis/bot/v2/hook/c004bc00-bcc5-416a-a1c3-c53b607da620"
+error_at: "49f92f95"
+
+redis:
+  local:
+    host: 127.0.0.1
+    database: 0
+    port: 6379
+    password: RootDev123
+  test:
+      host: 192.168.0.27
+      database: 0
+      port: 6480
+      password: freeu@123
+  prod:
+      host: 192.168.0.149
+      database: 1
+      port: 6379
+      password: RootDev123
+  feature:
+    host: 192.168.0.27
+    database: 0
+    port: 6480
+    password: freeu@123
+  feature_prod:
+    host: 192.168.0.27
+    database: 0
+    port: 6480
+    password: freeu@123
+
+obs_img_prefix:
+  local:
+    aigc/frames_test/
+  test:
+    aigc/aigc_test/
+  prod:
+    aigc/aigc_prod/
+  feature:
+    aigc/aigc_test/
+  feature_prod:
+    aigc/aigc_test/
+
+pbase: https://freeuuu.obs.cn-east-3.myhuaweicloud.com/
+
+callback:
+  local:
+    mixed: https://gateway-test.freeuuu.com:18080/api/aigc/video/mix/callback
+    frames: https://gateway-test.freeuuu.com:18080/api/aigc/video/frame-extract/callback
+    reformat: https://gateway-test.freeuuu.com:18080/api/aigc/video/frame-extract/callback
+    hls: https://gateway-test.freeuuu.com:18080/api/aigc/video/frame-extract/callback
+    feishu: https://server-test.freeuuu.com/app-api/aigc/video/frame-extract/callback
+  test:
+    mixed: https://gateway-test.freeuuu.com:18080/api/aigc/video/mix/callback
+    frames: https://gateway-test.freeuuu.com:18080/api/aigc/video/frame-extract/callback
+    reformat: https://gateway-test.freeuuu.com:18080/api/aigc/video/frame-extract/callback
+    hls: https://gateway-test.freeuuu.com:18080/api/aigc/video/frame-extract/callback
+    feishu: https://server-test.freeuuu.com/app-api/aigc/video/frame-extract/callback
+  prod:
+    mixed: https://gateway.freeuuu.com/api/aigc/video/mix/callback
+    frames: https://gateway.freeuuu.com/api/aigc/video/frame-extract/callback
+    reformat: https://gateway.freeuuu.com/api/aigc/video/frame-extract/callback
+    hls: https://gateway.freeuuu.com/api/aigc/video/frame-extract/callback
+    feishu: https://server-test.freeuuu.com/app-api/aigc/video/frame-extract/callback
+
+mysql:
+  local:
+    host: 127.0.0.1
+    username: freeu
+    database: ai_recommend_test
+    port: 3306
+    password: RootDev123
+  test:
+    host: 1.94.143.208
+    username: freeu
+    database: ai_recommend_test
+    port: 3306
+    password: RootDev123
+  prod:
+    host: 1.94.143.208
+    username: freeu_prod
+    database: ai_recommend_prod
+    port: 3306
+    password: Prod~!@#189
+
+
+
