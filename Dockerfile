@@ -1,5 +1,5 @@
 # 使用官方 Python 3.12 基础镜像
-FROM python312-ffmpeg:2.1
+FROM python312-ffmpeg:2.0
 
 
 # 设置清华 pip 镜像源
