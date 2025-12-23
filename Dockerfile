@@ -1,9 +1,5 @@
 # 使用自制的python3.12 包含ffmpeg rocketmq的基础镜像
-FROM python312-ffmpeg:2.0
-
-
-# 设置清华 pip 镜像源
-RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+FROM python312-ffmpeg:2.1
 
 # 复制代码文件
 COPY . /app
