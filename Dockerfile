@@ -1,4 +1,4 @@
-# 使用官方 Python 3.12 基础镜像
+# 使用自制的python3.12 包含ffmpeg rocketmq的基础镜像
 FROM python312-ffmpeg:2.0
 
 
@@ -9,7 +9,7 @@ RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 COPY . /app
 WORKDIR /app/src
 
-# 安装依赖（使用conda-forge的ffmpeg）
+#从requirements.txt里安装依赖
 RUN pip install --timeout=600 \
     -r requirements.txt
 
