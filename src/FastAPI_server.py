@@ -1,5 +1,6 @@
 import uvicorn, asyncio, concurrent, os, json
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from router import *
 from utils.log_utils import logger as log
@@ -7,6 +8,8 @@ from utils.obs_utils import *
 from config.config import *
 from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from exceptions.ServiceException import ServiceException
+from database import *
 from celery import *
 
 @asynccontextmanager
@@ -33,7 +36,7 @@ async def lifespan(app: FastAPI):
             data = json.load(f)
         memory.load_memory(data)
     log.info("memory loaded")
-    my_sql_config = my_config["mysql"][ENV]
+    log.info(f"established {len(db_manager.engines)} connections to mysql database")
     try:
         yield
     finally:
@@ -51,6 +54,19 @@ app.add_middleware(
 
 for r in all_router:
     app.include_router(r)
+
+# 全局兜底异常处理
+@app.exception_handler(ServiceException)
+async def business_exception_handler(request: Request, exc: ServiceException):
+    log.info(f"[Service Exception] {exc.code}: {exc.message}, extra info: {exc.data}")
+    return JSONResponse(
+        status_code=200,  # 可以统一返回 200，code 自定义区分错误类型
+        content={
+            "code": exc.code,
+            "message": exc.message,
+            "data": exc.data,
+        },
+    )
 
 if __name__ == "__main__":
     uvicorn.run("FastAPI_server:app", host="0.0.0.0", port=8001)

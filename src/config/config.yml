@@ -104,7 +104,7 @@ ui:
 video: null
 #=============================================================================
 cache: false
-env: feature
+env: local
 device: cpu
 feishu_robot: "https://open.feishu.cn/open-apis/bot/v2/hook/c004bc00-bcc5-416a-a1c3-c53b607da620"
 error_at: "49f92f95"
@@ -125,16 +125,6 @@ redis:
       database: 1
       port: 6379
       password: RootDev123
-  feature:
-    host: 192.168.0.27
-    database: 0
-    port: 6480
-    password: freeu@123
-  feature_prod:
-    host: 192.168.0.27
-    database: 0
-    port: 6480
-    password: freeu@123
 
 obs_img_prefix:
   local:
@@ -143,10 +133,6 @@ obs_img_prefix:
     aigc/aigc_test/
   prod:
     aigc/aigc_prod/
-  feature:
-    aigc/aigc_test/
-  feature_prod:
-    aigc/aigc_test/
 
 pbase: https://freeuuu.obs.cn-east-3.myhuaweicloud.com/
 
