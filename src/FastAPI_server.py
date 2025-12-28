@@ -10,7 +10,8 @@ from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from exceptions.ServiceException import ServiceException
 from database import *
-from celery import *
+from celery_mq import *
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

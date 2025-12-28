@@ -1,0 +1,18 @@
+# 使用自制的 python3.12 + ffmpeg + rocketmq 基础镜像
+FROM python312-ffmpeg:2.1
+
+# 复制代码文件
+COPY . /app
+WORKDIR /app/src
+
+# 如果你有 requirements.txt，安装依赖
+RUN pip install --timeout=600 -r requirements.txt
+
+# 设置 PYTHONPATH，让 Celery 可以 import 项目
+ENV PYTHONPATH=/app/src
+
+# 暴露端口（Celery worker 通常不需要端口，但可以保留）
+# EXPOSE 5000
+
+# Celery worker 启动命令
+CMD ["celery", "-A", "app.celery_app", "worker", "--loglevel=INFO", "--concurrency=4"]

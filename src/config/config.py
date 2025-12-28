@@ -7,7 +7,7 @@ from utils.log_utils import logger as log
 
 from utils.file_utils import read_yaml, save_yaml
 
-app_title = "FastAPI通用框架"
+app_title = "video_mix"
 
 local_audio_tts_providers = ['chatTTS', 'GPTSoVITS', 'CosyVoice']
 local_audio_recognition_providers = ['fasterwhisper', 'sensevoice']
@@ -16,112 +16,7 @@ local_audio_recognition_fasterwhisper_module_names = ['large-v3', 'large-v2', 'l
 local_audio_recognition_fasterwhisper_device_types = ['cuda', 'cpu', 'auto']
 local_audio_recognition_fasterwhisper_compute_types = ['int8', 'int8_float16', 'float16']
 
-
-ratio_option = {
-    "1080p":{
-        "1:1": (1080, 1080),
-        "4:3": (1920, 1440),
-        "16:9": (1920, 1080),
-        "3:4": (1440, 1920),
-        "9:16": (1080, 1920)
-    },
-    "4k": {
-        "1:1": (2160, 2160),
-        "4:3": (2880, 2160),
-        "16:9": (3840, 2160),
-        "3:4": (2160, 2880),
-        "9:16": (2160, 3840)
-    }
-}
-font_options = [
-    # "Songti SC Bold",
-    # "Songti SC Black",
-    # "Songti SC Light",
-    # "STSong",
-    "Songti SC Regular",
-    "PingFang SC Regular",
-    # "PingFang SC Medium",
-    # "PingFang SC Semibold",
-    # "PingFang SC Light",
-    # "PingFang SC Thin",
-    # "PingFang SC Ultralight",
-    "Alibaba PuHuiTi",
-    # "Arial Regular",
-    # "Arial Bold",
-    # "Arial Italic",
-    # "Arial Bold Italic",
-    # "Arial",
-    "DengXian",
-    "Heiti TC Medium",
-    # "DIN-Black",
-    "Source Han Sans CN",
-    "vivo Sans",
-    "MiSans",
-    "HONOR Sans CN",
-    "OPlusSans 3.0",
-    "HarmonyOS Sans SC",
-    "PangMenZhengDao-Cu6.0",
-    "Alibaba Health Font 2.0 CN 85 B",
-    "baotuxiaobaiti",
-    "SJxingkai-C Regular",
-    "YRDZST-Semibold",
-    "Slideqiuhong",
-    "TsangerShuYuanT W04",
-    "QTxiaotu",
-    "Noto Color Emoji",
-    ""
-]
-
-fade_list = ['fade', 'smoothleft', 'smoothright', 'smoothup', 'smoothdown', 'circlecrop', 'rectcrop', 'circleclose',
-             'circleopen', 'horzclose', 'horzopen', 'vertclose',
-             'vertopen', 'diagbl', 'diagbr', 'diagtl', 'diagtr', 'hlslice', 'hrslice', 'vuslice', 'vdslice', 'dissolve',
-             'pixelize', 'radial', 'hblur',
-             'wipetl', 'wipetr', 'wipebl', 'wipebr', 'zoomin', 'hlwind', 'hrwind', 'vuwind', 'vdwind', 'coverleft',
-             'coverright', 'covertop', 'coverbottom', 'revealleft', 'revealright', 'revealup', 'revealdown']
-
-FILTER_TEMPLATES = {
-    # 1. 自然光
-    "natural_light": "eq=brightness=0.06:saturation=1.1:gamma=1.05",
-    # 2. 柔和
-    "soft": "boxblur=luma_radius=0.8:luma_power=1,eq=contrast=0.95:saturation=1.05",
-    # 3. 赤褐
-    "sepia": "curves=r='0/0 0.4/0.5 1/0.9':g='0/0 0.5/0.45 1/0.8':b='0/0 0.6/0.35 1/0.7'",
-    # 4. 质感
-    "texture": "unsharp=5:5:1.5,eq=contrast=1.15:gamma=0.95",
-    # 5. 暖阳
-    "warm_sun": "colorbalance=rs=0.15:gs=-0.05:bs=-0.1,eq=gamma=1.1:brightness=0.08",
-    # 6. 美餐
-    "delicious": "hue=h=-10:s=1.3,eq=contrast=1.1:brightness=0.05",
-    # 7. 入味
-    "vintage_taste": "curves=preset=vintage,eq=saturation=1.25:gamma=1.15",
-    # 8. 可口
-    "tasty": "eq=contrast=1.2:saturation=1.4:gamma=0.98,colorbalance=rm=0.1:bm=-0.1",
-    # 9. 太妃糖
-    "toffee": "curves=r='0/0 0.3/0.4 0.7/0.8 1/0.9':g='0/0 0.4/0.3 1/0.7':b='0/0 0.5/0.2 1/0.6'",
-    # 10. 晶亮
-    "crystal": "unsharp=7:7:2.5,eq=contrast=1.25:gamma=1.2:brightness=0.03",
-    # 11. 明媚
-    "bright": "eq=brightness=0.15:saturation=1.35:contrast=1.1",
-    # 12. 蓝调
-    "blue_tone": "eq=contrast=1.1:saturation=1.3:brightness=0.05,hue=h=10",
-    # "colorbalance=rs=-0.2:gs=-0.1:bs=0.3,eq=gamma=0.9",
-    # 13. 胶片
-    "film": "curves=strong_contrast,noise=alls=25:allf=t,eq=gamma=0.95",
-    # 14. 拍立得
-    "polaroid": "curves=r='0/0.1 0.5/0.6 1/0.9':g='0/0.1 0.5/0.55 1/0.85':b='0/0.1 0.5/0.5 1/0.8',vignette",
-    # 15. 黑白
-    "blackwhite": "hue=s=0",
-    # 16. 灰调
-    "gray_tone": "hue=s=0,curves=r='0/0 0.3/0.4 0.7/0.6 1/0.8':g='0/0 0.3/0.4 0.7/0.6 1/0.8':b='0/0 0.3/0.4 0.7/0.6 1/0.8'"
-}
-
-transition_types = ['xfade']
-fade_list = ['fade', 'smoothleft', 'smoothright', 'smoothup', 'smoothdown', 'circlecrop', 'rectcrop', 'circleclose',
-             'circleopen', 'horzclose', 'horzopen', 'vertclose',
-             'vertopen', 'diagbl', 'diagbr', 'diagtl', 'diagtr', 'hlslice', 'hrslice', 'vuslice', 'vdslice', 'dissolve',
-             'pixelize', 'radial', 'hblur',
-             'wipetl', 'wipetr', 'wipebl', 'wipebr', 'zoomin', 'hlwind', 'hrwind', 'vuwind', 'vdwind', 'coverleft',
-             'coverright', 'covertop', 'coverbottom', 'revealleft', 'revealright', 'revealup', 'revealdown']
+vpc = "/obs/"  #vpc储存卷挂载路径
 
 driver_types = {
     "chrome": 'chrome',
@@ -481,48 +376,9 @@ script_dir = os.path.dirname(script_path)
 
 config_example_file_name = "config.example.yml"
 config_file_name = "config.yml"
-session_file_name = "session.yml"
 
 config_example_file = os.path.join(script_dir, config_example_file_name)
 config_file = os.path.join(script_dir, config_file_name)
-session_file = os.path.join(script_dir, session_file_name)
-exclude_keys = ['01_first_visit', '02_first_visit', '03_first_visit', '04_first_visit','reference_audio','audio_temperature','audio_voice']
-
-
-def save_session_state_to_yaml():
-    # 创建一个字典副本，排除指定的键
-    state_to_save = {key: value for key, value in st.session_state.items() if key not in exclude_keys}
-
-    """将 Streamlit session_state 中的所有值保存到 YAML 文件"""
-    with open(session_file, 'w') as file:
-        yaml.dump(dict(state_to_save), file)
-
-
-def delete_first_visit_session_state(first_visit):
-    # 从session_state中删除其他first_vist标记
-    for key in exclude_keys:
-        if key != first_visit and key in st.session_state:
-            del st.session_state[key]
-
-
-def load_session_state_from_yaml(first_visit):
-    delete_first_visit_session_state(first_visit)
-    # 检查是否存在 "first_visit" 标志
-    if first_visit not in st.session_state:
-        # 第一次进入页面，设置标志为 True
-        st.session_state[first_visit] = True
-        """从 YAML 文件中读取数据并更新 session_state"""
-        if os.path.exists(session_file):
-            try:
-                with open(session_file, 'r') as file:
-                    data = yaml.safe_load(file)
-                    for key, value in data.items():
-                        st.session_state[key] = value
-            except FileNotFoundError:
-                st.warning(f"File {session_file} not found.")
-    else:
-        # 后续访问页面，标志设置为 False
-        st.session_state[first_visit] = False
 
 
 def load_config():
