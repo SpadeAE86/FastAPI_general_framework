@@ -9,11 +9,11 @@ from models.pydantic_models.request.filter_config import FILTER_TEMPLATES
 def construct_cache_key(video, crop_config, filter_str, target_w, target_h):
     return f"{video}_{crop_config}_{filter_str}_{target_w}_{target_h}.mp4"
 
-def process_pool_normalize(width, height, fps, video_list, len_list, mixed_video_config, project_id, pix_fmt="yuv420p", cap_helper = None, sticker_list = None,
-                           normalize_video_filter_complex=None):
+def process_pool_normalize(width, height, fps, video_list, len_list, mixed_video_config, project_id,
+                           pix_fmt="yuv420p", cap_helper = None, sticker_list = None):
     normalize_process_pool_results = [None] * len(video_list)
     with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
-        # 提交所有任务到线程池
+        # 提交所有任务到进程池
         time_so_far = 0
         future_to_idx = {}
         futures = []

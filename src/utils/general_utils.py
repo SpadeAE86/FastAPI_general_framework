@@ -252,7 +252,7 @@ def hex_to_bgra_v2(hex_color):
     R, G, B, A = int(rgb[0:2], 16), int(rgb[2:4], 16), int(rgb[4:6], 16), int(alpha, 16)
     return R, G, B, A
 
-def get_video_info(video_file):
+def get_video_info(video_file, need_rotation = False):
     command = [
         'ffprobe',
         '-v', 'error',
@@ -262,7 +262,9 @@ def get_video_info(video_file):
         '-of', 'default=noprint_wrappers=1:nokey=1',
         video_file
     ]
-    result = subprocess.run(command, capture_output=True)
+
+    result = subprocess.run(command, capture_output=True, timeout=10)
+
     output = result.stdout.decode('utf-8').strip().split('\n')
     if not output or output[-1] == '':
         raise ServiceException(423, f"{video_file} file not exist, fail to get video info")
@@ -272,14 +274,13 @@ def get_video_info(video_file):
     pix_fmt = output[2].strip()
     duration = float(output[3])
     rot = 0
-    get_rot_cmd = ["ffprobe", "-i", video_file]
-
-    rot_result = subprocess.run(get_rot_cmd, capture_output=True, text=True, check=True, encoding='utf-8',
-                                errors='ignore')
-    if match := re.search(r"rotation of ([-+]?\d+\.?\d*) degrees", rot_result.stderr):
-        rot = int(float(match.group(1)))
-    return VideoInfo(width, height, duration, rot, pix_fmt)
-
+    if need_rotation:
+        get_rot_cmd = ["ffprobe", "-i", video_file]
+        rot_result = subprocess.run(get_rot_cmd, capture_output=True, text=True, check=True, encoding='utf-8',
+                                    errors='ignore', timeout=10)
+        if match := re.search(r"rotation of ([-+]?\d+\.?\d*) degrees", rot_result.stderr):
+            rot = int(float(match.group(1)))
+    return width, height, duration, rot, pix_fmt
 
 def run_ffmpeg_command(command, video_name=""):
     try:

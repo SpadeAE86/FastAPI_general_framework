@@ -2,10 +2,8 @@ from utils.log_utils import logger as log
 from general_utils import is_valid_hex_color
 from draw_caption_utils import create_subtitle_png
 import os, re, math
+from config.config import *
 
-FINAL_DIR = "./final"
-FONT_DIR = "./font"
-OUTPUT_DIR = "./work"
 
 def hex_to_bgra_v2(hex_color):
     hex_color = hex_color.lstrip('#')

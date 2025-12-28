@@ -17,6 +17,9 @@ local_audio_recognition_fasterwhisper_device_types = ['cuda', 'cpu', 'auto']
 local_audio_recognition_fasterwhisper_compute_types = ['int8', 'int8_float16', 'float16']
 
 vpc = "/obs/"  #vpc储存卷挂载路径
+FINAL_DIR = "./final"
+FONT_DIR = "./font"
+OUTPUT_DIR = "./work"
 
 driver_types = {
     "chrome": 'chrome',
