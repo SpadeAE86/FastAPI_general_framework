@@ -2,7 +2,7 @@ import uvicorn, asyncio, concurrent, os, json
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from router import *
+from api import *
 from utils.log_utils import logger as log
 from utils.obs_utils import *
 from config.config import *

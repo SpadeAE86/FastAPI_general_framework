@@ -1,12 +1,9 @@
-import asyncio
 from datetime import datetime
 from celery_mq.celery_app import celery_app
 from models.pydantic_models.request.mixed_video_request import MixedVideoConfig, ratio_option
-from service.normalize_process_pool import *
+from core.normalize_process_pool import *
 from utils.general_utils import *
-from utils.log_utils import logger as log
-from config.config import *
-from utils.caption_utils import *
+from core.caption_utils import *
 import json
 
 

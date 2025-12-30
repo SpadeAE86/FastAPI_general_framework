@@ -12,26 +12,6 @@ def hex_to_bgra_v2(hex_color):
     R, G, B, A = int(rgb[0:2], 16), int(rgb[2:4], 16), int(rgb[4:6], 16), int(alpha, 16)
     return R, G, B, A
 
-def insert_newlines(text, max_length=12):
-    """在超过max_length的段落中插入换行符"""
-    lines = text.split('\n')  # 先按已有换行符分割
-    processed_lines = []
-    for line in lines:
-        if len(line) <= max_length:
-            processed_lines.append(line)
-            continue
-        # 按max_length分割行
-        new_line = []
-        current_segment = ""
-        for char in line:
-            current_segment += char
-            if len(current_segment) >= max_length:
-                new_line.append(current_segment)
-                current_segment = ""
-        if current_segment:  # 添加剩余字符
-            new_line.append(current_segment)
-        processed_lines.append('\n'.join(new_line))
-    return '\n'.join(processed_lines)
 
 # font_size: int = Field(default=30, gt=0)
 # font_type: Literal[*font_options] = "Songti SC Regular"
