@@ -17,4 +17,4 @@ dependencies:
       - pyyaml
       - sqlalchemy~=2.0.34
       - sqlmodel~=0.0.27
-      - celery_mq[cache]
+      - celery_mq[memory]

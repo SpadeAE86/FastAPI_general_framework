@@ -2,6 +2,8 @@ import concurrent.futures
 import os
 from functools import partial
 
+from core.normalize_video import normalize_video_filter_complex
+from utils.memory_utils import memory
 from utils.obs_utils import *
 from config.config import *
 from models.pydantic_models.request.filter_config import FILTER_TEMPLATES
@@ -82,8 +84,8 @@ def process_pool_normalize(width, height, fps, video_list, len_list, mixed_video
                 if idx > 0 and mixed_video_config.transition_config[idx-1]:
                     fade_in_duration = mixed_video_config.transition_config[idx-1].duration
 
-            if my_config['cache'] and cache_key in memory:
-                log.debug(f"cache hit! reuse cache {memory[cache_key]}")
+            if my_config['memory'] and cache_key in memory:
+                log.debug(f"memory hit! reuse memory {memory[cache_key]}")
                 start = 0
                 end = len_list[idx]
                 video = memory[cache_key]

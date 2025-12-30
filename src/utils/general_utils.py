@@ -1,6 +1,7 @@
 
 import os, re, math
 import random
+import shutil
 import subprocess
 import time
 import urllib.parse
@@ -108,38 +109,6 @@ def insert_newlines(text, max_length=12, split_index_list = None):
 #         idx += 1 #给被分割吞掉的原本的\n
 #     result = "\n".join(processed_lines)
 #     return result
-
-
-def escape_text(text, portrait, font_size=30, word_config_list = None):
-    """转义 ASS 特殊字符"""
-    if not word_config_list:
-        word_config_list = []
-    processed_text = text
-
-    # Calculate character limit based on font size
-    # Constants derived from 720p base: 11 chars @ 30px (vertical) -> 330 width constant
-    # 25 chars @ 30px (horizontal) -> 750 width constant
-    if portrait:
-        limit = max(1, int(330 / font_size))
-    else:
-        limit = max(1, int(750 / font_size))
-        
-    split_threshold = max(1, int(limit / 2) + 1) # Heuristic for comma split
-
-    if portrait:
-        sub_str = ""
-
-        for l in processed_text:
-            sub_str += l
-            if len(sub_str) >= limit + 1:
-                sub_str = ""
-            if l in [',', ';', '；', '，'] and len(sub_str) >= split_threshold:
-                processed_text = processed_text.replace(sub_str, sub_str + '\n')
-                sub_str = ""
-        processed_text = insert_newlines(processed_text, max_length=math.ceil(limit))
-    else:
-        processed_text = insert_newlines(processed_text, max_length=math.ceil(limit))
-    return processed_text.replace("\n", "\n").replace("{", "\\{").replace("}", "\\}")
 
 def get_images_with_prefix(img_dir, img_file_prefix):
     # 确保提供的是绝对路径
@@ -318,6 +287,9 @@ def run_ffmpeg_command(command, video_name=""):
             888,
             f"timeout while running command: {command}, Exception {e}"
         )
+
+async def delete_folder(folder_name: str):
+    shutil.rmtree(folder_name, ignore_errors=True)
 
 def decode_path_list(path_list, vpc=""):
     return [vpc+decode_chinese_url(path) for path in path_list]

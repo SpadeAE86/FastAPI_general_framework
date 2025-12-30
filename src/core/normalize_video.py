@@ -1,10 +1,19 @@
 import os, itertools, time, platform, re, json, math
+from dataclasses import dataclass
+
 from config.config import *
+from core.caption import CaptionDistributor
 from exceptions.ServiceException import ServiceException
-from utils.ffmpeg_utils import check_audio_stream_simple, build_atempo_filter, split_normalize
+from models.pydantic_models.request import transition_config
+from utils.ffmpeg_utils import check_audio_stream_simple, build_atempo_filter, split_normalize, SplitClip
 from utils.general_utils import get_video_info, run_ffmpeg_command
 
-
+@dataclass
+class NormalizeResult:
+    output: str                 # output_name
+    duration: float
+    cache_path: str
+    transition: SplitClip
 
 def normalize_video_filter_complex(video, max_len, width, height, fps, cap_config, last_cap_idx=-1, cap_cnt=1,
                                    start_time=0, mute_origin=False,
@@ -175,7 +184,8 @@ def normalize_video_filter_complex(video, max_len, width, height, fps, cap_confi
     subtitle_list = []
     if cap_helper:
         log.info(f"cap_outline: {cap_config.cap_outline_width}")
-        subtitle_list = cap_helper.get_subtitle_list()
+        caption_distributor = CaptionDistributor(width, height, cap_config, transition_config, cap_helper, project_id)
+        subtitle_list = caption_distributor.gen_subtitle_png()
 
         if sticker_config:
             log.info(f"sticker task=-=")
@@ -277,16 +287,26 @@ def normalize_video_filter_complex(video, max_len, width, height, fps, cap_confi
     run_ffmpeg_command(normalize_cmd, video_name=fname)
     log.info(f"{video} 完成处理")
 
-
-    transition = ["", "", ""]
+    new_length = min(max_len - start_time, duration) / speed
     if fade_in_duration or fade_out_duration:
-        transition = split_normalize(output_name, min(max_len - start_time, duration) / speed, fade_in_duration,
-                                     fade_out_duration)
+        transition_clip = split_normalize(
+            output_name,
+            new_length,
+            fade_in_duration,
+            fade_out_duration,
+        )
     else:
-        transition[1] = output_name
+        # 没有 transition：整个视频就是 main
+        transition_clip = SplitClip(main=output_name)
     for s in segment_to_remove:
         if os.path.exists(s):
             log.info(f"remove {s}")
             os.remove(s)
-    return output_name, min(max_len - start_time, duration) / speed, cache_video_path, transition
+
+    return NormalizeResult(
+        output=output_name,
+        duration=new_length,
+        cache_path=cache_video_path,
+        transition=transition_clip,
+    )
 

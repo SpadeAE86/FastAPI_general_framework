@@ -7,27 +7,41 @@ from filter_config import VideoFilterConfig
 from sticker_config import StickerConfig
 from typing import *
 
-ratio_type_option = ["portrait", "landscape", "square"]
-resolution_option = ["1080p", "720p", "480p", "360p", "240p"]
 ratio_option = {
-    "1080p":{
+    "720p": {
+        "1:1": (720, 720),
+        "4:3": (960, 720),
+        "16:9": (1280, 720),
+        "3:4": (720, 960),
+        "9:16": (720, 1280),
+    },
+    "1080p": {
         "1:1": (1080, 1080),
-        "4:3": (1920, 1440),
+        "4:3": (1440, 1080),
         "16:9": (1920, 1080),
+        "3:4": (1080, 1440),
+        "9:16": (1080, 1920),
+    },
+    "2k": {
+        "1:1": (1440, 1440),
+        "4:3": (1920, 1440),
+        "16:9": (2560, 1440),
         "3:4": (1440, 1920),
-        "9:16": (1080, 1920)
+        "9:16": (1440, 2560),
     },
     "4k": {
         "1:1": (2160, 2160),
         "4:3": (2880, 2160),
         "16:9": (3840, 2160),
         "3:4": (2160, 2880),
-        "9:16": (2160, 3840)
+        "9:16": (2160, 3840),
     }
 }
+ratio_type_option = ["1:1", "4:3", "16:9", "3:4", "9:16"]
+resolution_option = ["720p", "1080p", "2k", "4k"]
 
 # 定义混剪请求体
-class MixedVideoConfig(BaseModel):
+class MixedVideoRequest(BaseModel):
     obs_video_path_list: List[str] = Field(default_factory=lambda: [])  # 视频链接列表
     ratio_type: Literal[*ratio_type_option] = None  # 导出的视频尺幅类型
     resolution: Literal[*resolution_option] = None  # 导出的视频分辨率

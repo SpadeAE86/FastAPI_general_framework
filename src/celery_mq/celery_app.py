@@ -2,8 +2,8 @@ from celery import Celery
 
 celery_app = Celery(
     "app",
-    broker="cache://cache:6379/0",
-    backend="cache://cache:6379/1",
+    broker="memory://memory:6379/0",
+    backend="memory://memory:6379/1",
 )
 
 # 告诉 Celery 去哪里找 task

@@ -1,7 +1,11 @@
 import os, subprocess
+from dataclasses import dataclass
+from typing import Optional
 
 from utils.general_utils import run_ffmpeg_command
 from utils.log_utils import logger as log
+
+
 
 def check_audio_stream_simple(file_path):
     """简化版检查音频流"""
@@ -41,40 +45,65 @@ def build_atempo_filter(speed_ratio):
 
     return ",".join(filters)
 
-def split_normalize(video, duration, fade_in=0, fade_out=0):
+@dataclass
+class SplitClip:
+    main: str
+    fade_in: Optional[str] = None
+    fade_out: Optional[str] = None
+
+def split_normalize(video, duration, fade_in=0, fade_out=0, transition_reserve_factor = 1.2):
     dir = os.path.dirname(video)
     vname = os.path.basename(video)
-    log.info(f"{vname} fade transition started, fade_in: {fade_in}, fade_out: {fade_out}")
-    fade_in_out = '/'.join([dir, f"fade_in_{vname}"]) if fade_in else ''
-    middle = '/'.join([dir, f"middle_{vname}"])
-    fade_out_out = '/'.join([dir, f"fade_out_{vname}"]) if fade_out else ''
 
-    fade_in_config = [
-        "-ss", '0',
-        "-to", str(fade_in * 1.2),
-        fade_in_out
-    ] if fade_in else []
+    log.info(
+        f"{vname} split normalize, "
+        f"fade_in={fade_in}, fade_out={fade_out}, "
+        f"buffer_factor={transition_reserve_factor}"
+    )
 
-    middle_config = [
-        "-ss", str(fade_in * 1.2),
-        "-to", f'{duration - fade_out * 1.2}',
-        middle
-    ]
+    fade_in_path = (
+        os.path.join(dir, f"fade_in_{vname}") if fade_in else None
+    )
+    main_path = os.path.join(dir, f"middle_{vname}")
+    fade_out_path = (
+        os.path.join(dir, f"fade_out_{vname}") if fade_out else None
+    )
 
-    fade_out_config = [
-        "-ss", f'{duration - fade_out * 1.2}',
-        "-to", f'{duration}',
-        fade_out_out
-    ] if fade_out else []
+    buffer_in = fade_in * transition_reserve_factor
+    buffer_out = fade_out * transition_reserve_factor
 
     ffmpeg_cmd = [
-        'ffmpeg',
-        '-i', video,
-        *fade_in_config,
-        *middle_config,
-        *fade_out_config,
-        "-y"
+        "ffmpeg",
+        "-i", video,
     ]
+
+    if fade_in:
+        ffmpeg_cmd += [
+            "-ss", "0",
+            "-to", str(buffer_in),
+            fade_in_path,
+        ]
+
+    ffmpeg_cmd += [
+        "-ss", str(buffer_in),
+        "-to", str(duration - buffer_out),
+        main_path,
+    ]
+
+    if fade_out:
+        ffmpeg_cmd += [
+            "-ss", str(duration - buffer_out),
+            "-to", str(duration),
+            fade_out_path,
+        ]
+
+    ffmpeg_cmd.append("-y")
+
     run_ffmpeg_command(ffmpeg_cmd, video_name=vname)
 
-    return fade_in_out, middle, fade_out_out
+    return SplitClip(
+        main=main_path,
+        fade_in=fade_in_path,
+        fade_out=fade_out_path,
+    )
+
