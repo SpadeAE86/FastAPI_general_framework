@@ -5,7 +5,7 @@ from config.config import *
 from core.caption import CaptionDistributor
 from exceptions.ServiceException import ServiceException
 from models.pydantic_models.request import transition_config
-from utils.ffmpeg_utils import check_audio_stream_simple, build_atempo_filter, split_normalize, SplitClip
+from utils.ffmpeg_utils import check_audio_stream_simple, build_atempo_filter, split_normalize, SplitClip, quick_segment
 from utils.general_utils import get_video_info, run_ffmpeg_command
 
 @dataclass
@@ -69,47 +69,14 @@ def normalize_video_filter_complex(video, max_len, width, height, fps, cap_confi
     segment = video
     segment_to_remove = []
     if duration>30 and duration / (max_len - start_time) >= 5:
-        s = time.time()
+
         segment_dir = f"./video/{project_id}/"
         os.makedirs(f"{segment_dir}", exist_ok=True)
-        log.info(f"{max_len - start_time}/{duration} >=5, make extra cropping ")
-        first_clip = max(10 * (start_time // 10 - 1), 0)
-        second_clip = 10 * (2 + max_len // 10)
-        clip_point_list = []
-        log.info(f"first_clip: {first_clip}")
-        if first_clip > 0:
-            log.info(f"{type(first_clip)},{first_clip>0} append {first_clip}")
-            clip_point_list.append(str(first_clip))
-        clip_point_list.append(str(second_clip))
-        clip_str = ",".join(clip_point_list)
-        segment_cmd = [
-            'ffmpeg', "-ignore_editlist", "1",
-            '-i', video,
-            '-f', 'segment',
-            '-segment_times', clip_str,
-            '-reset_timestamps', '1',
-            '-c', 'copy',
-            f"{segment_dir}segment_{vindex}_%03d.mp4"
-        ]
-        run_ffmpeg_command(segment_cmd)
-        log.info(f"segmented to segment_{vindex}_000.mp4")
-        if first_clip == 0:
-            segment = f"{segment_dir}segment_{vindex}_000.mp4"
-            if os.path.exists(f"{segment_dir}segment_{vindex}_001.mp4"):
-                os.remove(f"{segment_dir}segment_{vindex}_001.mp4")
-        else:
-            w, h, d, r, f = get_video_info(f"{segment_dir}segment_{vindex}_000.mp4")
-            log.info(f"the duration of before segment_{vindex} is {d}")
-            if start_time > d:
-                start_time -= d
-                max_len -= d
-                log.info(f"start_time of segment_{vindex} become {start_time}, end time become {max_len}")
-                segment = f"{segment_dir}segment_{vindex}_001.mp4"
-            if os.path.exists(f"{segment_dir}segment_{vindex}_000.mp4"):
-                os.remove(f"{segment_dir}segment_{vindex}_000.mp4")
-            if os.path.exists(f"{segment_dir}segment_{vindex}_002.mp4"):
-                os.remove(f"{segment_dir}segment_{vindex}_002.mp4")
-        log.info(f"segment takes {time.time() - s} seconds")
+        log.info(f"{max_len - start_time}/{duration} >=5, make extra cropping ")  #huristic
+        segment_result = quick_segment(segment, vindex, segment_dir, start_time, max_len)
+        segment = segment_result.segment
+        start_time = segment_result.start_time
+        max_len = segment_result.end_time
 
     end_v= "[0:v]"
     #变换滤镜
