@@ -15,4 +15,4 @@ ENV PYTHONPATH=/app/src
 # EXPOSE 5000
 
 # Celery worker 启动命令
-CMD ["celery", "-A", "app.celery_app", "worker", "--loglevel=INFO", "--concurrency=4"]
+CMD ["celery", "-A", "celery_mq.celery_app", "worker", "--loglevel=INFO", "--queue=video_queue", "--concurrency=4"]

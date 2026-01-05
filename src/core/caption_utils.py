@@ -1,6 +1,6 @@
 from utils.log_utils import logger as log
-from general_utils import is_valid_hex_color
-from draw_caption_utils import create_subtitle_png
+from utils.general_utils import is_valid_hex_color
+from utils.draw_caption_utils import create_subtitle_png
 import os, re, math
 from config.config import *
 

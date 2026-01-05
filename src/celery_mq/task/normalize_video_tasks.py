@@ -1,14 +1,65 @@
 from datetime import datetime
 from celery_mq.celery_app import celery_app
 from models.pydantic_models.request.mixed_video_request import MixedVideoConfig, ratio_option
+from celery_mq.task_manager import task_manager
 from core.normalize_process_pool import *
 from utils.general_utils import *
 from core.caption_utils import *
+from utils.log_utils import logger as log
 import json
 
 
-@celery_app.task(queue="video_queue")
-def process_video_task(mixed_config: MixedVideoConfig,):
+@celery_app.task(queue="video_queue", bind=True)
+def process_video_task(self, task_id: str):
+    """
+    处理视频任务
+    
+    Args:
+        task_id: 任务ID（从RabbitMQ消息中获取）
+    """
+    try:
+        # 更新任务状态为running
+        task_manager.update_task_status(task_id, "running", started_at=datetime.now().isoformat())
+        
+        # 从Redis获取任务数据
+        task_data = task_manager.get_task_data(task_id)
+        if not task_data:
+            error_msg = f"任务数据不存在: task_id={task_id}"
+            log.error(error_msg)
+            task_manager.update_task_status(task_id, "failed", error=error_msg)
+            raise ValueError(error_msg)
+        
+        # 将字典转换为Pydantic模型
+        mixed_config = MixedVideoConfig(**task_data)
+        
+        # 更新任务进度
+        self.update_state(state='PROGRESS', meta={'progress': 0, 'message': '开始处理任务'})
+        
+        # 执行测试处理逻辑（用于测试任务创建和执行流程）
+        _process_video_internal_test(mixed_config, task_id)
+        
+        # 任务完成，更新状态
+        task_manager.update_task_status(task_id, "completed", completed_at=datetime.now().isoformat())
+        self.update_state(state='SUCCESS', meta={'progress': 100, 'message': '任务完成'})
+        
+        log.info(f"任务处理完成: task_id={task_id}")
+        
+    except Exception as e:
+        error_msg = f"任务处理失败: task_id={task_id}, error={str(e)}"
+        log.error(error_msg, exc_info=True)
+        task_manager.update_task_status(task_id, "failed", error=str(e), failed_at=datetime.now().isoformat())
+        self.update_state(state='FAILURE', meta={'error': str(e)})
+        raise
+
+
+def _process_video_internal(mixed_config: MixedVideoConfig, task_id: str):
+    """
+    内部视频处理逻辑（原有代码）
+    
+    Args:
+        mixed_config: 视频混剪配置
+        task_id: 任务ID（用于更新进度）
+    """
     project_id = "mix_" + str(random_with_system_time()) if not mixed_config.mix_id else "mix_" + str(
         mixed_config.mix_id)  # 该次混剪资源所在的子文件夹名
     log.info(f"project_id: {project_id}")
@@ -85,3 +136,24 @@ def process_video_task(mixed_config: MixedVideoConfig,):
                                                             sticker_list=sticker_list)
 
     # log.info(f"normalized video: {normalize_thread_pool_results}")
+
+
+def _process_video_internal_test(mixed_config: MixedVideoConfig, task_id: str):
+    """
+    测试用视频处理函数（不执行实际处理，直接返回成功）
+    
+    Args:
+        mixed_config: 视频混剪配置
+        task_id: 任务ID（用于更新进度）
+    """
+    log.info(f"[测试模式] 开始处理任务: task_id={task_id}")
+    log.info(f"[测试模式] 任务配置信息:")
+    log.info(f"  - 用户名称: {mixed_config.user_name}")
+    log.info(f"  - 视频数量: {len(mixed_config.obs_video_path_list)}")
+    log.info(f"  - FPS: {mixed_config.fps}")
+    log.info(f"  - 分辨率: {mixed_config.resolution}")
+    log.info(f"  - 比例类型: {mixed_config.ratio_type}")
+    log.info(f"[测试模式] 任务配置详情: {json.dumps(mixed_config.model_dump(exclude_none=True), indent=2, ensure_ascii=False)}")
+    log.info(f"[测试模式] 任务处理完成（模拟成功）: task_id={task_id}")
+    # 不执行实际处理，直接返回成功
+    return None
