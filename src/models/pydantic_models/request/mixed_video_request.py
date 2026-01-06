@@ -1,10 +1,10 @@
 from pydantic import BaseModel, Field
-from crop_config import CropConfig
-from caption_config import CapConfig, Cap
-from transition_config import TransitionConfig
-from audio_config import AudioConfig
-from filter_config import VideoFilterConfig
-from sticker_config import StickerConfig
+from .crop_config import CropConfig
+from .caption_config import CapConfig, Cap
+from .transition_config import TransitionConfig
+from .audio_config import AudioConfig
+from .filter_config import VideoFilterConfig
+from .sticker_config import StickerConfig
 from typing import *
 
 ratio_option = {

@@ -66,6 +66,43 @@ video:
 
 test_mode: False
 
+redis:
+  local:
+    host: 127.0.0.1
+    database: 0
+    port: 6379
+    password: YOUR_REDIS_PASSWORD
+  test:
+    host: redis-test.example.com
+    database: 0
+    port: 6379
+    password: YOUR_REDIS_PASSWORD
+  prod:
+    host: redis-prod.example.com
+    database: 1
+    port: 6379
+    password: YOUR_REDIS_PASSWORD
+
+rabbitmq:
+  local:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    vhost: /
+  test:
+    host: rabbitmq-test.example.com
+    port: 5672
+    username: user
+    password: pass
+    vhost: /
+  prod:
+    host: rabbitmq-prod.example.com
+    port: 5672
+    username: user
+    password: pass
+    vhost: /
+
 publisher:
   driver_type: chrome
   content_location:
