@@ -5,10 +5,10 @@ import threading
 from celery_mq.celery_app import celery_app
 from models.pydantic_models.request.mixed_video_request import MixedVideoConfig, ratio_option
 from celery_mq.task_manager import task_manager
-from core.normalize_process_pool import *
-from core.process_health_monitor import process_health_monitor
+from core.video_processing.normalize_process_pool import *
+from core.health_monitor import process_health_monitor
 from utils.general_utils import *
-from core.caption_utils import *
+from core.video_processing.caption_utils import *
 from utils.log_utils import logger as log
 from config.config import my_config
 import json

@@ -1,7 +1,7 @@
 """
 健康监控服务生命周期管理：在FastAPI中启动和停止监控服务
 """
-from core.health_monitor_service import health_monitor_service
+from core.health_monitor.service import health_monitor_service
 from utils.log_utils import logger as log
 
 

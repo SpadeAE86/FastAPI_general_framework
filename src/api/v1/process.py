@@ -2,8 +2,9 @@
 进程状态查询API路由
 """
 from fastapi import APIRouter, HTTPException, Path
-from core.process_health_monitor import process_health_monitor
+from core.health_monitor import process_health_monitor
 from celery_mq.celery_app import celery_app
+from utils.process_utils import parse_process_id
 from utils.log_utils import logger as log
 from typing import Dict, Any, List
 
@@ -24,12 +25,12 @@ async def get_all_process_status() -> Dict[str, Any]:
         
         for process_id in processes:
             try:
-                parts = process_id.split(":", 1)
-                if len(parts) != 2:
+                # 解析进程ID
+                parsed = parse_process_id(process_id)
+                if parsed is None:
                     continue
                 
-                worker_name, pid_str = parts
-                pid = int(pid_str)
+                worker_name, pid = parsed
                 
                 status = process_health_monitor.get_process_status(worker_name, pid)
                 if status:
