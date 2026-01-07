@@ -1,11 +1,16 @@
 from datetime import datetime
+import os
+import time
+import threading
 from celery_mq.celery_app import celery_app
 from models.pydantic_models.request.mixed_video_request import MixedVideoConfig, ratio_option
 from celery_mq.task_manager import task_manager
 from core.normalize_process_pool import *
+from core.process_health_monitor import process_health_monitor
 from utils.general_utils import *
 from core.caption_utils import *
 from utils.log_utils import logger as log
+from config.config import my_config
 import json
 
 
@@ -17,9 +22,41 @@ def process_video_task(self, task_id: str):
     Args:
         task_id: 任务ID（从RabbitMQ消息中获取）
     """
+    # 获取worker名称和进程ID
+    if hasattr(self.request, 'hostname') and self.request.hostname:
+        worker_name = self.request.hostname
+    else:
+        # 使用socket获取主机名作为fallback
+        import socket
+        worker_name = socket.gethostname()
+    pid = os.getpid()
+    
+    # 心跳线程控制
+    heartbeat_stop_event = threading.Event()
+    heartbeat_thread = None
+    
     try:
+        # 注册进程到Redis
+        process_health_monitor.register_process(worker_name, pid)
+        
         # 更新任务状态为running
         task_manager.update_task_status(task_id, "running", started_at=datetime.now().isoformat())
+        
+        # 记录任务分配时间
+        task_manager.record_task_start_time(task_id)
+        
+        # 更新进程任务分配信息
+        process_health_monitor.update_task_assignment(worker_name, pid, task_id)
+        
+        # 启动心跳线程
+        heartbeat_interval = my_config.get("process_health", {}).get("heartbeat_interval", 10)
+        heartbeat_thread = threading.Thread(
+            target=_heartbeat_loop,
+            args=(worker_name, pid, heartbeat_stop_event, heartbeat_interval),
+            name=f"HeartbeatThread-{pid}",
+            daemon=True
+        )
+        heartbeat_thread.start()
         
         # 从Redis获取任务数据
         task_data = task_manager.get_task_data(task_id)
@@ -50,6 +87,38 @@ def process_video_task(self, task_id: str):
         task_manager.update_task_status(task_id, "failed", error=str(e), failed_at=datetime.now().isoformat())
         self.update_state(state='FAILURE', meta={'error': str(e)})
         raise
+    finally:
+        # 停止心跳线程
+        if heartbeat_thread:
+            heartbeat_stop_event.set()
+            heartbeat_thread.join(timeout=2)
+        
+        # 清除进程任务分配信息
+        process_health_monitor.clear_task_assignment(worker_name, pid)
+        
+        # 注意：不在这里清理进程注册信息，因为进程可能还会执行其他任务
+        # 进程退出时会自动清理（通过信号处理或监控服务检测）
+
+
+def _heartbeat_loop(worker_name: str, pid: int, stop_event: threading.Event, interval: int):
+    """
+    心跳循环线程
+    
+    Args:
+        worker_name: Worker名称
+        pid: 进程ID
+        stop_event: 停止事件
+        interval: 心跳间隔（秒）
+    """
+    while not stop_event.is_set():
+        try:
+            process_health_monitor.update_heartbeat(worker_name, pid)
+            # 等待指定时间或被停止
+            stop_event.wait(timeout=interval)
+        except Exception as e:
+            log.error(f"心跳更新失败: {worker_name}:{pid}, error={e}")
+            # 即使出错也继续尝试
+            stop_event.wait(timeout=interval)
 
 
 def _process_video_internal(mixed_config: MixedVideoConfig, task_id: str):
@@ -146,6 +215,7 @@ def _process_video_internal_test(mixed_config: MixedVideoConfig, task_id: str):
         mixed_config: 视频混剪配置
         task_id: 任务ID（用于更新进度）
     """
+    time.sleep(100)
     log.info(f"[测试模式] 开始处理任务: task_id={task_id}")
     log.info(f"[测试模式] 任务配置信息:")
     log.info(f"  - 用户名称: {mixed_config.user_name}")

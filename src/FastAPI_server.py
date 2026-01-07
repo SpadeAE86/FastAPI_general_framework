@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from exceptions.ServiceException import ServiceException
 from database import *
 from celery_mq import *
+from core.health_monitor_lifespan import start_health_monitor, stop_health_monitor
 
 
 @asynccontextmanager
@@ -38,9 +39,15 @@ async def lifespan(app: FastAPI):
         memory.load_memory(data)
     log.info("memory loaded")
     log.info(f"established {len(db_manager.engines)} connections to mysql database")
+    
+    # 启动健康监控服务
+    start_health_monitor()
+    
     try:
         yield
     finally:
+        # 停止健康监控服务
+        stop_health_monitor()
         log.info("shutting down...")
         log.info("exit")
 
