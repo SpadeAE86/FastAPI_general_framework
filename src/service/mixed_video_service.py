@@ -1,10 +1,11 @@
 import asyncio
+from typing import List
 
 from core.generate_video import generate_video
 from core.normalize_video import NormalizeResult
 from core.transition_video import transition_normalized
 from models.pydantic_models.response.mixed_video_response import MixedVideoResponse
-from utils.general_utils import delete_folder
+from utils.general_utils import delete_folder, VideoInfo
 from core.caption import CapHelper
 from core.normalize_process_pool import process_pool_normalize
 from exceptions.ServiceException import ServiceException
@@ -46,11 +47,19 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         start_1 = time.time()
         video_list = [os.path.abspath(p) for p in video_list]
         log.info(f"download takes {time.time() - download_start} seconds")
-        first_video_info = get_video_info(video_list[0], need_rotation=True)
+        get_info_task = [asyncio.to_thread(get_video_info, v, need_rotation=True) for v in video_list]
+        video_info_list: List[VideoInfo] = await asyncio.gather(*get_info_task)
 
-        width, height, duration, rot, pix_format = first_video_info
-
-        pix_fmt = "yuv422p10le" if pix_format == "yuv422p10le" else "yuv420p"
+        first_video_info = video_info_list[0]
+        all_video_info = [vinfo.get_info() for vinfo in video_info_list]
+        width, height, duration, rot, pix_format, codec = first_video_info.get_info()
+        _, _, _, _, pix_format_list, _ = zip(*all_video_info)
+        if all([pf == "yuv422p10le" for pf in pix_format_list]):
+            pix_fmt = "yuv422p10le"
+        elif all([pf == "yuv422p10le" for pf in pix_format_list]):
+            pix_fmt = "yuv420p10le"
+        else:
+            pix_fmt = "yuv420p"
 
         log.info(f"first video is {mixed_config.obs_video_path_list[0]} have {rot} rotation")
         if abs(rot) in [90, 270]:
@@ -61,21 +70,8 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         log.info(f"rot {rot}")
         log.info(f"width: {width}")
         log.info(f"height: {height}")
-        if not mixed_config.ratio_type:
-            if width < height and height >= 1920:
-                width = 1080
-                height = 1920
-            elif width > height and width >= 1920:
-                width = 1920
-                height = 1080
-        if mixed_config.resolution:
-            if mixed_config.ratio_type:
-                ratio_type = mixed_config.ratio_type
-            elif width > height:
-                ratio_type = "16:9"
-            else:
-                ratio_type = "9:16"
-            width, height = ratio_option[mixed_config.resolution][ratio_type]
+        if mixed_config.ratio_type and mixed_config.resolution:
+            width, height = ratio_option[mixed_config.resolution][mixed_config.ratio_type]
 
         len_list = [(c.end - c.start) if c else 0 for c in
                     mixed_config.crop_config] if mixed_config.crop_config else [0] * len(video_list)
@@ -89,7 +85,7 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
             log.debug(f"subtitle png cap list: {cap_helper.get_cap_list()}")
 
         normalize_thread_pool_results = process_pool_normalize(width, height, fps, video_list,
-                                                               len_list, mixed_config, project_id,
+                                                               len_list, mixed_config, video_info_list ,project_id,
                                                                pix_fmt=pix_fmt, cap_helper=cap_helper,
                                                                sticker_list=sticker_list)
 
@@ -131,8 +127,8 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
                     raise ServiceException(494, "混剪预处理并没有妥善完成")
 
                 # 获取 fade 段时长
-                _, _, dA, _, _ = get_video_info(clip.fade_out)
-                _, _, dB, _, _ = get_video_info(next_clip.fade_in)
+                _, _, dA, _, _, _ = get_video_info(clip.fade_out).get_info()
+                _, _, dB, _, _, _ = get_video_info(next_clip.fade_in).get_info()
 
                 log.info(f"v{idx}_fade_out: {dA}")
                 log.info(f"v{idx + 1}_fade_in: {dB}")

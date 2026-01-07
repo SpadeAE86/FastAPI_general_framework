@@ -6,7 +6,8 @@ from core.caption import CaptionDistributor
 from exceptions.ServiceException import ServiceException
 from models.pydantic_models.request import transition_config
 from utils.ffmpeg_utils import check_audio_stream_simple, build_atempo_filter, split_normalize, SplitClip, quick_segment
-from utils.general_utils import get_video_info, run_ffmpeg_command
+from utils.general_utils import get_video_info, run_ffmpeg_command, VideoInfo
+
 
 @dataclass
 class NormalizeResult:
@@ -15,7 +16,7 @@ class NormalizeResult:
     cache_path: str
     transition: SplitClip
 
-def normalize_video_filter_complex(video, max_len, width, height, fps, cap_config, last_cap_idx=-1, cap_cnt=1,
+def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width, height, fps, cap_config,
                                    start_time=0, mute_origin=False,
                                    project_id='test', translate_x=0, translate_y=0, rotation=0, scale=1,
                                    mirror=False, speed=1, extra_filter="", processed_so_far=0, pix_fmt="yuv420p",
@@ -25,7 +26,7 @@ def normalize_video_filter_complex(video, max_len, width, height, fps, cap_confi
     video_filter_list = []
     fname = os.path.basename(video)
     name, ext = os.path.splitext(fname)
-    video_width, video_height, duration, rot, pix_format = get_video_info(video, need_rotation=True)
+    video_width, video_height, duration, rot, pix_format, codec = video_info.get_info()
     if abs(rot) in [90, 270]:
         video_width, video_height = video_height, video_width
 
@@ -85,7 +86,7 @@ def normalize_video_filter_complex(video, max_len, width, height, fps, cap_confi
     gpu_encoder = []
     if my_config["device"] == "gpu":
         gpu_encoder.extend(["-c:v", "h264_nvenc"])
-    pix_fmt_option = ["-pix_fmt", pix_fmt]
+    pix_fmt_option = ["-pix_fmt", pix_fmt] if "10le" in pix_format or codec == "mjpeg" else []
     has_audio = check_audio_stream_simple(video)
 
     if mute_origin or not has_audio:
@@ -156,10 +157,6 @@ def normalize_video_filter_complex(video, max_len, width, height, fps, cap_confi
 
         if sticker_config:
             log.info(f"sticker task=-=")
-            # sticker = {}
-            # sticker[""] = ""
-            # subtitle_config["start"] = max(caption.start - processed_so_far, 0)
-            # subtitle_config["end"] = caption.end - processed_so_far
 
         cur_stream = f"{end_v}"
         for idx, subtitle_config in enumerate(subtitle_list):

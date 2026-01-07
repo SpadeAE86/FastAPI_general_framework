@@ -142,7 +142,8 @@ def quick_segment(video, vindex, output_dir, start_time, end_time) -> SegmentRes
         if os.path.exists(f"{output_dir}segment_{vindex}_001.mp4"):
             os.remove(f"{output_dir}segment_{vindex}_001.mp4")
     else:
-        w, h, d, r, f = get_video_info(f"{output_dir}segment_{vindex}_000.mp4")
+        video_info = get_video_info(f"{output_dir}segment_{vindex}_000.mp4")
+        w, h, d, r, f, codec = video_info.get_info()
         log.info(f"the duration of before segment_{vindex} is {d}")
         if start_time > d:
             start_time -= d

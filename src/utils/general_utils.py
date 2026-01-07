@@ -5,8 +5,10 @@ import shutil
 import subprocess
 import time
 import urllib.parse
+from dataclasses import dataclass
+
 import streamlit as st
-from typing import Optional
+from typing import Optional, Tuple
 from utils.log_utils import logger as log
 from exceptions.ServiceException import ServiceException
 from utils.file_utils import generate_temp_filename
@@ -221,35 +223,65 @@ def hex_to_bgra_v2(hex_color):
     R, G, B, A = int(rgb[0:2], 16), int(rgb[2:4], 16), int(rgb[4:6], 16), int(alpha, 16)
     return R, G, B, A
 
-def get_video_info(video_file, need_rotation = False):
+@dataclass(frozen=True)
+class VideoInfo:
+    width: int
+    height: int
+    duration: float
+    rotation: int
+    pix_fmt: str
+    codec_name: str
+
+    def get_info(self) -> Tuple[int, int, float, int, str, str]:
+        """
+        用于业务侧一行解包，顺序固定
+        """
+        return (
+            self.width,
+            self.height,
+            self.duration,
+            self.rotation,
+            self.pix_fmt,
+            self.codec_name,
+        )
+
+def get_video_info(video_file, need_rotation = False) -> VideoInfo:
     command = [
         'ffprobe',
         '-v', 'error',
         '-select_streams', 'v:0',
-        '-show_entries', 'stream=width,height,pix_fmt',
+        '-show_entries', 'stream=width,height,pix_fmt,codec_name',
         '-show_entries', 'format=duration',
         '-of', 'default=noprint_wrappers=1:nokey=1',
         video_file
     ]
 
-    result = subprocess.run(command, capture_output=True, timeout=10)
+    result = subprocess.run(command, capture_output=True)
 
     output = result.stdout.decode('utf-8').strip().split('\n')
     if not output or output[-1] == '':
         raise ServiceException(423, f"{video_file} file not exist, fail to get video info")
     log.debug(f"output: {output}")
-    width = int(output[0])
-    height = int(output[1])
-    pix_fmt = output[2].strip()
-    duration = float(output[3])
+    codec_name = output[0].strip()  # 新增：短编码名称
+    width = int(output[1])
+    height = int(output[2])
+    pix_fmt = output[3].strip()
+    duration = float(output[4])
     rot = 0
     if need_rotation:
         get_rot_cmd = ["ffprobe", "-i", video_file]
         rot_result = subprocess.run(get_rot_cmd, capture_output=True, text=True, check=True, encoding='utf-8',
-                                    errors='ignore', timeout=10)
+                                    errors='ignore')
         if match := re.search(r"rotation of ([-+]?\d+\.?\d*) degrees", rot_result.stderr):
             rot = int(float(match.group(1)))
-    return width, height, duration, rot, pix_fmt
+    return VideoInfo(
+        width=width,
+        height=height,
+        duration=duration,
+        rotation=rot,
+        pix_fmt=pix_fmt,
+        codec_name=codec_name,
+    )
 
 def run_ffmpeg_command(command, video_name=""):
     try:

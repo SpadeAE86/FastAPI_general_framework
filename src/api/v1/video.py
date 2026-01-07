@@ -2,7 +2,7 @@
 视频处理API路由
 """
 from fastapi import APIRouter, HTTPException, Path
-from models.pydantic_models.request.mixed_video_request import MixedVideoConfig
+from models.pydantic_models.request.mixed_video_request import MixedVideoRequest
 from celery_mq.task_manager import task_manager
 from utils.log_utils import logger as log
 from typing import Dict, Any
@@ -11,10 +11,10 @@ video_router = APIRouter(prefix="/api/v1/video", tags=["video"])
 
 
 @video_router.post("/edit")
-async def create_video_task(mixed_config: MixedVideoConfig) -> Dict[str, Any]:
+async def create_video_task(mixed_config: MixedVideoRequest) -> Dict[str, Any]:
     """
     接收视频剪辑请求，创建任务并写入用户队列
-    
+
     Args:
         mixed_config: 视频混剪配置
         

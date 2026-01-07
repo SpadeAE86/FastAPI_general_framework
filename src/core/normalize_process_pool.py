@@ -11,7 +11,7 @@ from models.pydantic_models.request.filter_config import FILTER_TEMPLATES
 def construct_cache_key(video, crop_config, filter_str, target_w, target_h):
     return f"{video}_{crop_config}_{filter_str}_{target_w}_{target_h}.mp4"
 
-def process_pool_normalize(width, height, fps, video_list, len_list, mixed_video_config, project_id,
+def process_pool_normalize(width, height, fps, video_list, len_list, mixed_video_config, video_info_list, project_id,
                            pix_fmt="yuv420p", cap_helper = None, sticker_list = None):
     normalize_process_pool_results = [None] * len(video_list)
     with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
@@ -19,12 +19,10 @@ def process_pool_normalize(width, height, fps, video_list, len_list, mixed_video
         time_so_far = 0
         future_to_idx = {}
         futures = []
-        cache_hit_list = []
         filter_str_list = []
         last_cap_idx = -1
         for idx, video_path in enumerate(video_list):
             filter_str = build_from_config(mixed_video_config.filter_config)
-            fname = os.path.basename(video_path)
             video = video_path
             start = 0
             end = len_list[idx]
@@ -51,16 +49,14 @@ def process_pool_normalize(width, height, fps, video_list, len_list, mixed_video
             ai_mode = bool(mixed_video_config.callback_url)
             normalize_func = partial(
                 normalize_video_filter_complex,
-                video,  # 第一个位置参数
-                end,  # 第二个位置参数
-                width,  # 第三个位置参数
-                height,  # 第四个位置参数
-                fps,  # 第五个位置参数
-                mixed_video_config.cap_config,  # 第六个位置参数
-                # 命名参数
-                last_cap_idx = last_cap_idx,
-                cap_cnt = cap_cnt,
-                start_time=start,
+                video,  # 视频路径
+                video_info_list[idx],
+                end,  # 结束时间
+                width,  # 宽
+                height,  # 高
+                fps,  # 帧率
+                mixed_video_config.cap_config,  # 字幕配置
+                start_time=start,  #起始时间
                 mute_origin=mixed_video_config.mute_config and mixed_video_config.mute_config[idx],
                 rotation=mixed_video_config.crop_config[idx].rotation,
                 translate_x=mixed_video_config.crop_config[idx].translate_x,
@@ -100,14 +96,6 @@ def process_pool_normalize(width, height, fps, video_list, len_list, mixed_video
                 fidx = future_to_idx[future]
                 normalize_process_pool_results[fidx] = result
                 video_path = video_list[fidx]
-                vname = os.path.basename(video_path)
-                name, ext = os.path.splitext(vname)
-                crop = mixed_video_config.crop_config[fidx]
-                filter_str = filter_str_list[fidx]
-                cache_key = construct_cache_key(name, crop.model_dump_json(exclude_none=True), filter_str, width,
-                                                height)
-                if not cache_hit_list[fidx]:
-                    memory[cache_key] = result[2]
                 completed_count += 1
 
                 log.info(f"{video_path}已完成: {result}, 当前进度: {completed_count}/{len(video_list)}")
