@@ -66,6 +66,7 @@ celery_app.conf.update(
     accept_content=['json'],
     result_serializer='json',
     timezone='UTC',
+    retries=3,
     enable_utc=True,
 )
 

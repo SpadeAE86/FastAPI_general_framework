@@ -215,7 +215,8 @@ def _process_video_internal_test(mixed_config: MixedVideoConfig, task_id: str):
         mixed_config: 视频混剪配置
         task_id: 任务ID（用于更新进度）
     """
-    time.sleep(100)
+    time.sleep(10)
+    raise ChildProcessError
     log.info(f"[测试模式] 开始处理任务: task_id={task_id}")
     log.info(f"[测试模式] 任务配置信息:")
     log.info(f"  - 用户名称: {mixed_config.user_name}")
