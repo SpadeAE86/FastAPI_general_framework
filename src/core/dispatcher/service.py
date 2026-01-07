@@ -71,7 +71,8 @@ class DispatcherService:
             
             result = process_video_task.apply_async(
                 args=[task_id],
-                queue=self.queue_name
+                queue=self.queue_name,
+                delivery_mode=2,
             )
             
             log.info(f"任务已发布到RabbitMQ: task_id={task_id}, celery_task_id={result.id}")

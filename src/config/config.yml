@@ -196,5 +196,12 @@ mysql:
     port: 3306
     password: Prod~!@#189
 
+process_health:
+  heartbeat_interval: 10  # 心跳间隔（秒）
+  check_interval: 30  # 监控检查间隔（秒）
+  heartbeat_timeout: 60  # 心跳超时阈值（秒）
+  task_timeout: 1800  # 任务超时阈值（秒，默认30分钟）
+  max_restart_count: 2  # 最大重启次数
+
 
 

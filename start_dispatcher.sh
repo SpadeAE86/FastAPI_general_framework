@@ -5,5 +5,5 @@
 # conda activate video_mix
 
 # 启动调度服务
-python src/dispatcher/run_dispatcher.py
+python src/core/dispatcher/run.py
 
