@@ -1,7 +1,7 @@
 import concurrent.futures
 import os
 from functools import partial
-
+from core.filter import build_from_config
 from core.normalize_video import normalize_video_filter_complex
 from utils.memory_utils import memory
 from utils.obs_utils import *
@@ -23,55 +23,17 @@ def process_pool_normalize(width, height, fps, video_list, len_list, mixed_video
         filter_str_list = []
         last_cap_idx = -1
         for idx, video_path in enumerate(video_list):
-            filter_list = []
-            if mixed_video_config.filter_config:
-                cfg_list = mixed_video_config.filter_config[idx]
-                if cfg_list and cfg_list.filter_template:
-                    filter_list.append(FILTER_TEMPLATES[cfg_list.filter_template])
-                if cfg_list:
-                    for cfg in cfg_list.filter_configs:
-                        if cfg.type == "temperature":
-                            value = cfg.value / 500 * 1.5
-                            filter_list.append(
-                                f"colorbalance=rs={value}:rm={value}:rh={value}:bs={-value}:bm={-value}:bh={-value}")
-                        elif cfg.type == "brightness":
-                            filter_list.append(f"eq=brightness={cfg.value}")
-                        elif cfg.type == "tint":
-                            value = cfg.value / 500 * 1.5
-                            filter_list.append(f"colorbalance=rs={value}:gs={-value}:bs={value}:"
-                                               f"rm={value}:gm={-value}:bm={value}:"
-                                               f"rh={value}:gh={-value}:bh={value}")
-                        elif cfg.type == "contrast":
-                            value = cfg.value * 2
-                            filter_list.append(f"eq=contrast={value}")
-                        elif cfg.type == "saturation":
-                            filter_list.append(f"eq=saturation={cfg.value}")
-                        elif cfg.type == "hue":
-                            filter_list.append(f"hue=h={cfg.value}")
-                        elif cfg.type == "sharpness":
-                            value = cfg.value * 2
-                            filter_list.append(f"unsharp=luma_msize_x=5:luma_msize_y=5:luma_amount={value}")
-                        elif cfg.type == "boxblur":
-                            filter_list.append(f"boxblur={cfg.value}")
-                        elif cfg.type == "gblur":
-                            filter_list.append(f"gblur=sigma={cfg.value}")
-                        elif cfg.type == "dblur":
-                            filter_list.append(f"dblur=angle={cfg.angle}:radius={cfg.value}")
-
-            filter_str = ",".join(filter_list)
+            filter_str = build_from_config(mixed_video_config.filter_config)
             fname = os.path.basename(video_path)
-            name, ext = os.path.splitext(fname)
             video = video_path
             start = 0
             end = len_list[idx]
-            crop = "full"
+
             voice_path_list = []
             audio_config = []
             if mixed_video_config.crop_config:
                 end = mixed_video_config.crop_config[idx].end
                 start = mixed_video_config.crop_config[idx].start
-                crop = mixed_video_config.crop_config[idx].model_dump_json(exclude_none=True)
-            cache_key = construct_cache_key(name, crop, filter_str, width, height)
             cache_hit = False
             fade_out_duration = 0
             fade_in_duration = 0
@@ -83,14 +45,6 @@ def process_pool_normalize(width, height, fps, video_list, len_list, mixed_video
                     fade_out_duration = mixed_video_config.transition_config[idx].duration
                 if idx > 0 and mixed_video_config.transition_config[idx-1]:
                     fade_in_duration = mixed_video_config.transition_config[idx-1].duration
-
-            if my_config['memory'] and cache_key in memory:
-                log.debug(f"memory hit! reuse memory {memory[cache_key]}")
-                start = 0
-                end = len_list[idx]
-                video = memory[cache_key]
-                memory.touch(cache_key, video)
-                cache_hit = True
 
             cap_cnt = mixed_video_config.crop_config[idx].cap_cnt
             # 把所有参数都放到partial里，包括video_path
@@ -134,7 +88,6 @@ def process_pool_normalize(width, height, fps, video_list, len_list, mixed_video
             future_to_idx[future] = idx
             futures.append(future)
             filter_str_list.append(filter_str)
-            cache_hit_list.append(cache_hit)
             time_so_far += len_list[idx]
             last_cap_idx += cap_cnt
 

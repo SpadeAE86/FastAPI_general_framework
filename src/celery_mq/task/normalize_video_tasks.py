@@ -1,10 +1,10 @@
 from datetime import datetime
 from celery_mq.celery_app import celery_app
-from models.pydantic_models.request.mixed_video_request import MixedVideoConfig, ratio_option
+from models.pydantic_models.request.mixed_video_request import MixedVideoRequest, ratio_option
 from celery_mq.task_manager import task_manager
 from core.normalize_process_pool import *
 from utils.general_utils import *
-from core.caption_utils import *
+from core.caption import *
 from utils.log_utils import logger as log
 import json
 from service.mixed_video_service import mixed_video_service
@@ -30,7 +30,7 @@ def process_video_task(self, task_id: str):
             raise ValueError(error_msg)
 
         # 将字典转换为Pydantic模型
-        mixed_config = MixedVideoConfig(**task_data)
+        mixed_config = MixedVideoRequest(**task_data)
 
         # 更新任务进度
         self.update_state(state='PROGRESS', meta={'progress': 0, 'message': '开始处理任务'})
@@ -52,7 +52,7 @@ def process_video_task(self, task_id: str):
         raise
 
 
-def _process_video_internal(mixed_config: MixedVideoConfig, task_id: str):
+def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str):
     """
     内部视频处理逻辑（原有代码）
 
@@ -138,7 +138,7 @@ def _process_video_internal(mixed_config: MixedVideoConfig, task_id: str):
     # log.info(f"normalized video: {normalize_thread_pool_results}")
 
 
-def _process_video_internal_test(mixed_config: MixedVideoConfig, task_id: str):
+def _process_video_internal_test(mixed_config: MixedVideoRequest, task_id: str):
     """
     测试用视频处理函数（不执行实际处理，直接返回成功）
 
