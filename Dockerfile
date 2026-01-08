@@ -1,5 +1,5 @@
 # 使用自制的python3.12 包含ffmpeg rocketmq的基础镜像
-FROM python312-ffmpeg:2.1
+FROM swr.cn-east-3.myhuaweicloud.com/freeuuu/python312-ffmpeg:2.0/python312-ffmpeg:2.1
 
 # 复制代码文件
 COPY . /app
