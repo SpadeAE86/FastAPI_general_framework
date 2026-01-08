@@ -3,10 +3,14 @@ FROM swr.cn-east-3.myhuaweicloud.com/freeuuu/python312-ffmpeg:2.1
 
 # 复制代码文件
 COPY . /app
-WORKDIR /app/src
+WORKDIR /app
 
-# 如果你有 requirements.txt，安装依赖
-RUN pip install --timeout=600 -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+#从requirements.txt里安装依赖
+RUN pip install --timeout=600 \
+    -r requirements.txt \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+WORKDIR /app/src
 
 # 设置 PYTHONPATH，让 Celery 可以 import 项目
 ENV PYTHONPATH=/app/src
