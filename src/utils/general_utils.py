@@ -1,4 +1,4 @@
-
+import asyncio
 import os, re, math
 import random
 import shutil
@@ -6,12 +6,14 @@ import subprocess
 import time
 import urllib.parse
 from dataclasses import dataclass
-
+from config.config import vpc
 import streamlit as st
 from typing import Optional, Tuple
 from utils.log_utils import logger as log
 from exceptions.ServiceException import ServiceException
 from utils.file_utils import generate_temp_filename
+from utils.obs_utils import download_from_obs
+
 
 class VideoInfo:
     def __init__(self, w, h, d, r, f):
@@ -323,8 +325,15 @@ def run_ffmpeg_command(command, video_name=""):
 async def delete_folder(folder_name: str):
     shutil.rmtree(folder_name, ignore_errors=True)
 
-def decode_path_list(path_list, vpc=""):
-    return [vpc+decode_chinese_url(path) for path in path_list]
+async def download_resource(path_list, output_dir=""):
+    decode_path_list = [decode_chinese_url(path) for path in path_list]  #把中文unicode转换成中文字符串
+    if not output_dir:
+        vpc_prefix = vpc + "/"
+        path_list = [vpc_prefix+p for p in decode_path_list]
+    else:
+        download_task = [download_from_obs(p, output_dir) for p in path_list]
+        path_list = await asyncio.gather(*download_task)
+    return path_list
 
 def extent_audio(audio_file, pad_dur=2):
     temp_file = generate_temp_filename(audio_file)

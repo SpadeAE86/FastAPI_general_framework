@@ -1,21 +1,21 @@
 import asyncio
 from typing import List
 
-from core.generate_video import generate_video
-from core.normalize_video import NormalizeResult
+from core.video_processing.generate_video import generate_video
+from core.video_processing.normalize_video import NormalizeResult
 from core.transition_video import transition_normalized
 from models.pydantic_models.response.mixed_video_response import MixedVideoResponse
 from utils.general_utils import delete_folder, VideoInfo
-from core.caption import CapHelper
-from core.normalize_process_pool import process_pool_normalize
+from core.video_processing.caption import CapHelper
+from core.video_processing.normalize_process_pool import process_pool_normalize
 from exceptions.ServiceException import ServiceException
-from utils.general_utils import random_with_system_time, decode_path_list, get_video_info
+from utils.general_utils import random_with_system_time, download_resource, get_video_info
 from config.config import *
 from utils.log_utils import logger as log
 import time, json
 from datetime import datetime
 from models.pydantic_models.request.mixed_video_request import MixedVideoRequest, ratio_option
-from asyncio import StreamReader, StreamWriter, Semaphore
+from asyncio import Semaphore
 
 from utils.obs_utils import upload_to_obs
 
@@ -38,10 +38,14 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
 
         log.info(f"config user_name: {mixed_config.user_name}")
         download_start = time.time()
-        video_list = decode_path_list(mixed_config.obs_video_path_list, vpc=vpc)
-        audio_list = decode_path_list(mixed_config.obs_audio_path_list, vpc=vpc)
-        bgm_list = decode_path_list(mixed_config.obs_bgm_path_list, vpc=vpc)
-        sticker_list = decode_path_list(mixed_config.obs_sticker_path_list, vpc=vpc)
+        if my_config["direct_download"]:
+            output_dir = f"{RESOURCE_DIR}/{project_id}"
+            os.makedirs(output_dir, exist_ok=True)
+        video_list = await download_resource(mixed_config.obs_video_path_list, output_dir=output_dir)
+        audio_list = await download_resource(mixed_config.obs_audio_path_list, output_dir=output_dir)
+        bgm_list = await download_resource(mixed_config.obs_bgm_path_list, output_dir=output_dir)
+        sticker_list = await download_resource(mixed_config.obs_sticker_path_list, output_dir=output_dir)
+
 
 
         start_1 = time.time()

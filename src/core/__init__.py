@@ -19,9 +19,9 @@ from core.health_monitor import (
 
 # 向后兼容：重新导出视频处理相关模块
 from core.video_processing import (
-    normalize_service,
+    normalize_video,
     normalize_process_pool,
-    caption_utils,
+    caption,
 )
 
 # 向后兼容：重新导出调度服务
@@ -40,9 +40,9 @@ __all__ = [
     'ProcessHealthMonitor', 'process_health_monitor',
     'start_health_monitor', 'stop_health_monitor',
     # 视频处理
-    'normalize_service',
+    "normalize_video",
     'normalize_process_pool',
-    'caption_utils',
+    'caption',
     # 调度服务
     'DispatcherService',
     'run_dispatcher',

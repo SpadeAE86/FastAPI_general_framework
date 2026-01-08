@@ -1,12 +1,9 @@
 import concurrent.futures
-import os
 from functools import partial
-from core.filter import build_from_config
-from core.normalize_video import normalize_video_filter_complex
-from utils.memory_utils import memory
-from utils.obs_utils import *
+from core.video_processing.filter import build_from_config
+from core.video_processing.normalize_video import normalize_video_filter_complex
 from config.config import *
-from models.pydantic_models.request.filter_config import FILTER_TEMPLATES
+
 
 def construct_cache_key(video, crop_config, filter_str, target_w, target_h):
     return f"{video}_{crop_config}_{filter_str}_{target_w}_{target_h}.mp4"

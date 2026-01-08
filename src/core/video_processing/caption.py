@@ -12,23 +12,6 @@ def hex_to_bgra_v2(hex_color):
     R, G, B, A = int(rgb[0:2], 16), int(rgb[2:4], 16), int(rgb[4:6], 16), int(alpha, 16)
     return R, G, B, A
 
-
-# font_size: int = Field(default=30, gt=0)
-# font_type: Literal[*font_options] = "Songti SC Regular"
-# cap_position: Literal[*list(subtitle_position_options.keys())] = "bottom center"
-# cap_color: str = "#ffffff"
-# cap_outline_color: str = "#000000"
-# cap_outline_width: float = Field(ge=0, default=0)
-# cap_background_color: str = "#000000ff"
-# cap_absolute_x: float = Field(ge=0, default=0)
-# cap_absolute_y: float = Field(ge=0, default=0)
-# cap_background_type: int = 2
-# cap_line_spacing: int = Field(ge=5, default=10)
-# cap_letter_indent: int = Field(ge=0, default=2)
-
-
-
-
 class CapHelper:
     def __init__(self, project_id, width, height, cap_config):
         os.makedirs(f"{OUTPUT_DIR}/{project_id}", exist_ok=True)

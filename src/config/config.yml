@@ -155,6 +155,7 @@ obs_img_prefix:
     aigc/aigc_prod/
 
 pbase: https://freeuuu.obs.cn-east-3.myhuaweicloud.com/
+direct_download: true
 
 callback:
   local:

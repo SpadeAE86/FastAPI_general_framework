@@ -1,12 +1,12 @@
-import os, itertools, time, platform, re, json, math
+import math
 from dataclasses import dataclass
 
 from config.config import *
-from core.caption import CaptionDistributor
+from core.video_processing.caption import CaptionDistributor
 from exceptions.ServiceException import ServiceException
 from models.pydantic_models.request import transition_config
 from utils.ffmpeg_utils import check_audio_stream_simple, build_atempo_filter, split_normalize, SplitClip, quick_segment
-from utils.general_utils import get_video_info, run_ffmpeg_command, VideoInfo
+from utils.general_utils import run_ffmpeg_command, VideoInfo
 
 
 @dataclass
@@ -71,7 +71,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     segment_to_remove = []
     if duration>30 and duration / (max_len - start_time) >= 5:
 
-        segment_dir = f"./video/{project_id}/"
+        segment_dir = f"{RESOURCE_DIR}/{project_id}/"
         os.makedirs(f"{segment_dir}", exist_ok=True)
         log.info(f"{max_len - start_time}/{duration} >=5, make extra cropping ")  #huristic
         segment_result = quick_segment(segment, vindex, segment_dir, start_time, max_len)

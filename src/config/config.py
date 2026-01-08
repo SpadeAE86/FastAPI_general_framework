@@ -16,7 +16,8 @@ local_audio_recognition_fasterwhisper_module_names = ['large-v3', 'large-v2', 'l
 local_audio_recognition_fasterwhisper_device_types = ['cuda', 'cpu', 'auto']
 local_audio_recognition_fasterwhisper_compute_types = ['int8', 'int8_float16', 'float16']
 
-vpc = "/obs/"  #vpc储存卷挂载路径
+vpc = "/obs"  #vpc储存卷挂载路径
+RESOURCE_DIR = "./resource"
 FINAL_DIR = "./final"
 FONT_DIR = "./font"
 OUTPUT_DIR = "./work"

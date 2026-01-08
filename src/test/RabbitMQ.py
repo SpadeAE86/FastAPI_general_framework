@@ -1,5 +1,5 @@
 import pika
-
+from pika import exceptions
 def simple_connection_test():
     """最简单的连接测试"""
     credentials = pika.PlainCredentials('root', 'RootDev123')

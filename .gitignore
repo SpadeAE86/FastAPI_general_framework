@@ -209,3 +209,10 @@ tests/
 src/test
 src/docs
 设计.md
+
+# 缓存文件夹+资产文件夹
+**/memory.json
+**/video/
+**/resource/
+**/work/
+**/final/
