@@ -146,7 +146,7 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str):
     resp: MixedVideoResponse = asyncio.run(mixed_video_service(mixed_config))
     callback = my_config["callback"][ENV]["mixed"]
     callback_url = callback if not mixed_config.callback_url else mixed_config.callback_url
-    asyncio.run(post(callback_url, resp, retry = 4, task_id=f"{project_id}"))
+    asyncio.run(post(callback_url, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
 
 def _process_video_internal_test(mixed_config: MixedVideoRequest, task_id: str):
     """
