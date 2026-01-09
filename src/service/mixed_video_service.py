@@ -2,6 +2,7 @@ import asyncio
 from typing import List
 
 from core.video_processing.generate_video import generate_video
+from core.video_processing.normalize_thread_pool import thread_pool_normalize
 from core.video_processing.normalize_video import NormalizeResult
 from core.transition_video import transition_normalized
 from models.pydantic_models.response.mixed_video_response import MixedVideoResponse
@@ -88,7 +89,7 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
             cap_helper.gen_cap_mapping()
             log.debug(f"subtitle png cap list: {cap_helper.get_cap_list()}")
 
-        normalize_thread_pool_results = process_pool_normalize(width, height, fps, video_list,
+        normalize_thread_pool_results = thread_pool_normalize(width, height, fps, video_list,
                                                                len_list, mixed_config, video_info_list ,project_id,
                                                                pix_fmt=pix_fmt, cap_helper=cap_helper,
                                                                sticker_list=sticker_list)
