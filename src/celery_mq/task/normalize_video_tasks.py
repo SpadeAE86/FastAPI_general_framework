@@ -77,7 +77,7 @@ def process_video_task(self, task_id: str):
         self.update_state(state='PROGRESS', meta={'progress': 0, 'message': '开始处理任务'})
 
         # 执行测试处理逻辑（用于测试任务创建和执行流程）
-        _process_video_internal_test(mixed_config, task_id)
+        _process_video_internal(mixed_config, task_id)
 
         # 任务完成，更新状态
         task_manager.update_task_status(task_id, "completed", completed_at=datetime.now().isoformat())
