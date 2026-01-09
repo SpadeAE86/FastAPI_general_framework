@@ -20,9 +20,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
                                    start_time=0, mute_origin=False,
                                    project_id='test', translate_x=0, translate_y=0, rotation=0, scale=1,
                                    mirror=False, speed=1, extra_filter="", processed_so_far=0, pix_fmt="yuv420p",
-                                   cache_hit=False, fade_in_duration=0, fade_out_duration=0, audio_config=[],
+                                   cache_hit=False, fade_in_duration=0, fade_out_duration=0, audio_config=None,
                                    audio_path_list=None, vindex = 0, cap_helper = None, ai_mode = False,
-                                   sticker_config = None):
+                                   sticker_config = None, sticker_list= None):
     video_filter_list = []
     fname = os.path.basename(video)
     name, ext = os.path.splitext(fname)
@@ -155,7 +155,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         caption_distributor = CaptionDistributor(width, height, cap_config, transition_config, cap_helper, project_id)
         subtitle_list = caption_distributor.gen_subtitle_png()
 
-        if sticker_config:
+        if sticker_config and sticker_list:
             log.info(f"sticker task=-=")
 
         cur_stream = f"{end_v}"
