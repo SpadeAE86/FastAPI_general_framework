@@ -216,3 +216,5 @@ src/docs
 **/resource/
 **/work/
 **/final/
+/docs
+src/docs

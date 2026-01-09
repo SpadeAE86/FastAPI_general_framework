@@ -8,5 +8,5 @@
 cd "$(dirname "$0")/src"
 
 # 启动 Celery worker
-celery -A celery_mq.celery_app worker --loglevel=INFO --queues=video_queue --concurrency=4
+celery -A celery_mq.celery_app worker --hostname=celery_local@%h --loglevel=INFO --queues=video_queue_dev --concurrency=4
 

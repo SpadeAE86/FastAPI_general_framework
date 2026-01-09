@@ -4,10 +4,11 @@
 import os
 import time
 import socket
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import redis
 from config.config import my_config, ENV
 from utils.log_utils import logger as log
+from utils.redis_client import RedisClientFactory
 from utils.time_utils import (
     get_shanghai_iso_time,
     parse_iso_time,
@@ -18,23 +19,16 @@ from utils.time_utils import (
 class ProcessHealthMonitor:
     """进程健康监控器"""
     
-    def __init__(self):
-        """初始化Redis连接"""
-        redis_config = my_config.get("redis", {}).get(ENV, {})
-        self.redis_client = redis.Redis(
-            host=redis_config.get("host", "127.0.0.1"),
-            port=redis_config.get("port", 6379),
-            db=redis_config.get("database", 0),
-            password=redis_config.get("password"),
-            decode_responses=True
-        )
-        # 测试连接
-        try:
-            self.redis_client.ping()
-            log.info("ProcessHealthMonitor Redis连接成功")
-        except Exception as e:
-            log.error(f"ProcessHealthMonitor Redis连接失败: {e}")
-            raise
+    def __init__(self, redis_client: Optional[redis.Redis] = None):
+        """
+        初始化进程健康监控器
+        
+        Args:
+            redis_client: Redis 客户端（可选，用于依赖注入测试）
+        """
+        # 使用共享的 Redis 客户端工厂
+        self.redis_client = redis_client or RedisClientFactory.get_client()
+        log.info("ProcessHealthMonitor 初始化完成")
     
     def get_process_key_prefix(self, worker_name: str, pid: int) -> str:
         """
@@ -316,4 +310,6 @@ class ProcessHealthMonitor:
 
 # 全局进程健康监控器实例
 process_health_monitor = ProcessHealthMonitor()
+
+
 

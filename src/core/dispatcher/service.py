@@ -10,6 +10,7 @@ from celery_mq.celery_app import celery_app
 from config.config import my_config, ENV
 from celery_mq.task_manager import task_manager
 from utils.log_utils import logger as log
+from utils.rabbitmq_management import RabbitMQManagementClient
 
 
 class DispatcherService:
@@ -18,11 +19,17 @@ class DispatcherService:
     def __init__(self):
         """初始化调度服务"""
         self.running = False
-        self.queue_name = "video_queue"
-        self.dispatch_interval = 2  # 调度间隔（秒）
-        self.vip_task_count = 3  # VIP用户每次取出的任务数
-        self.normal_task_count = 1  # 普通用户每次取出的任务数
-        self.max_queue_length = 100  # RabbitMQ队列最大长度阈值
+        
+        # 从配置读取调度服务参数
+        dispatcher_config = my_config.get("dispatcher", {})
+        self.queue_name = dispatcher_config.get("queue_name", "video_queue")
+        self.dispatch_interval = dispatcher_config.get("dispatch_interval", 2)  # 调度间隔（秒）
+        self.vip_task_count = dispatcher_config.get("vip_task_count", 3)  # VIP用户每次取出的任务数
+        self.normal_task_count = dispatcher_config.get("normal_task_count", 1)  # 普通用户每次取出的任务数
+        self.max_queue_length = dispatcher_config.get("max_queue_length", 100)  # RabbitMQ队列最大长度阈值
+        
+        # 初始化 RabbitMQ Management API 客户端（缓存实例避免重复创建）
+        self.rabbitmq_client = RabbitMQManagementClient()
         
         # 注册信号处理
         signal.signal(signal.SIGTERM, self._signal_handler)
@@ -39,24 +46,36 @@ class DispatcherService:
         """
         流控检查：检查RabbitMQ队列长度
         
+        通过 RabbitMQ Management API 查询队列中的消息总数（ready + unacknowledged），
+        如果超过阈值则暂停分发，避免队列积压。
+        
         Returns:
             True表示可以继续分发，False表示需要暂停
         """
         try:
-            # 使用Celery的inspect API检查队列长度
-            inspect = celery_app.control.inspect()
-            active_queues = inspect.active_queues()
+            # 通过 RabbitMQ Management API 获取队列长度
+            queue_length = self.rabbitmq_client.get_queue_length(self.queue_name)
             
-            if not active_queues:
-                # 如果没有活跃的worker，可以继续分发
-                return True
+            log.debug(
+                f"流控检查: 队列 {self.queue_name} 当前长度={queue_length}, "
+                f"阈值={self.max_queue_length}"
+            )
             
-            # 统计所有worker的队列长度（简化处理，实际可以通过RabbitMQ Management API获取）
-            # 这里暂时返回True，实际生产环境应该通过RabbitMQ Management API查询
+            # 如果队列长度超过阈值，暂停分发
+            if queue_length >= self.max_queue_length:
+                log.warning(
+                    f"队列长度 {queue_length} 超过阈值 {self.max_queue_length}，"
+                    f"暂停分发任务到队列 {self.queue_name}"
+                )
+                return False
+            
+            # 队列长度未超过阈值，可以继续分发
             return True
+            
         except Exception as e:
-            log.error(f"检查流控时出错: {e}")
-            return True  # 出错时允许继续分发
+            log.error(f"检查流控时出错: {e}", exc_info=True)
+            # 出错时允许继续分发，避免因网络问题导致调度完全停止
+            return True
     
     def publish_to_rabbitmq(self, task_id: str):
         """

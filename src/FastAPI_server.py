@@ -10,8 +10,7 @@ from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from exceptions.ServiceException import ServiceException
 from database import *
-from celery_mq import *
-from core.health_monitor import start_health_monitor, stop_health_monitor
+from core.health_monitor.lifespan import start_health_monitor, stop_health_monitor
 
 
 @asynccontextmanager

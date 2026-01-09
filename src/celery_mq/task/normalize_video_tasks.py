@@ -2,7 +2,12 @@ from datetime import datetime
 from utils.post_utils import post
 from ffmpeg import run_async
 
+import os
+import time
+import threading
+import socket
 from celery_mq.celery_app import celery_app
+from celery.signals import worker_shutting_down
 from models.pydantic_models.request.mixed_video_request import MixedVideoRequest, ratio_option
 from celery_mq.task_manager import task_manager
 from core.video_processing.normalize_process_pool import *
@@ -17,7 +22,27 @@ import json
 import threading
 import asyncio
 
-@celery_app.task(queue="video_queue", bind=True)
+# 从配置读取任务重试参数
+celery_config = my_config.get("celery", {})
+task_config = celery_config.get("task", {})
+queue_config = celery_config.get("queue", {})
+
+# 获取任务重试配置
+max_retries = task_config.get("max_retries", 3)
+retry_countdown = task_config.get("retry_countdown", 10)
+retry_backoff_max = task_config.get("retry_backoff_max", 300)
+queue_name = queue_config.get("name", "video_queue")
+
+
+@celery_app.task(
+    queue=queue_name,
+    bind=True,
+    autoretry_for=(Exception,),  # 对所有异常自动重试
+    retry_kwargs={'max_retries': max_retries, 'countdown': retry_countdown},  # 从配置读取重试参数
+    retry_backoff=True,  # 指数退避
+    retry_backoff_max=retry_backoff_max,  # 从配置读取最大退避时间
+    retry_jitter=True,  # 添加随机抖动避免同时重试
+)
 def process_video_task(self, task_id: str):
     """
     处理视频任务
@@ -30,7 +55,6 @@ def process_video_task(self, task_id: str):
         worker_name = self.request.hostname
     else:
         # 使用socket获取主机名作为fallback
-        import socket
         worker_name = socket.gethostname()
     pid = os.getpid()
 
@@ -125,6 +149,53 @@ def _heartbeat_loop(worker_name: str, pid: int, stop_event: threading.Event, int
             stop_event.wait(timeout=interval)
 
 
+# 注册worker关闭信号处理
+@worker_shutting_down.connect
+def worker_shutting_down_handler(sender, sig, how, **kwargs):
+    """
+    当worker收到关闭信号时，标记当前任务以便重新分发
+
+    注意：这个函数会在worker关闭时被调用，用于恢复正在执行的任务
+    """
+    log.warning(f"Worker收到关闭信号: sig={sig}, how={how}")
+
+    try:
+        # 获取当前worker名称和进程ID
+        worker_name = socket.gethostname()
+        pid = os.getpid()
+
+        # 获取当前进程状态
+        process_status = process_health_monitor.get_process_status(worker_name, pid)
+        if process_status and process_status.get("current_task"):
+            task_id = process_status.get("current_task")
+
+            log.warning(f"Worker关闭，恢复任务状态: worker={worker_name}:{pid}, task_id={task_id}")
+
+            # 获取任务信息
+            task_info = task_manager.get_task_status(task_id)
+            if task_info and task_info.get("status") == "running":
+                # 将任务状态重置为pending
+                task_manager.update_task_status(
+                    task_id,
+                    "pending",
+                    error=f"Worker关闭（sig={sig}, how={how}），任务将重新分发"
+                )
+
+                # 将任务重新加入用户队列
+                user_id = task_info.get("user_id")
+                if user_id:
+                    task_data = task_manager.get_task_data(task_id)
+                    if task_data:
+                        task_manager.add_task_to_user_queue(user_id, task_id, task_data)
+                        log.info(f"任务已重新加入队列: task_id={task_id}, user_id={user_id}")
+                    else:
+                        log.error(f"无法获取任务数据，无法恢复任务: task_id={task_id}")
+                else:
+                    log.error(f"无法获取用户ID，无法恢复任务: task_id={task_id}")
+    except Exception as e:
+        log.error(f"处理worker关闭信号时出错: {e}", exc_info=True)
+
+
 def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str):
     """
     内部视频处理逻辑（原有代码）
@@ -150,13 +221,14 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str):
 
 def _process_video_internal_test(mixed_config: MixedVideoRequest, task_id: str):
     """
+    测试用视频处理函数（不执行实际处理，长时间sleep用于测试worker消失场景）
+
     测试用视频处理函数（不执行实际处理，直接返回成功）
 
     Args:
         mixed_config: 视频混剪配置
         task_id: 任务ID（用于更新进度）
     """
-    time.sleep(100)
     log.info(f"[测试模式] 开始处理任务: task_id={task_id}")
     log.info(f"[测试模式] 任务配置信息:")
     log.info(f"  - 用户名称: {mixed_config.user_name}")
@@ -165,6 +237,12 @@ def _process_video_internal_test(mixed_config: MixedVideoRequest, task_id: str):
     log.info(f"  - 分辨率: {mixed_config.resolution}")
     log.info(f"  - 比例类型: {mixed_config.ratio_type}")
     log.info(f"[测试模式] 任务配置详情: {json.dumps(mixed_config.model_dump(exclude_none=True), indent=2, ensure_ascii=False)}")
+    log.info(f"[测试模式] 任务将sleep 60秒，用于测试worker消失场景: task_id={task_id}")
+
+    # 长时间sleep，用于测试worker消失场景
+    # 在测试中，可以在此期间杀死worker进程来验证任务重发机制
+    time.sleep(60)
+
     log.info(f"[测试模式] 任务处理完成（模拟成功）: task_id={task_id}")
     # 不执行实际处理，直接返回成功
     return None

@@ -49,24 +49,45 @@ celery_app = Celery(
     include=["celery_mq.task.normalize_video_tasks"]
 )
 
+# 从配置读取 Celery 参数
+celery_config = my_config.get("celery", {})
+queue_config = celery_config.get("queue", {})
+task_config = celery_config.get("task", {})
+worker_config = celery_config.get("worker", {})
+broker_config = celery_config.get("broker", {})
+
 # Celery配置
 celery_app.conf.update(
     broker_connection_retry_on_startup=True,
-    task_acks_late=True,
-    task_reject_on_worker_lost=True,
-    task_default_message_ttl=3600000,  # 1小时
-    task_default_exchange='tasks',
-    task_default_exchange_type='direct',
-    task_default_routing_key='default',
-    task_default_delivery_mode=2,
-    task_time_limit=3600,  # 任务硬超时：1小时
-    task_soft_time_limit=3300,  # 任务软超时：55分钟
-    worker_prefetch_multiplier=1,  # 每个worker只预取1个任务
+    task_acks_late=True,  # 任务完成后才确认
+    task_reject_on_worker_lost=True,  # Worker丢失时重新分发
+    task_default_message_ttl=task_config.get("message_ttl", 3600000),  # 消息TTL：1小时（毫秒）
+    task_default_exchange=queue_config.get("exchange", "tasks"),
+    task_default_exchange_type=queue_config.get("exchange_type", "direct"),
+    task_default_routing_key=queue_config.get("routing_key", "default"),
+    task_default_delivery_mode=2,  # 持久化消息
+    task_time_limit=task_config.get("time_limit", 3600),  # 任务硬超时：1小时
+    task_soft_time_limit=task_config.get("soft_time_limit", 3300),  # 任务软超时：55分钟
+    worker_prefetch_multiplier=worker_config.get("prefetch_multiplier", 1),  # 每个worker只预取1个任务
+    worker_max_tasks_per_child=worker_config.get("max_tasks_per_child", 50),  # 每个worker进程最多处理50个任务后重启，避免内存泄漏
+    worker_disable_rate_limits=True,  # 禁用速率限制
     task_serializer='json',
     accept_content=['json'],
     result_serializer='json',
     timezone='UTC',
     enable_utc=True,
+    # RabbitMQ连接配置
+    # 注意：RabbitMQ不使用visibility_timeout（这是SQS的概念）
+    # RabbitMQ通过task_acks_late和task_reject_on_worker_lost来处理消息重分发
+    broker_transport_options={
+        'max_retries': broker_config.get("max_retries", 3),
+        'interval_start': broker_config.get("interval_start", 0),
+        'interval_step': broker_config.get("interval_step", 0.2),
+        'interval_max': broker_config.get("interval_max", 0.2),
+        'priority_steps': list(range(10)),  # 支持优先级
+        'sep': ':',
+        'queue_order_strategy': 'priority',  # 优先级队列策略
+    },
 )
 
 # 告诉 Celery 去哪里找 task
