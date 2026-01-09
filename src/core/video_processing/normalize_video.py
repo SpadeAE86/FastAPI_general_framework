@@ -61,9 +61,6 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     cache_video_key = f'{name}_{start_time}_{max_len}.mp4'
     cache_video_path = f"./work/{project_id}/nocap_{vindex}_{cache_video_key}"
 
-    ratio = height / video_height if video_width / video_height > width / height else width / video_width
-    scale_str = f"scale=-1:{height}:flags=lanczos" if video_width / video_height > width / height else f"scale={width}:-1:flags=lanczos"
-    # log.info(f"ai_mode {ai_mode}, ")
 
     #切分文件
     segment = video
@@ -79,9 +76,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         max_len = segment_result.end_time
 
     end_v= "[0:v]"
+
     #变换滤镜
     preset_option = ['-preset', 'ultrafast'] if my_config['device'] == "cpu" else ['-preset', '12']
-    gpu_option = ["-hwaccel", "cuda", "-hwaccel_output_format", "cuda"] if my_config['device'] == "gpu" else []
     gpu_encoder = []
     if my_config["device"] == "gpu":
         gpu_encoder.extend(["-c:v", "h264_nvenc"])
@@ -91,16 +88,22 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     if mute_origin or not has_audio:
         log.info(f"video {video} does not have audio stream")
         muted_audio = ["-f", "lavfi", "-i", 'anullsrc=channel_layout=stereo:sample_rate=44100']
+    audio_filter = ""
     if speed != 1.0 and not mute_origin:
         audio_filter = ["-af", build_atempo_filter(speed)]
-    if my_config["device"] == "cpu":
+    if my_config["device"] == "cpu" or rot != 0 or "10le" in pix_format or codec == "mjpeg":
+        # transform = [
+        #     f"scale=-1:{height}:flags=bicubic" if video_width / video_height > width / height else f"scale={width}:-1:flags=bicubic",
+        #     f"crop={width}:{height}:(iw-{width})/2:(ih-{height})/2"
+        # ]
         transform = [
-            f"scale=-1:{height}:flags=lanczos" if video_width / video_height > width / height else f"scale={width}:-1:flags=lanczos",
-            f"crop={width}:{height}:(iw-{width})/2:(ih-{height})/2"
+            f"scale={width}:{height}:force_original_aspect_ratio=decrease:flags=lanczos",
+            f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:black"
         ]
     else:
         transform = [
-            f"scale_cuda=-1:{height}::force_original_aspect_ratio=cover" if video_width / video_height > width / height else f"scale_cuda={width}:-1:force_original_aspect_ratio=cover"
+            f"scale_cuda={width}:-1" if video_width / video_height > width / height else f"scale_cuda=-1:{height}",
+            f"pad_cuda={width}:{height}:(ow-iw)/2:(oh-ih)/2"
         ]
     if extra_filter:
         transform.append(f"{extra_filter}")
@@ -141,11 +144,8 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     if transform_str:
         video_filter_list.append(f"{end_v}{transform_str}[no_cap_v]")
         end_v = "[no_cap_v]"
-    # ===================================================
-    # 执行逻辑：分两步
-    # ===================================================
-    #字幕滤镜
 
+    #字幕滤镜
     vf_text = ""
     subtitle_png_input = []
     subtitle_list = []
@@ -182,7 +182,6 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
 
 
     #音频滤镜
-    audio_filter = ""
     end_a = "0:a" if not mute_origin and has_audio else f"{len(subtitle_list)+1}:a"
     weights = []
     audio_input = []
@@ -220,22 +219,21 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         video_filter_list.append(audio_filter)
 
     video_filter = ";".join(video_filter_list)
-    gpu_decode_option = ["-c:v", "h264_cuvid"] if my_config['device'] == "gpu" else []
-    gpu_activate_flag = ["-hwaccel", "cuda", "-hwaccel_output_format", "cuda"] if my_config['device'] == "gpu" else []
+    gpu_activate_flag = ["-hwaccel", "cuda", "-hwaccel_output_format", "cuda"] if my_config[
+                                                                                      'device'] == "gpu" and "10le" not in pix_format and abs(
+        rot) == 0 and codec != "mjpeg" else []
     # 使用三个filter一次性完成
     normalize_cmd = [
         'ffmpeg', "-ignore_editlist", "1",
         *gpu_activate_flag,
-        *gpu_decode_option,
         '-i', segment,
-        *gpu_option,
         *subtitle_png_input,
         *muted_audio,
         *audio_input_option,
         '-ss', str(float(start_time/speed)), '-to', str(min(max_len, duration)/speed),
         '-r', str(fps),
         *gpu_encoder,
-        "-threads", "4",
+        "-threads", "2",
         *preset_option,
         "-filter_complex", video_filter,
         *audio_filter,
