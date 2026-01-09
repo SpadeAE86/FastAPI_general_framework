@@ -25,7 +25,7 @@ class CleanupTTLCache(TTLCache):
         if expired_items is None:
             return expired_items
         for key, value in expired_items:
-            if key not in self.refresh and my_config["env"] == "local":
+            if key not in self.refresh and my_config["direct_download"]:
                 try:
                     self.loop.create_task(self.on_evicted(key, value))
                 except Exception as e:

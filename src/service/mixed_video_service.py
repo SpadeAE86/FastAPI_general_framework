@@ -184,7 +184,7 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         log.info(f"{output_file}, {cover_img} created successfully!")
         file_size = os.path.getsize(output_file)  # 单位：字节
         upload_start = time.time()
-        upload_video_path = f"aigc/aigc_{my_config['env']}/{mixed_config.user}"
+        upload_video_path = f"aigc/aigc_{my_config['env']}/{mixed_config.user_name}"
         obs_video_url, obs_cover_url = await asyncio.gather(upload_to_obs(output_file, obs_prefix=upload_video_path, project_id=project_id),
                                                             upload_to_obs(output_file, obs_prefix=upload_video_path, project_id=project_id))
         log.info(f"successfully uploaded to obs available by {obs_video_url}")
@@ -195,12 +195,9 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         if mixed_config.obs_video_path_list:
             # asyncio.create_task(delete_folder(os.path.join("./video", project_id)))
             asyncio.create_task(delete_folder(os.path.join("./work", project_id)))
-            # asyncio.create_task(delete_folder(os.path.join("./final", project_id)))
-        duration = 0
-        if mixed_config.timeline_config:
-            for i, c in enumerate(mixed_config.timeline_config):
-                duration = max(duration, c.offset + c.end)
-        elif mixed_config.transition_config:
+            asyncio.create_task(delete_folder(os.path.join("./final", project_id)))
+
+        if mixed_config.transition_config:
             duration = sum(len_list) - sum([tr.duration if tr else 0 for tr in mixed_config.transition_config])
         else:
             duration = sum(len_list)

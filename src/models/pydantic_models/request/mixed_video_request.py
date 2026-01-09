@@ -43,12 +43,12 @@ resolution_option = ["720p", "1080p", "2k", "4k"]
 # 定义混剪请求体
 class MixedVideoRequest(BaseModel):
     obs_video_path_list: List[str] = Field(default_factory=lambda: [])  # 视频链接列表
-    ratio_type: Literal[*ratio_type_option] = None  # 导出的视频尺幅类型
-    resolution: Literal[*resolution_option] = None  # 导出的视频分辨率
+    ratio_type: Optional[Literal[*ratio_type_option]] = None  # 导出的视频尺幅类型
+    resolution: Optional[Literal[*resolution_option]] = None  # 导出的视频分辨率
     fps: int = Field(default=30, ge=20, le=60)  # 导出的视频帧数
     crop_config: List[CropConfig] = Field(default_factory=lambda: [])  # 视频拼接模式配置
     user_name: str = ""  # 用户名
-    cap_config: CapConfig = None  # 字幕配置
+    cap_config: Optional[CapConfig] = None  # 字幕配置
     local_mode: bool = Field(default=False)  # 本地调试模式
     mute_config: List[bool] = Field(default_factory=lambda: [])  # 静音设置
     transition_config: List[Optional[TransitionConfig]] = Field(default_factory=lambda: [])  # 视频转场配置
