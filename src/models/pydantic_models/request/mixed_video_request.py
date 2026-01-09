@@ -61,4 +61,5 @@ class MixedVideoRequest(BaseModel):
     retry_count: Optional[int] = 0
     callback_url: Optional[str] = None
     sticker_config: List[StickerConfig] = Field(default_factory=lambda: [])  # 贴纸配置
+    obs_sticker_path_list: Optional[List[str]] = Field(default_factory=lambda: [])  # 贴纸路径
 
