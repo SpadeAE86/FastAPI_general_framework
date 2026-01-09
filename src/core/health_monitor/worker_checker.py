@@ -8,6 +8,11 @@ from typing import List, Dict, Any, Set, Optional, Tuple
 from celery_mq.celery_app import celery_app
 from core.health_monitor.monitor import process_health_monitor
 from utils.process_utils import parse_process_id
+from utils.env_utils import (
+    extract_env_from_worker_name,
+    is_same_env,
+    extract_hostname_from_worker_name
+)
 from utils.log_utils import logger as log
 from config.config import ENV
 
@@ -52,12 +57,12 @@ class WorkerChecker:
             filtered_workers = set()
             filtered_out_count = 0
             for worker_name in all_worker_names:
-                if self.is_same_env(worker_name):
+                if is_same_env(worker_name, self.current_env):
                     filtered_workers.add(worker_name)
                 else:
                     filtered_out_count += 1
                     # 检查被过滤的原因
-                    worker_env = self.extract_env_from_worker_name(worker_name)
+                    worker_env = extract_env_from_worker_name(worker_name)
                     if worker_env is None:
                         reason = "worker名称缺少环境标识"
                     else:
@@ -176,16 +181,24 @@ class WorkerChecker:
         # 比较环境是否匹配
         return worker_env == self.current_env
     
-    def is_local_worker(self, hostname: str) -> bool:
+    def is_local_worker(self, worker_name: str) -> bool:
         """
         判断worker是否在当前机器上
         
         Args:
-            hostname: worker所在机器的主机名
+            worker_name: worker名称，可以是：
+                - 完整格式: "celery_local@hostname"
+                - 仅hostname: "hostname"
             
         Returns:
             如果是本地worker返回True
         """
+        # 提取 hostname 部分进行比较
+        hostname = extract_hostname_from_worker_name(worker_name)
+        if hostname is None:
+            # worker_name 不包含 @，本身就是 hostname
+            hostname = worker_name
+        
         return hostname == self.local_hostname
     
     def check_process_exists(self, pid: int) -> bool:
@@ -216,25 +229,23 @@ class WorkerChecker:
         匹配Celery worker名称和Redis中的worker名称，并返回hostname
         
         Celery worker名称格式: "worker_name@hostname"
-        Redis worker名称格式: "hostname" (实际存储的是hostname)
+        Redis worker名称格式: "worker_name@hostname" (完整的Celery worker名称)
         
         Args:
-            celery_worker_name: Celery worker名称（如 "test_worker@hostname"）
-            redis_worker_name: Redis中的worker名称（实际是hostname，如 "hostname"）
+            celery_worker_name: Celery worker名称（如 "celery_local@hostname"）
+            redis_worker_name: Redis中的worker名称（完整Celery worker名称，如 "celery_local@hostname"）
             
         Returns:
             (是否匹配, hostname)
         """
-        # 提取Celery worker名称的hostname部分
-        celery_hostname = self.extract_hostname_from_celery_worker(celery_worker_name)
+        # 直接比较完整的worker名称
+        # Redis中存储的worker_name实际上是完整的Celery worker名称（来自self.request.hostname）
+        is_match = celery_worker_name == redis_worker_name
         
-        if celery_hostname is None:
-            # Celery worker名称格式不正确，尝试匹配worker名称部分
-            celery_name_part = celery_worker_name.split("@")[0]
-            return (celery_name_part == redis_worker_name, None)
+        # 提取hostname用于返回
+        hostname = extract_hostname_from_worker_name(celery_worker_name)
         
-        # Redis中存储的是hostname，直接比较
-        return (celery_hostname == redis_worker_name, celery_hostname)
+        return (is_match, hostname)
     
     def check_workers(self) -> Dict[str, Any]:
         """
@@ -261,24 +272,24 @@ class WorkerChecker:
             redis_processes = self.get_registered_processes_from_redis()
             
             # 过滤出当前环境的Redis进程
-            # 注意：Redis中存储的worker_name是hostname，不包含环境信息
-            # 我们需要通过匹配Celery worker来判断环境
+            # 注意：Redis中存储的worker_name是完整的Celery worker名称（如 celery_local@hostname）
+            # 我们可以直接从worker_name提取环境信息
             filtered_redis_processes = {}
             redis_filtered_out_count = 0
             
             # 建立hostname到Celery worker的映射（用于环境判断）
             hostname_to_celery_worker = {}
             for celery_worker_name in celery_workers:
-                hostname = self.extract_hostname_from_celery_worker(celery_worker_name)
+                hostname = extract_hostname_from_worker_name(celery_worker_name)
                 if hostname:
                     hostname_to_celery_worker[hostname] = celery_worker_name
             
             for process_str, process_status in redis_processes.items():
-                worker_name = process_status.get("worker_name")  # 这是hostname
+                worker_name = process_status.get("worker_name")  # 完整的Celery worker名称
                 
                 # 查找对应的Celery worker来判断环境
                 matched_celery_worker = hostname_to_celery_worker.get(worker_name)
-                if matched_celery_worker and self.is_same_env(matched_celery_worker):
+                if matched_celery_worker and is_same_env(matched_celery_worker, self.current_env):
                     # 有匹配的Celery worker且环境匹配
                     filtered_redis_processes[process_str] = process_status
                 elif matched_celery_worker:
@@ -288,7 +299,7 @@ class WorkerChecker:
                 else:
                     # 没有匹配的Celery worker，可能是旧数据或不同环境的worker
                     # 为了向后兼容，如果worker_name本身包含环境信息，也检查
-                    if self.is_same_env(worker_name):
+                    if is_same_env(worker_name, self.current_env):
                         filtered_redis_processes[process_str] = process_status
                     else:
                         redis_filtered_out_count += 1
@@ -303,7 +314,7 @@ class WorkerChecker:
             missing_workers = []
             
             for process_str, process_status in redis_processes.items():
-                worker_name = process_status.get("worker_name")  # 这是hostname
+                worker_name = process_status.get("worker_name")  # 完整的Celery worker名称
                 pid = process_status.get("pid")
                 
                 # 查找对应的Celery worker

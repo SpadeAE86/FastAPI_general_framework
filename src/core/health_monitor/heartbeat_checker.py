@@ -8,6 +8,7 @@ from typing import List, Dict, Any, Optional
 from core.health_monitor.monitor import process_health_monitor
 from utils.time_utils import parse_iso_time
 from utils.process_utils import parse_process_id
+from utils.env_utils import extract_env_from_worker_name, is_same_env
 from utils.log_utils import logger as log
 from config.config import ENV
 
@@ -27,58 +28,6 @@ class HeartbeatChecker:
         self.local_hostname = socket.gethostname()
         # 获取当前环境
         self.current_env = ENV
-    
-    def extract_env_from_worker_name(self, worker_name: str) -> Optional[str]:
-        """
-        从worker名称中提取环境标识
-        
-        支持的格式：
-        - celery_local@hostname -> local
-        - celery_test@hostname -> test
-        - celery_prod@hostname -> prod
-        - worker_name_local@hostname -> local
-        
-        Args:
-            worker_name: Worker名称，格式为 "worker_name_env@hostname" 或 "worker_name@hostname"
-            
-        Returns:
-            环境标识（如 "local", "test", "prod"），如果未找到返回None
-        """
-        # 常见环境标识列表
-        env_patterns = ['_local', '_test', '_prod', '_dev', '_staging']
-        
-        # 提取@之前的部分
-        if "@" in worker_name:
-            name_part = worker_name.split("@")[0]
-        else:
-            name_part = worker_name
-        
-        # 检查是否包含环境标识
-        for pattern in env_patterns:
-            if name_part.endswith(pattern):
-                return pattern[1:]  # 去掉下划线
-        
-        return None
-    
-    def is_same_env(self, worker_name: str) -> bool:
-        """
-        判断worker是否属于当前环境
-        
-        Args:
-            worker_name: Worker名称
-            
-        Returns:
-            如果worker属于当前环境返回True，否则返回False
-        """
-        # 从worker名称提取环境
-        worker_env = self.extract_env_from_worker_name(worker_name)
-        
-        # 如果worker名称中没有环境标识，默认认为属于当前环境（向后兼容）
-        if worker_env is None:
-            return True
-        
-        # 比较环境是否匹配
-        return worker_env == self.current_env
     
     def check_heartbeats(self) -> List[Dict[str, Any]]:
         """
@@ -104,7 +53,7 @@ class HeartbeatChecker:
                     worker_name, pid = parsed
                     
                     # 检查worker是否属于当前环境
-                    if not self.is_same_env(worker_name):
+                    if not is_same_env(worker_name, self.current_env):
                         log.debug(f"跳过不同环境的worker心跳检查: {worker_name} (当前环境: {self.current_env})")
                         continue
                     

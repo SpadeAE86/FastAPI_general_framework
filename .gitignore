@@ -207,8 +207,7 @@ marimo/_lsp/
 __marimo__/
 tests/
 src/test
-# 临时允许访问 worker 消失测试文件
-#!src/test/test_worker_disappear.py
-src/docs
+ src/docs
 设计.md
 /docs
+src/docs

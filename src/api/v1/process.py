@@ -1,14 +1,21 @@
 """
 进程状态查询API路由
+
+重构说明：通过模块级变量支持依赖注入，提高可测试性。
+遵循依赖倒置原则 (DIP)。
 """
 from fastapi import APIRouter, HTTPException, Path
 from core.health_monitor import process_health_monitor
+from celery_mq.protocols import ProcessHealthMonitorProtocol
 from celery_mq.celery_app import celery_app
 from utils.process_utils import parse_process_id
 from utils.log_utils import logger as log
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 process_router = APIRouter(prefix="/api/v1/process", tags=["process"])
+
+# 模块级依赖，支持测试时替换
+_health_monitor: ProcessHealthMonitorProtocol = process_health_monitor
 
 
 @process_router.get("/status")
@@ -20,7 +27,7 @@ async def get_all_process_status() -> Dict[str, Any]:
         所有进程的状态信息
     """
     try:
-        processes = process_health_monitor.get_all_processes()
+        processes = _health_monitor.get_all_processes()
         process_list = []
         
         for process_id in processes:
@@ -32,7 +39,7 @@ async def get_all_process_status() -> Dict[str, Any]:
                 
                 worker_name, pid = parsed
                 
-                status = process_health_monitor.get_process_status(worker_name, pid)
+                status = _health_monitor.get_process_status(worker_name, pid)
                 if status:
                     process_list.append(status)
             except (ValueError, KeyError) as e:
@@ -68,7 +75,7 @@ async def get_process_status(
         进程状态信息
     """
     try:
-        status = process_health_monitor.get_process_status(worker_name, pid)
+        status = _health_monitor.get_process_status(worker_name, pid)
         
         if not status:
             raise HTTPException(status_code=404, detail="进程不存在")
@@ -102,7 +109,7 @@ async def restart_process(
     """
     try:
         # 检查进程是否存在
-        status = process_health_monitor.get_process_status(worker_name, pid)
+        status = _health_monitor.get_process_status(worker_name, pid)
         if not status:
             raise HTTPException(status_code=404, detail="进程不存在")
         

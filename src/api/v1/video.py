@@ -1,13 +1,20 @@
 """
 视频处理API路由
+
+重构说明：通过模块级变量支持依赖注入，提高可测试性。
+遵循依赖倒置原则 (DIP)。
 """
 from fastapi import APIRouter, HTTPException, Path
 from models.pydantic_models.request.mixed_video_request import MixedVideoConfig
+from celery_mq.protocols import TaskManagerProtocol
 from celery_mq.task_manager import task_manager
 from utils.log_utils import logger as log
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 
 video_router = APIRouter(prefix="/api/v1/video", tags=["video"])
+
+# 模块级依赖，支持测试时替换
+_task_manager: TaskManagerProtocol = task_manager
 
 
 @video_router.post("/edit")
@@ -29,10 +36,10 @@ async def create_video_task(mixed_config: MixedVideoConfig) -> Dict[str, Any]:
         task_data = mixed_config.model_dump(exclude_none=True)
         
         # 创建任务
-        task_id = task_manager.create_task(user_id, task_data)
+        task_id = _task_manager.create_task(user_id, task_data)
         
         # 获取任务状态
-        task_status = task_manager.get_task_status(task_id)
+        task_status = _task_manager.get_task_status(task_id)
         
         log.info(f"任务创建成功: task_id={task_id}, user_id={user_id}")
         
@@ -62,7 +69,7 @@ async def get_task_status(task_id: str = Path(..., description="任务ID")) -> D
         任务状态信息
     """
     try:
-        task_status = task_manager.get_task_status(task_id)
+        task_status = _task_manager.get_task_status(task_id)
         
         if not task_status:
             raise HTTPException(status_code=404, detail="任务不存在")
@@ -92,12 +99,12 @@ async def get_task_subtasks(task_id: str = Path(..., description="任务ID")) ->
     """
     try:
         # 先检查任务是否存在
-        task_status = task_manager.get_task_status(task_id)
+        task_status = _task_manager.get_task_status(task_id)
         if not task_status:
             raise HTTPException(status_code=404, detail="任务不存在")
         
         # 获取子任务列表
-        subtasks = task_manager.get_task_subtasks(task_id)
+        subtasks = _task_manager.get_task_subtasks(task_id)
         
         return {
             "code": 200,
@@ -126,7 +133,7 @@ async def delete_task(task_id: str = Path(..., description="任务ID")) -> Dict[
         删除结果
     """
     try:
-        success = task_manager.delete_task(task_id)
+        success = _task_manager.delete_task(task_id)
         
         if not success:
             raise HTTPException(status_code=404, detail="任务不存在")
