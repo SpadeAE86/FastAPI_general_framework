@@ -19,11 +19,14 @@ class DispatcherService:
     def __init__(self):
         """初始化调度服务"""
         self.running = False
-        self.queue_name = "video_queue"
-        self.dispatch_interval = 2  # 调度间隔（秒）
-        self.vip_task_count = 3  # VIP用户每次取出的任务数
-        self.normal_task_count = 1  # 普通用户每次取出的任务数
-        self.max_queue_length = 100  # RabbitMQ队列最大长度阈值
+        
+        # 从配置读取调度服务参数
+        dispatcher_config = my_config.get("dispatcher", {})
+        self.queue_name = dispatcher_config.get("queue_name", "video_queue")
+        self.dispatch_interval = dispatcher_config.get("dispatch_interval", 2)  # 调度间隔（秒）
+        self.vip_task_count = dispatcher_config.get("vip_task_count", 3)  # VIP用户每次取出的任务数
+        self.normal_task_count = dispatcher_config.get("normal_task_count", 1)  # 普通用户每次取出的任务数
+        self.max_queue_length = dispatcher_config.get("max_queue_length", 100)  # RabbitMQ队列最大长度阈值
         
         # 初始化 RabbitMQ Management API 客户端（缓存实例避免重复创建）
         self.rabbitmq_client = RabbitMQManagementClient()
