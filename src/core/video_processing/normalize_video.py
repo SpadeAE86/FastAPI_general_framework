@@ -46,10 +46,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
 
 
     if start_time > duration:
-        raise ServiceException(code=439, message=f"{video}起始时间大于视频时长{duration}")
+        raise ServiceException(code=439, message=f"{video}起始时间{start_time}大于视频时长{duration}")
     max_len = min(duration, max_len)
 
-    audio_filter = []
     muted_audio = []
     translate_x = translate_x * video_width
     translate_y = -translate_y * video_height
