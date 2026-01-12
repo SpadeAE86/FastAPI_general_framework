@@ -229,9 +229,12 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         video_filter_list.append(audio_filter)
     # 组装总滤镜
     video_filter = ";".join(video_filter_list)
-    gpu_activate_flag = ["-hwaccel", "cuda", "-hwaccel_output_format", "cuda"] if my_config[
-                                                                                      'device'] == "gpu" and "10le" not in pix_format and abs(
-        rot) == 0 and codec != "mjpeg" else []
+
+    # 如果不是奇怪的格式，就试用gpu解码
+    gpu_activate_flag = ["-hwaccel", "cuda", "-hwaccel_output_format", "cuda"]\
+        if (my_config['device'] == "gpu" and "10le" not in pix_format
+            and abs(rot) == 0 and codec != "mjpeg") else []
+
     # 使用三个filter一次性完成
     normalize_cmd = [
         'ffmpeg', "-ignore_editlist", "1",
@@ -255,6 +258,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         output_name
     ]
 
+    # ffmpeg进程启动
     run_ffmpeg_command(normalize_cmd, video_name=fname)
     log.info(f"{video} 完成处理")
 
