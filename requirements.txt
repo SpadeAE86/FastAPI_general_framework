@@ -9,7 +9,6 @@ asyncmy==0.2.10
 attrs==25.4.0
 billiard==4.2.4
 blinker==1.9.0
-bson==0.5.10
 cachetools==5.3.3
 celery==5.6.1
 certifi==2025.11.12
