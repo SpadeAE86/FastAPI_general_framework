@@ -34,12 +34,14 @@ class ProcessHealthMonitor:
         """
         获取进程Redis键前缀
         
+        生成用于存储进程信息的Redis键前缀，格式为 "process:worker_name:pid"。
+        
         Args:
-            worker_name: Worker名称
-            pid: 进程ID
-            
+            worker_name: Worker名称，用于标识worker节点
+            pid: 进程ID，用于标识具体的进程实例
+        
         Returns:
-            Redis键前缀
+            str: Redis键前缀，格式为 "process:worker_name:pid"
         """
         return f"process:{worker_name}:{pid}"
     
@@ -47,12 +49,15 @@ class ProcessHealthMonitor:
         """
         注册进程到Redis
         
+        在Redis中创建进程的初始状态信息，包括心跳时间、状态、启动时间、重启计数等，
+        并将进程添加到全局进程集合中。
+        
         Args:
-            worker_name: Worker名称
-            pid: 进程ID
-            
+            worker_name: Worker名称，用于标识worker节点
+            pid: 进程ID，用于标识具体的进程实例
+        
         Returns:
-            是否注册成功
+            bool: 如果注册成功返回True，否则返回False
         """
         try:
             key_prefix = self.get_process_key_prefix(worker_name, pid)
@@ -78,12 +83,15 @@ class ProcessHealthMonitor:
         """
         更新心跳时间戳
         
+        更新进程的最后心跳时间，用于健康监控系统检测进程是否存活。
+        心跳时间设置为120秒过期（心跳超时的2倍）。
+        
         Args:
-            worker_name: Worker名称
-            pid: 进程ID
-            
+            worker_name: Worker名称，用于标识worker节点
+            pid: 进程ID，用于标识具体的进程实例
+        
         Returns:
-            是否更新成功
+            bool: 如果更新成功返回True，否则返回False
         """
         try:
             key_prefix = self.get_process_key_prefix(worker_name, pid)
@@ -101,13 +109,16 @@ class ProcessHealthMonitor:
         """
         更新任务分配信息
         
+        当进程开始执行任务时调用，更新进程状态为running，记录当前执行的任务ID，
+        并更新心跳时间。
+        
         Args:
-            worker_name: Worker名称
-            pid: 进程ID
-            task_id: 任务ID
-            
+            worker_name: Worker名称，用于标识worker节点
+            pid: 进程ID，用于标识具体的进程实例
+            task_id: 任务ID，用于标识当前正在执行的任务
+        
         Returns:
-            是否更新成功
+            bool: 如果更新成功返回True，否则返回False
         """
         try:
             key_prefix = self.get_process_key_prefix(worker_name, pid)
@@ -128,12 +139,15 @@ class ProcessHealthMonitor:
         """
         清除任务分配信息（任务完成或失败时调用）
         
+        将进程状态更新为空闲（idle），清除当前任务信息。
+        通常在任务完成、失败或进程挂起时调用。
+        
         Args:
-            worker_name: Worker名称
-            pid: 进程ID
-            
+            worker_name: Worker名称，用于标识worker节点
+            pid: 进程ID，用于标识具体的进程实例
+        
         Returns:
-            是否清除成功
+            bool: 如果清除成功返回True，否则返回False
         """
         try:
             key_prefix = self.get_process_key_prefix(worker_name, pid)
@@ -151,12 +165,17 @@ class ProcessHealthMonitor:
         """
         获取进程状态
         
+        从Redis中获取进程的所有状态信息，包括状态、当前任务、心跳时间、启动时间等。
+        时间字段会被转换为上海时区的ISO格式字符串。
+        
         Args:
-            worker_name: Worker名称
-            pid: 进程ID
-            
+            worker_name: Worker名称，用于标识worker节点
+            pid: 进程ID，用于标识具体的进程实例
+        
         Returns:
-            进程状态信息字典，如果进程不存在返回None
+            Optional[Dict[str, Any]]: 进程状态信息字典，包含worker_name、pid、status、current_task、
+                heartbeat、start_time、restart_count、last_restart_time等字段。
+                如果进程不存在返回None
         """
         try:
             key_prefix = self.get_process_key_prefix(worker_name, pid)
@@ -196,8 +215,10 @@ class ProcessHealthMonitor:
         """
         获取所有已注册的进程列表
         
+        从Redis的进程集合中获取所有已注册的进程标识。
+        
         Returns:
-            进程标识列表，格式为 ["worker_name:pid", ...]
+            list: 进程标识列表，格式为 ["worker_name:pid", ...]，如果获取失败返回空列表
         """
         try:
             processes = self.redis_client.smembers("processes:all")
@@ -210,12 +231,14 @@ class ProcessHealthMonitor:
         """
         标记进程为挂起状态
         
+        将进程状态更新为"hung"，用于标识进程可能出现了问题（如心跳超时、任务超时等）。
+        
         Args:
-            worker_name: Worker名称
-            pid: 进程ID
-            
+            worker_name: Worker名称，用于标识worker节点
+            pid: 进程ID，用于标识具体的进程实例
+        
         Returns:
-            是否标记成功
+            bool: 如果标记成功返回True，否则返回False
         """
         try:
             key_prefix = self.get_process_key_prefix(worker_name, pid)
@@ -230,12 +253,14 @@ class ProcessHealthMonitor:
         """
         增加重启计数（原子操作）
         
+        使用Redis的INCR命令原子性地增加进程的重启计数，并记录最后重启时间。
+        
         Args:
-            worker_name: Worker名称
-            pid: 进程ID
-            
+            worker_name: Worker名称，用于标识worker节点
+            pid: 进程ID，用于标识具体的进程实例
+        
         Returns:
-            新的重启计数
+            int: 新的重启计数，如果操作失败返回0
         """
         try:
             key_prefix = self.get_process_key_prefix(worker_name, pid)
@@ -256,12 +281,14 @@ class ProcessHealthMonitor:
         """
         获取重启计数
         
+        从Redis中读取进程的重启计数。
+        
         Args:
-            worker_name: Worker名称
-            pid: 进程ID
-            
+            worker_name: Worker名称，用于标识worker节点
+            pid: 进程ID，用于标识具体的进程实例
+        
         Returns:
-            重启计数
+            int: 重启计数，如果进程不存在或获取失败返回0
         """
         try:
             key_prefix = self.get_process_key_prefix(worker_name, pid)
@@ -275,12 +302,15 @@ class ProcessHealthMonitor:
         """
         清理进程信息（进程正常退出时调用）
         
+        删除进程在Redis中的所有相关信息，包括心跳、状态、任务、启动时间、重启计数等，
+        并从全局进程集合中移除该进程。
+        
         Args:
-            worker_name: Worker名称
-            pid: 进程ID
-            
+            worker_name: Worker名称，用于标识worker节点
+            pid: 进程ID，用于标识具体的进程实例
+        
         Returns:
-            是否清理成功
+            bool: 如果清理成功返回True，否则返回False
         """
         try:
             key_prefix = self.get_process_key_prefix(worker_name, pid)
@@ -310,6 +340,7 @@ class ProcessHealthMonitor:
 
 # 全局进程健康监控器实例
 process_health_monitor = ProcessHealthMonitor()
+
 
 
 

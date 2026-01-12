@@ -26,13 +26,16 @@ class ProcessRestartHandler:
     def restart_worker(self, worker_name: str, pid: int) -> bool:
         """
         使用Celery control API重启worker
+        
+        首先尝试使用pool_restart方法重启worker进程池（适用于prefork或threads pool），
+        如果不可用则尝试使用shutdown命令关闭worker（需要外部进程管理器重启）。
 
         Args:
-            worker_name: Worker名称
-            pid: 进程ID
+            worker_name: Worker名称，用于标识要重启的worker节点
+            pid: 进程ID，用于日志记录（实际重启操作针对整个worker节点）
 
         Returns:
-            是否重启成功
+            bool: 如果重启命令发送成功返回True，否则返回False
         """
         try:
             control = celery_app.control
@@ -67,14 +70,17 @@ class ProcessRestartHandler:
     def stop_task_and_mark_failed(self, task_id: str, worker_name: str, pid: int) -> bool:
         """
         停止任务并标记为失败
+        
+        将任务状态更新为failed，清除进程的任务分配信息。
+        用于处理进程挂起且重启次数已达上限的情况。
 
         Args:
-            task_id: 任务ID
-            worker_name: Worker名称
-            pid: 进程ID
+            task_id: 任务ID，用于标识要停止的任务
+            worker_name: Worker名称，用于日志记录
+            pid: 进程ID，用于日志记录和清除任务分配
 
         Returns:
-            是否处理成功
+            bool: 如果处理成功返回True，否则返回False
         """
         try:
             log.error(f"停止任务并标记失败: task_id={task_id}, worker={worker_name}:{pid}")
@@ -101,15 +107,16 @@ class ProcessRestartHandler:
         """
         处理挂起的进程（只标记，不重启）
         
-        注意：不再执行重启操作，由 Celery retries 机制处理任务重试。
+        标记进程为挂起状态，如果重启次数已达上限则标记相关任务为失败。
+        注意：不再执行重启操作，由Celery retries机制处理任务重试。
         监控服务只负责检测和标记异常状态，不执行重启或任务重新分配。
 
         Args:
-            hung_process: 挂起进程信息
-            reassignment_handler: 任务重新分配处理器（已废弃，不再使用）
+            hung_process: 挂起进程信息字典，包含worker_name、pid、restart_count、current_task等字段
+            reassignment_handler: 任务重新分配处理器（已废弃，不再使用，保留参数以保持向后兼容）
 
         Returns:
-            是否处理成功
+            bool: 如果处理成功返回True，否则返回False
         """
         worker_name = hung_process["worker_name"]
         pid = hung_process["pid"]

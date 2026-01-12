@@ -4,7 +4,15 @@ from utils.log_utils import logger as log
 
 
 def get_rabbitmq_broker_url():
-    """获取RabbitMQ broker URL"""
+    """
+    获取RabbitMQ broker URL
+    
+    从配置文件中读取RabbitMQ连接信息，构建AMQP格式的连接URL。
+    如果虚拟主机(vhost)为根路径"/"，会自动编码为"%2F"。
+    
+    Returns:
+        str: RabbitMQ broker连接URL，格式为 amqp://username:password@host:port/vhost
+    """
     rabbitmq_config = my_config.get("rabbitmq", {}).get(ENV, {})
     username = rabbitmq_config.get("username", "guest")
     password = rabbitmq_config.get("password", "guest")
@@ -21,7 +29,15 @@ def get_rabbitmq_broker_url():
 
 
 def get_redis_backend_url():
-    """获取Redis backend URL（用于结果存储）"""
+    """
+    获取Redis backend URL（用于结果存储）
+    
+    从配置文件中读取Redis连接信息，构建Redis格式的连接URL。
+    用于Celery任务结果的存储和查询。
+    
+    Returns:
+        str: Redis backend连接URL，格式为 redis://host:port/db 或 redis://:password@host:port/db
+    """
     redis_config = my_config.get("redis", {}).get(ENV, {})
     host = redis_config.get("host", "127.0.0.1")
     port = redis_config.get("port", 6379)

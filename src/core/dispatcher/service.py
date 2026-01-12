@@ -36,7 +36,15 @@ class DispatcherService:
         signal.signal(signal.SIGINT, self._signal_handler)
     
     def _signal_handler(self, signum, frame):
-        """信号处理函数"""
+        """
+        信号处理函数
+        
+        处理SIGTERM和SIGINT信号，优雅地关闭调度服务。
+        
+        Args:
+            signum: 信号编号
+            frame: 当前堆栈帧
+        """
         log.info(f"收到信号 {signum}，准备关闭调度服务...")
         self.stop()
         sys.exit(0)
@@ -81,8 +89,11 @@ class DispatcherService:
         """
         发布任务到RabbitMQ队列（使用Celery API）
         
+        使用Celery的apply_async方法将任务发送到指定的RabbitMQ队列。
+        任务数据已经在Redis中，这里只发送task_id。
+        
         Args:
-            task_id: 任务ID（任务数据已在Redis中）
+            task_id: 任务ID，用于标识要发布的任务（任务数据已在Redis中）
         """
         try:
             # 使用Celery的send_task方法发送任务
@@ -103,8 +114,13 @@ class DispatcherService:
         """
         加权轮询算法：VIP用户优先，普通用户轮询
         
+        实现加权轮询调度策略：
+        1. 首先处理所有VIP用户，每个VIP用户取出配置数量的任务（默认3个）
+        2. 然后处理普通用户，每个普通用户取出1个任务
+        3. 确保VIP用户的任务优先被分发
+        
         Returns:
-            待分发的任务ID列表
+            List[str]: 待分发的任务ID列表，按优先级排序
         """
         tasks_to_dispatch = []
         
@@ -140,7 +156,16 @@ class DispatcherService:
         return tasks_to_dispatch
     
     def fetch_and_dispatch(self):
-        """按策略抓取任务并分发"""
+        """
+        按策略抓取任务并分发
+        
+        执行一次完整的调度周期：
+        1. 检查流控（队列长度是否超过阈值）
+        2. 使用加权轮询算法获取待分发的任务
+        3. 验证任务数据是否存在
+        4. 发布任务到RabbitMQ
+        5. 更新任务状态为dispatched
+        """
         # 检查流控
         if not self.check_flow_control():
             return
@@ -172,7 +197,12 @@ class DispatcherService:
                 task_manager.update_task_status(task_id, "failed", error=str(e))
     
     def dispatch_loop(self):
-        """主调度循环"""
+        """
+        主调度循环
+        
+        持续执行调度操作，每次调度后等待配置的间隔时间。
+        如果调度过程中出错，会等待5秒后继续，避免因临时错误导致调度完全停止。
+        """
         log.info("调度循环开始")
         
         while self.running:
@@ -188,7 +218,12 @@ class DispatcherService:
                 time.sleep(5)  # 出错后等待5秒再继续
     
     def start(self):
-        """启动调度服务"""
+        """
+        启动调度服务
+        
+        设置运行标志为True，然后启动主调度循环。
+        如果收到键盘中断信号（KeyboardInterrupt），会优雅地停止服务。
+        """
         log.info("启动调度服务...")
         self.running = True
         
@@ -201,7 +236,11 @@ class DispatcherService:
             self.stop()
     
     def stop(self):
-        """停止调度服务"""
+        """
+        停止调度服务
+        
+        设置运行标志为False，调度循环会在下次迭代时退出。
+        """
         log.info("停止调度服务...")
         self.running = False
         log.info("调度服务已停止")

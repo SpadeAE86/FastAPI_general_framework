@@ -54,8 +54,10 @@ class MetricReporter:
         """
         收集队列监控指标
         
+        通过RabbitMQ Management API获取指定队列的消息数量（ready + unacknowledged）。
+        
         Returns:
-            队列消息数量，如果获取失败返回 None
+            Optional[int]: 队列消息数量，如果获取失败返回None
         """
         if not self.rabbitmq_client:
             return None
@@ -71,11 +73,13 @@ class MetricReporter:
         """
         构建监控指标数据
         
+        将队列长度数据转换为华为云CES API要求的格式。
+        
         Args:
-            queue_length: 队列消息数量
-            
+            queue_length: 队列消息数量，用于构建指标值
+        
         Returns:
-            监控指标数据列表
+            List[Dict[str, Any]]: 监控指标数据列表，包含命名空间、指标名称、维度、时间戳等信息
         """
         # 获取当前时间戳（毫秒）
         collect_time = int(time.time() * 1000)
@@ -98,7 +102,12 @@ class MetricReporter:
         return metric_data
     
     def _report_metrics(self):
-        """上报监控指标"""
+        """
+        上报监控指标
+        
+        收集队列指标数据，构建CES格式的指标数据，并上报到华为云CES服务。
+        如果上报失败，会记录警告日志但不抛出异常。
+        """
         if not self.enabled or not self.ces_client:
             return
         
@@ -125,7 +134,12 @@ class MetricReporter:
             )
     
     def _report_loop(self):
-        """上报循环"""
+        """
+        上报循环线程函数
+        
+        在后台线程中定期执行指标上报，直到服务停止。
+        每次上报后会等待配置的间隔时间，如果出错会等待5秒后继续。
+        """
         log.info("监控指标上报线程已启动")
         
         while self.running and not self._stop_event.is_set():
@@ -144,7 +158,12 @@ class MetricReporter:
         log.info("监控指标上报线程已停止")
     
     def start(self):
-        """启动监控指标上报服务"""
+        """
+        启动监控指标上报服务
+        
+        如果服务未启用或已在运行中，则跳过启动。
+        启动后会创建一个后台线程定期上报指标。
+        """
         if not self.enabled:
             log.info("监控指标上报服务未启用，跳过启动")
             return
@@ -168,7 +187,12 @@ class MetricReporter:
         log.info("监控指标上报服务已启动")
     
     def stop(self):
-        """停止监控指标上报服务"""
+        """
+        停止监控指标上报服务
+        
+        设置停止标志，等待上报线程结束（最多等待5秒）。
+        如果服务未运行，则直接返回。
+        """
         if not self.running:
             return
         

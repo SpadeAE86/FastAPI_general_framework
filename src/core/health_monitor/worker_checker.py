@@ -38,8 +38,11 @@ class WorkerChecker:
         """
         使用Celery inspect API获取活跃worker列表，并过滤出当前环境的worker
         
+        通过Celery的inspect API获取所有活跃的worker，然后根据环境标识过滤出
+        属于当前环境的worker（如_local、_test、_prod等）。
+        
         Returns:
-            当前环境的活跃worker名称集合，格式为 {"worker_name@hostname", ...}
+            Set[str]: 当前环境的活跃worker名称集合，格式为 {"worker_name@hostname", ...}
         """
         try:
             inspect = celery_app.control.inspect()
@@ -86,8 +89,11 @@ class WorkerChecker:
         """
         从Redis获取所有已注册的进程
         
+        从Redis的进程集合中获取所有已注册的进程ID，然后查询每个进程的详细状态信息。
+        
         Returns:
-            进程信息字典，key为"worker_name:pid"，value为进程状态信息
+            Dict[str, Dict[str, Any]]: 进程信息字典，key为"worker_name:pid"格式的字符串，
+                value为进程状态信息字典，包含worker_name、pid、status、current_task等字段
         """
         processes = {}
         try:
@@ -115,11 +121,13 @@ class WorkerChecker:
         """
         从Celery worker名称中提取hostname
         
+        解析Celery worker名称格式，提取@符号后面的hostname部分。
+        
         Args:
             celery_worker_name: Celery worker名称，格式为 "worker_name@hostname"
-            
+        
         Returns:
-            hostname部分，如果格式不正确返回None
+            Optional[str]: hostname部分，如果格式不正确（没有@符号）返回None
         """
         if "@" in celery_worker_name:
             return celery_worker_name.split("@", 1)[1]
@@ -135,11 +143,13 @@ class WorkerChecker:
         - celery_prod@hostname -> prod
         - worker_name_local@hostname -> local
         
+        通过检查worker名称中是否包含常见环境标识后缀（_local、_test、_prod等）来提取环境。
+        
         Args:
             worker_name: Worker名称，格式为 "worker_name_env@hostname" 或 "worker_name@hostname"
-            
+        
         Returns:
-            环境标识（如 "local", "test", "prod"），如果未找到返回None
+            Optional[str]: 环境标识（如 "local", "test", "prod"），如果未找到返回None
         """
         # 常见环境标识列表
         env_patterns = ['_local', '_test', '_prod', '_dev', '_staging']
@@ -161,12 +171,15 @@ class WorkerChecker:
         """
         判断worker是否属于当前环境
         
+        从worker名称中提取环境标识，与当前环境进行比较。
+        如果worker名称中没有环境标识，将返回False（不再向后兼容）。
+        
         Args:
-            worker_name: Worker名称（Celery格式或Redis格式）
-            
+            worker_name: Worker名称（Celery格式或Redis格式），如 "celery_local@hostname"
+        
         Returns:
-            如果worker属于当前环境返回True，否则返回False
-            
+            bool: 如果worker属于当前环境返回True，否则返回False
+        
         Note:
             Worker名称必须明确包含环境标识（如 _local, _test, _prod 等），
             如果没有环境标识，将返回False，拒绝该worker。
@@ -185,13 +198,15 @@ class WorkerChecker:
         """
         判断worker是否在当前机器上
         
+        从worker名称中提取hostname，与当前机器的主机名进行比较。
+        
         Args:
             worker_name: worker名称，可以是：
                 - 完整格式: "celery_local@hostname"
                 - 仅hostname: "hostname"
-            
+        
         Returns:
-            如果是本地worker返回True
+            bool: 如果是本地worker返回True，否则返回False
         """
         # 提取 hostname 部分进行比较
         hostname = extract_hostname_from_worker_name(worker_name)
@@ -205,11 +220,14 @@ class WorkerChecker:
         """
         检查进程是否真的存在（仅适用于本地进程）
         
+        使用os.kill(pid, 0)检查进程是否存在。如果进程不存在会抛出OSError异常。
+        注意：此方法只能检查本地机器上的进程，无法检查远程机器上的进程。
+        
         Args:
-            pid: 进程ID
-            
+            pid: 进程ID，用于检查的进程标识符
+        
         Returns:
-            如果进程存在返回True，否则返回False
+            bool: 如果进程存在返回True，否则返回False
         """
         try:
             # 使用os.kill(pid, 0)检查进程是否存在
@@ -228,15 +246,18 @@ class WorkerChecker:
         """
         匹配Celery worker名称和Redis中的worker名称，并返回hostname
         
+        直接比较两个worker名称是否完全相同。Redis中存储的worker_name实际上是
+        完整的Celery worker名称（来自self.request.hostname）。
+        
         Celery worker名称格式: "worker_name@hostname"
         Redis worker名称格式: "worker_name@hostname" (完整的Celery worker名称)
         
         Args:
             celery_worker_name: Celery worker名称（如 "celery_local@hostname"）
             redis_worker_name: Redis中的worker名称（完整Celery worker名称，如 "celery_local@hostname"）
-            
+        
         Returns:
-            (是否匹配, hostname)
+            Tuple[bool, Optional[str]]: (是否匹配, hostname)，如果匹配返回True和hostname，否则返回False和None
         """
         # 直接比较完整的worker名称
         # Redis中存储的worker_name实际上是完整的Celery worker名称（来自self.request.hostname）
@@ -251,11 +272,23 @@ class WorkerChecker:
         """
         检查worker状态，返回检查结果
         
+        通过对比Celery活跃worker列表和Redis中注册的进程，找出已消失的worker。
+        同时检查worker数量是否满足最小健康要求。
+        
+        检查流程：
+        1. 获取Celery中的活跃worker（已过滤当前环境）
+        2. 获取Redis中注册的进程（已过滤当前环境）
+        3. 验证每个Redis进程是否在Celery活跃列表中
+        4. 对于本地worker，使用os.kill验证进程是否真的存在
+        5. 统计活跃worker数量和已消失worker列表
+        6. 检查是否满足最小健康worker数量要求
+        
         Returns:
-            检查结果字典，包含：
-            - active_worker_count: 活跃worker数量
-            - missing_workers: 已消失的worker列表
-            - healthy: 是否健康（数量是否满足要求）
+            Dict[str, Any]: 检查结果字典，包含：
+                - active_worker_count: 活跃worker数量
+                - missing_workers: 已消失的worker列表，每个元素包含worker_name、pid、current_task等信息
+                - healthy: 是否健康（数量是否满足要求）
+                - checked_processes: 已检查的进程列表（用于调试）
         """
         result = {
             "active_worker_count": 0,
@@ -409,11 +442,15 @@ class WorkerChecker:
         """
         清理已消失worker的Redis记录
         
+        遍历已消失的worker列表，清理每个worker在Redis中的所有进程信息。
+        如果worker有正在执行的任务，会在missing_worker字典中标记needs_recovery=True，
+        由调用者处理任务恢复。
+        
         Args:
-            missing_workers: 已消失的worker列表
-            
+            missing_workers: 已消失的worker列表，每个元素包含worker_name、pid、current_task等信息
+        
         Returns:
-            清理的worker数量
+            int: 成功清理的worker数量
         """
         cleaned_count = 0
         

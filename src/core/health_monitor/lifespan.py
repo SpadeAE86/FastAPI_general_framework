@@ -6,7 +6,11 @@ from utils.log_utils import logger as log
 
 
 def start_health_monitor():
-    """启动健康监控服务"""
+    """
+    启动健康监控服务
+    
+    在FastAPI应用启动时调用，启动健康监控服务的所有检查线程和指标上报服务。
+    """
     try:
         health_monitor_service.start()
         log.info("健康监控服务已在FastAPI中启动")
@@ -15,12 +19,17 @@ def start_health_monitor():
 
 
 def stop_health_monitor():
-    """停止健康监控服务"""
+    """
+    停止健康监控服务
+    
+    在FastAPI应用关闭时调用，停止健康监控服务的所有检查线程和指标上报服务。
+    """
     try:
         health_monitor_service.stop()
         log.info("健康监控服务已在FastAPI中停止")
     except Exception as e:
         log.error(f"停止健康监控服务失败: {e}", exc_info=True)
+
 
 
 
