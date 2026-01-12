@@ -88,8 +88,6 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         muted_audio = ["-f", "lavfi", "-i", 'anullsrc=channel_layout=stereo:sample_rate=44100']
     audio_filter = ""
 
-
-
     #如果配置是cpu，旋转是90度，10le特殊格式，编码格式是mjpeg等奇怪格式，就用cpu滤镜
     if my_config["device"] == "cpu" or rot != 0 or "10le" in pix_format or codec == "mjpeg":
         # transform = [

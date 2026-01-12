@@ -5,7 +5,6 @@
 遵循依赖倒置原则 (DIP)。
 """
 from fastapi import APIRouter, HTTPException, Path
-from models.pydantic_models.request.mixed_video_request import MixedVideoConfig
 from celery_mq.protocols import TaskManagerProtocol
 from models.pydantic_models.request.mixed_video_request import MixedVideoRequest
 from celery_mq.task_manager import task_manager
