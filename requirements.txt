@@ -26,3 +26,8 @@ pytest-asyncio>=0.21.0
 asyncmy
 tabulate
 emoji
+#构建/测试工具
+iniconfig
+pluggy
+setuptools
+wheel
