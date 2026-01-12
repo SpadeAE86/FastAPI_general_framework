@@ -53,7 +53,12 @@ class HealthMonitorService:
         self._stop_event = threading.Event()
     
     def start(self):
-        """启动健康监控服务"""
+        """
+        启动健康监控服务
+        
+        启动所有监控检查线程（心跳检查、超时检查、任务恢复检查、Worker检查）
+        和监控指标上报服务。如果服务已在运行中，则跳过启动。
+        """
         if self.running:
             log.warning("健康监控服务已在运行中")
             return
@@ -106,7 +111,12 @@ class HealthMonitorService:
         log.info("健康监控服务已启动")
     
     def stop(self):
-        """停止健康监控服务"""
+        """
+        停止健康监控服务
+        
+        设置停止标志，停止监控指标上报服务，并等待所有检查线程结束（每个线程最多等待5秒）。
+        如果服务未运行，则直接返回。
+        """
         if not self.running:
             return
         
@@ -130,7 +140,12 @@ class HealthMonitorService:
         log.info("健康监控服务已停止")
     
     def _heartbeat_check_loop(self):
-        """心跳检查循环"""
+        """
+        心跳检查循环线程函数
+        
+        定期检查所有进程的心跳是否超时，如果检测到挂起进程，
+        会恢复其正在执行的任务状态，并标记进程为挂起。
+        """
         log.info("心跳检查线程已启动")
         
         while self.running and not self._stop_event.is_set():
@@ -168,7 +183,12 @@ class HealthMonitorService:
         log.info("心跳检查线程已停止")
     
     def _timeout_check_loop(self):
-        """超时检查循环"""
+        """
+        超时检查循环线程函数
+        
+        定期检查所有运行中的任务是否超时，如果检测到超时任务，
+        会将其标记为失败状态。
+        """
         log.info("超时检查线程已启动")
         
         while self.running and not self._stop_event.is_set():
@@ -200,10 +220,13 @@ class HealthMonitorService:
         """
         恢复因进程丢失而中断的任务
         
+        将任务状态从running重置为pending，并将任务重新加入用户队列以便重新分发。
+        只处理状态为running的任务，其他状态的任务会被忽略。
+        
         Args:
-            worker_name: Worker名称
-            pid: 进程ID
-            task_id: 任务ID
+            worker_name: Worker名称，用于日志记录
+            pid: 进程ID，用于日志记录
+            task_id: 任务ID，用于标识要恢复的任务
         """
         try:
             # 检查任务状态
@@ -246,9 +269,15 @@ class HealthMonitorService:
     
     def _recovery_check_loop(self):
         """
-        任务恢复检查循环：定期扫描所有running状态但进程已丢失的任务
+        任务恢复检查循环线程函数
         
-        这个检查作为心跳检查的补充，用于处理心跳检查可能遗漏的情况
+        定期扫描所有running状态但进程已丢失的任务，作为心跳检查的补充。
+        用于处理心跳检查可能遗漏的情况，确保所有因进程丢失而中断的任务都能被恢复。
+        
+        检查逻辑：
+        1. 获取所有已注册的进程
+        2. 验证每个进程是否还有心跳（通过获取进程状态）
+        3. 对于已丢失的进程，恢复其正在执行的任务
         """
         log.info("任务恢复检查线程已启动")
         
@@ -311,7 +340,9 @@ class HealthMonitorService:
     
     def _worker_check_loop(self):
         """
-        Worker检查循环：定期检查worker存活状态和数量
+        Worker检查循环线程函数
+        
+        定期检查worker存活状态和数量，确保系统有足够的worker处理任务。
         
         检查内容：
         1. 使用Celery inspect API检查活跃worker

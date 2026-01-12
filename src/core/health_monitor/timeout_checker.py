@@ -25,8 +25,11 @@ class TaskTimeoutChecker:
         """
         检查所有运行中的任务是否超时
         
+        遍历所有运行中的进程，获取每个进程正在执行的任务，
+        检查任务开始时间到当前时间的间隔是否超过配置的超时时间。
+        
         Returns:
-            超时任务列表
+            List[Dict[str, Any]]: 超时任务列表，每个元素包含task_id、worker_name、pid、duration等信息
         """
         timeout_tasks = []
         current_time = time.time()
@@ -79,6 +82,7 @@ class TaskTimeoutChecker:
             log.error(f"检查任务超时时出错: {e}", exc_info=True)
         
         return timeout_tasks
+
 
 
 

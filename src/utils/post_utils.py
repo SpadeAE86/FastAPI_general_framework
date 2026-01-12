@@ -17,14 +17,20 @@ DEFAULT_GET_RETRY_SLEEP = get_config.get("retry_sleep", 10)
 
 async def post(host, resp_vo, retry=None, task_id="test", headers=None):
     """
-    POST 请求函数
+    异步POST请求函数，带重试机制
+    
+    向指定地址发送POST请求，请求体为JSON格式。
+    如果请求失败（状态码非200），会根据配置的重试次数和重试间隔自动重试。
     
     Args:
-        host: 请求地址
-        resp_vo: 请求体
-        retry: 重试次数（None时使用配置值）
-        task_id: 任务ID
-        headers: 请求头
+        host: 请求地址，目标服务器的URL
+        resp_vo: 请求体，字典类型，会被序列化为JSON发送
+        retry: 重试次数，如果为None则使用配置文件中的默认值（DEFAULT_POST_RETRY）
+        task_id: 任务ID，用于日志记录和追踪
+        headers: 请求头，字典类型，如果为None则使用空字典
+    
+    Returns:
+        Optional[Dict]: 成功时返回响应JSON字典，失败时返回None
     """
     result = None
     if headers is None:
@@ -47,14 +53,20 @@ async def post(host, resp_vo, retry=None, task_id="test", headers=None):
 
 async def get(host, params=None, retry=None, task_id="test", headers=None):
     """
-    GET 请求函数
+    异步GET请求函数，带重试机制
+    
+    向指定地址发送GET请求，支持URL参数。
+    如果请求失败（状态码非200）或发生异常（超时、网络错误等），会根据配置的重试次数和重试间隔自动重试。
     
     Args:
-        host: 请求地址
-        params: 请求参数
-        retry: 重试次数（None时使用配置值）
-        task_id: 任务ID
-        headers: 请求头
+        host: 请求地址，目标服务器的URL
+        params: 请求参数，字典类型，会被转换为URL查询参数，如果为None则使用空字典
+        retry: 重试次数，如果为None则使用配置文件中的默认值（DEFAULT_GET_RETRY）
+        task_id: 任务ID，用于日志记录和追踪
+        headers: 请求头，字典类型，如果为None则使用空字典
+    
+    Returns:
+        Optional[Dict]: 成功时返回响应JSON字典，失败时返回None
     """
     if headers is None:
         headers = {}

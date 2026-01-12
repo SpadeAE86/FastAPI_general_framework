@@ -38,10 +38,17 @@ queue_name = queue_config.get("name", "video_queue")
 )
 def process_video_task(self, task_id: str):
     """
-    处理视频任务
+    Celery任务函数，处理视频任务
+    
+    负责执行视频混剪任务，包括：
+    - 注册进程到健康监控系统
+    - 更新任务状态
+    - 启动心跳线程保持进程活跃
+    - 从Redis获取任务数据并执行处理
+    - 更新任务进度和状态
     
     Args:
-        task_id: 任务ID（从RabbitMQ消息中获取）
+        task_id: 任务ID，从RabbitMQ消息中获取，用于标识和追踪任务
     """
     # 获取worker名称和进程ID
     if hasattr(self.request, 'hostname') and self.request.hostname:
@@ -122,13 +129,16 @@ def process_video_task(self, task_id: str):
 
 def _heartbeat_loop(worker_name: str, pid: int, stop_event: threading.Event, interval: int):
     """
-    心跳循环线程
+    心跳循环线程函数
+    
+    在后台线程中定期更新进程心跳信息，用于健康监控系统检测进程是否存活。
+    当stop_event被设置时，线程会退出循环。
     
     Args:
-        worker_name: Worker名称
-        pid: 进程ID
-        stop_event: 停止事件
-        interval: 心跳间隔（秒）
+        worker_name: Worker名称，用于标识worker节点
+        pid: 进程ID，用于标识具体的进程实例
+        stop_event: 停止事件，当事件被设置时线程退出循环
+        interval: 心跳间隔（秒），两次心跳更新之间的等待时间
     """
     while not stop_event.is_set():
         try:
@@ -145,9 +155,16 @@ def _heartbeat_loop(worker_name: str, pid: int, stop_event: threading.Event, int
 @worker_shutting_down.connect
 def worker_shutting_down_handler(sender, sig, how, **kwargs):
     """
-    当worker收到关闭信号时，标记当前任务以便重新分发
+    Worker关闭信号处理器
     
-    注意：这个函数会在worker关闭时被调用，用于恢复正在执行的任务
+    当worker收到关闭信号时，自动恢复正在执行的任务状态，将任务重新加入队列以便重新分发。
+    这是Celery信号处理器，会在worker关闭时自动触发。
+    
+    Args:
+        sender: 信号发送者对象
+        sig: 信号编号，表示收到的系统信号
+        how: 关闭方式，表示如何关闭worker
+        **kwargs: 其他关键字参数，Celery信号系统传递的额外信息
     """
     log.warning(f"Worker收到关闭信号: sig={sig}, how={how}")
     
@@ -192,9 +209,15 @@ def _process_video_internal(mixed_config: MixedVideoConfig, task_id: str):
     """
     内部视频处理逻辑（原有代码）
     
+    执行实际的视频混剪处理，包括：
+    - 下载视频、音频、背景音乐、贴纸等资源
+    - 解析视频信息（分辨率、旋转角度等）
+    - 生成字幕映射
+    - 使用线程池进行视频标准化处理
+    
     Args:
-        mixed_config: 视频混剪配置
-        task_id: 任务ID（用于更新进度）
+        mixed_config: 视频混剪配置，包含视频路径、音频路径、字幕配置等所有处理参数
+        task_id: 任务ID，用于更新任务进度和日志记录
     """
     project_id = "mix_" + str(random_with_system_time()) if not mixed_config.mix_id else "mix_" + str(
         mixed_config.mix_id)  # 该次混剪资源所在的子文件夹名
@@ -278,9 +301,15 @@ def _process_video_internal_test(mixed_config: MixedVideoConfig, task_id: str):
     """
     测试用视频处理函数（不执行实际处理，长时间sleep用于测试worker消失场景）
     
+    用于测试任务创建和执行流程，不执行实际的视频处理。
+    通过长时间sleep模拟任务执行，可用于测试worker进程消失时的任务重发机制。
+    
     Args:
-        mixed_config: 视频混剪配置
-        task_id: 任务ID（用于更新进度）
+        mixed_config: 视频混剪配置，包含视频路径、音频路径等配置信息（仅用于日志记录）
+        task_id: 任务ID，用于日志记录和任务追踪
+    
+    Returns:
+        None: 函数不返回有意义的结果，仅用于测试目的
     """
     log.info(f"[测试模式] 开始处理任务: task_id={task_id}")
     log.info(f"[测试模式] 任务配置信息:")

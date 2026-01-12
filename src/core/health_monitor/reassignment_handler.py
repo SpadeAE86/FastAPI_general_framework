@@ -17,11 +17,14 @@ class TaskReassignmentHandler:
         """
         重新分配任务到队列
         
+        将任务状态重置为pending，并将任务重新加入用户队列以便重新分发。
+        注意：此方法已废弃，任务重试由Celery retries机制处理。
+        
         Args:
-            task_id: 任务ID
-            
+            task_id: 任务ID，用于标识要重新分配的任务
+        
         Returns:
-            是否重新分配成功
+            bool: 如果重新分配成功返回True，否则返回False
         """
         try:
             # 获取任务信息
@@ -53,15 +56,15 @@ class TaskReassignmentHandler:
         """
         处理超时任务（只标记，不重新分配）
         
-        注意：不再重新分配任务，由 Celery retries 机制处理任务重试。
-        监控服务只负责检测和标记超时状态。
+        将超时任务标记为失败状态，清除进程的任务分配信息，并标记进程为可疑状态。
+        注意：不再重新分配任务，由Celery retries机制处理任务重试。
 
         Args:
-            timeout_task: 超时任务信息
-            task_timeout: 任务超时时间（秒）
+            timeout_task: 超时任务信息字典，包含task_id、worker_name、pid、duration等字段
+            task_timeout: 任务超时时间（秒），用于生成错误消息
 
         Returns:
-            是否处理成功
+            bool: 如果处理成功返回True，否则返回False
         """
         task_id = timeout_task["task_id"]
         worker_name = timeout_task["worker_name"]
