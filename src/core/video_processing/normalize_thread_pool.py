@@ -26,6 +26,7 @@ def thread_pool_normalize(
         future_to_idx = {}
         futures = []
 
+        #从crop_config里取出开始和结束时间
         for idx, video_path in enumerate(video_list):
             filter_str = build_from_config(mixed_video_config.filter_config)
             start = 0
@@ -51,6 +52,7 @@ def thread_pool_normalize(
                     fade_in_duration = mixed_video_config.transition_config[idx - 1].duration
 
             ai_mode = bool(mixed_video_config.callback_url)
+
 
             normalize_func = partial(
                 normalize_video_filter_complex,

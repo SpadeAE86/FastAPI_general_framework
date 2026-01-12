@@ -20,6 +20,7 @@ from asyncio import Semaphore
 
 from utils.obs_utils import upload_to_obs
 
+# 信号量：这个业务逻辑同一时间只能跑一个
 semaphore = Semaphore(1)
 
 async def mixed_video_service(mixed_config: MixedVideoRequest):
@@ -28,8 +29,9 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         mixed_config.mix_id)  # 该次混剪资源所在的子文件夹名
     log.info(f"project_id: {project_id}")
 
+    # 获取信号量，完成后释放
     async with semaphore:
-        fps = mixed_config.fps
+
         current_time = datetime.now()
         log.info(f"{len(mixed_config.obs_video_path_list)}个视频的混剪请求")
         log.info(f"于{current_time}收到请求体")
@@ -39,6 +41,8 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
 
         log.info(f"config user_name: {mixed_config.user_name}")
         download_start = time.time()
+
+        # 下载/vpc储存卷获取资源
         if my_config["direct_download"]:
             output_dir = f"{RESOURCE_DIR}/{project_id}"
             os.makedirs(output_dir, exist_ok=True)
@@ -48,16 +52,16 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         sticker_list = await download_resource(mixed_config.obs_sticker_path_list, output_dir=output_dir)
 
 
-
-        start_1 = time.time()
-        video_list = [os.path.abspath(p) for p in video_list]
-        log.info(f"download takes {time.time() - download_start} seconds")
+        start_1 = time.time()  # 业务开始时间
+        log.info(f"download takes {start_1 - download_start} seconds")  # 打印下载时间
+        video_list = [os.path.abspath(p) for p in video_list]  # 获取视频全局路径方便后续不同层级的文件引用
+        # 获取视频信息
         get_info_task = [asyncio.to_thread(get_video_info, v, need_rotation=True) for v in video_list]
         video_info_list: List[VideoInfo] = await asyncio.gather(*get_info_task)
 
-        first_video_info = video_info_list[0]
         all_video_info = [vinfo.get_info() for vinfo in video_info_list]
-        width, height, duration, rot, pix_format, codec = first_video_info.get_info()
+
+
         _, _, _, _, pix_format_list, _ = zip(*all_video_info)
         if all([pf == "yuv422p10le" for pf in pix_format_list]):
             pix_fmt = "yuv422p10le"
@@ -66,22 +70,28 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         else:
             pix_fmt = "yuv420p"
 
+        # 第一个视频的尺幅作为不给出具体分辨率时的兜底
+        first_video_info = video_info_list[0]
+        width, height, duration, rot, pix_format, codec = first_video_info.get_info()
         log.info(f"first video is {mixed_config.obs_video_path_list[0]} have {rot} rotation")
+        # 如果有90度旋转则需要交换横竖尺幅
         if abs(rot) in [90, 270]:
-            # 交换横竖尺幅
             tmp = width
             width = height
             height = tmp
-        log.info(f"rot {rot}")
-        log.info(f"width: {width}")
-        log.info(f"height: {height}")
+
         if mixed_config.ratio_type and mixed_config.resolution:
             width, height = ratio_option[mixed_config.resolution][mixed_config.ratio_type]
 
+        # 打印最终参考尺幅
+        log.info(f"width: {width}")
+        log.info(f"height: {height}")
+        # 通过crop_config获取时长列表
         len_list = [(c.end - c.start) if c else 0 for c in
                     mixed_config.crop_config] if mixed_config.crop_config else [0] * len(video_list)
         log.info(f"video duration list: {len_list}")
 
+        #生成字幕图片实例，储存生成的图片
         normalize_start = time.time()
         cap_helper = None
         if mixed_config.cap_config:
@@ -89,15 +99,15 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
             cap_helper.gen_cap_mapping()
             log.debug(f"subtitle png cap list: {cap_helper.get_cap_list()}")
 
+        fps = mixed_config.fps  # 获取fps
+        # 线程池调度归一化逻辑
         normalize_thread_pool_results = thread_pool_normalize(width, height, fps, video_list,
                                                                len_list, mixed_config, video_info_list ,project_id,
                                                                pix_fmt=pix_fmt, cap_helper=cap_helper,
                                                                sticker_list=sticker_list)
 
         normalized_results: list[NormalizeResult] = normalize_thread_pool_results
-
         log.info(
-            f"final normalized result: {normalized_results}, "
             f"normalize takes {time.time() - normalize_start} in total"
         )
 
@@ -107,6 +117,7 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         num = len(normalized_results)
         final_video_list: list[str] = []
 
+        # 处理转场
         if mixed_config.transition_config:
             transition_configs = mixed_config.transition_config
 
@@ -156,17 +167,16 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
                     clip.main,
                     transition_path,
                 ])
-
         else:
             # 没有任何 transition，直接拼 main
             final_video_list = [
                 r.transition.main for r in normalized_results
             ]
 
-        video_list = list(final_video_list)
+        video_list = list(final_video_list)   # 获取转场后的片段
 
-        for i in video_list:
-            log.info(i)
+        # 拼接视频，额外加上声音和bgm
+        concat_start = time.time()
         task = asyncio.to_thread(generate_video, video_list, len_list, project_id,
                                  transition_config=mixed_config.transition_config,
                                  audio_path_list=audio_list,
@@ -174,34 +184,41 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
                                  bgm_path_list=bgm_list,
                                  bgm_config=mixed_config.bgm_config)
 
-        concat_start = time.time()
+
         output_file, cover_img = await task
         concat_elapsed = time.time() - concat_start
         elapsed = time.time() - start_1
         log.info(f"mixed video takes {concat_elapsed} seconds to concat")
-        log.info(f"mixed video takes {elapsed} seconds to generate")
-
+        log.info(f"mixed video takes {elapsed} seconds to generate")  #打印总时长
         log.info(f"{output_file}, {cover_img} created successfully!")
+
+        # 获取文件大小
         file_size = os.path.getsize(output_file)  # 单位：字节
+
+        # 上传视频
         upload_start = time.time()
         upload_video_path = f"aigc/aigc_{my_config['env']}/{mixed_config.user_name}"
         obs_video_url, obs_cover_url = await asyncio.gather(upload_to_obs(output_file, obs_prefix=upload_video_path, project_id=project_id),
                                                             upload_to_obs(output_file, obs_prefix=upload_video_path, project_id=project_id))
         log.info(f"successfully uploaded to obs available by {obs_video_url}")
         log.info(f"upload tasks {time.time() - upload_start} 秒")
+
+        # 文件回收
         if cap_helper:
             cap_helper.delete_cap_png()
-        # 示例：清空资源文件夹
+        # 清空中间文件夹和结果文件夹
         if mixed_config.obs_video_path_list:
             # asyncio.create_task(delete_folder(os.path.join("./video", project_id)))
             asyncio.create_task(delete_folder(os.path.join("./work", project_id)))
             asyncio.create_task(delete_folder(os.path.join("./final", project_id)))
 
+        # 计算时长
         if mixed_config.transition_config:
             duration = sum(len_list) - sum([tr.duration if tr else 0 for tr in mixed_config.transition_config])
         else:
             duration = sum(len_list)
 
+        # 构造返回体
         resp = MixedVideoResponse(
             message = f"{num} video being processed",
             videoUrl= obs_video_url,
