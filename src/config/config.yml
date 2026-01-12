@@ -155,10 +155,10 @@ huawei_ces:
     region: cn-east-3
     report_interval: 30
   test:
-    enabled: false
-    access_key: YOUR_ACCESS_KEY
-    secret_key: YOUR_SECRET_KEY
-    project_id: YOUR_PROJECT_ID
+    enabled: true
+    access_key: HPUA60IUIP8GILNAII5U
+    secret_key: REDACTED
+    project_id: 610bebab20ea4e01b14a127b565a16c1
     region: cn-east-3
     report_interval: 30
   prod:
@@ -233,7 +233,7 @@ process_health:
 # Celery 和消息队列配置
 celery:
   queue:
-    name: video_queue_dev  # 队列名称
+    name: video_queue_test  # 队列名称
     exchange: tasks  # 交换机名称
     exchange_type: direct  # 交换机类型
     routing_key: default  # 路由键
@@ -258,7 +258,7 @@ celery:
 
 # 调度服务配置
 dispatcher:
-  queue_name: video_queue_dev  # 队列名称
+  queue_name: video_queue_test  # 队列名称
   dispatch_interval: 2  # 调度间隔（秒）
   vip_task_count: 3  # VIP用户每次取出的任务数
   normal_task_count: 1  # 普通用户每次取出的任务数
@@ -273,7 +273,7 @@ dispatcher:
 
 # 监控指标配置
 monitoring:
-  queue_name: video_queue_dev  # 监控的队列名称
+  queue_name: video_queue_test  # 监控的队列名称
   namespace: celery.rabbitmq  # 指标命名空间
   metric_name: rabbitmq_queue_length  # 指标名称
   ttl: 604800  # 数据有效期（秒，7天）

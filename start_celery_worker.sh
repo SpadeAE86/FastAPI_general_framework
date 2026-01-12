@@ -9,5 +9,4 @@ cd "$(dirname "$0")/src"
 
 # 启动 Celery worker
 
-conda run -n video_mix python -m celery -A celery_mq.celery_app worker --hostname=celery_local@%h --loglevel=INFO --queues=video_queue_dev --concurrency=4
-
+conda run -n test_gpu python -m celery -A celery_mq.celery_app worker --hostname=celery_test@%h --loglevel=INFO --queues=video_queue_test --concurrency=4
