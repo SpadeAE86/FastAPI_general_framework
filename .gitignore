@@ -207,7 +207,7 @@ marimo/_lsp/
 __marimo__/
 tests/
 src/test
-src/docs
+
 设计.md
 
 # 缓存文件夹+资产文件夹
@@ -217,4 +217,5 @@ src/docs
 **/work/
 **/final/
 /docs
-src/docs
+src/docs/
+scripts/

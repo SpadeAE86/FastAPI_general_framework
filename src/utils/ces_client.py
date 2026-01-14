@@ -2,6 +2,7 @@
 华为云 CES (Cloud Eye Service) API 客户端
 用于上报自定义监控指标数据
 """
+import asyncio
 from typing import List, Dict, Any, Optional
 from huaweicloudsdkcore.auth.credentials import BasicCredentials
 from huaweicloudsdkces.v1.region.ces_region import CesRegion
@@ -38,9 +39,9 @@ class CESClient:
             .with_region(CesRegion.value_of(region)) \
             .build()
     
-    def create_metric_data(self, metric_data: List[Dict[str, Any]]) -> bool:
+    async def create_metric_data(self, metric_data: List[Dict[str, Any]]) -> bool:
         """
-        创建监控指标数据
+        创建监控指标数据（异步接口）
         
         Args:
             metric_data: 监控指标数据列表，格式如下：
@@ -119,8 +120,8 @@ class CESClient:
             request = CreateMetricDataRequest()
             request.body = list_bodybody
             
-            # 调用 SDK
-            response = self.client.create_metric_data(request)
+            # 使用 asyncio.to_thread 在线程池中执行阻塞的 SDK 调用
+            response = await asyncio.to_thread(self.client.create_metric_data, request)
             log.debug(f"成功上报监控数据: {len(metric_data)} 条指标")
             return True
             
