@@ -53,6 +53,65 @@ class SplitClip:
     fade_out: Optional[str] = None
 
 def split_normalize(video, duration, fade_in=0, fade_out=0, transition_reserve_factor = 1.2):
+    """
+        将已标准化的视频片段按转场需求拆分为多个物理子片段，
+        用于后续视频拼接与转场处理。
+
+        根据传入的渐入（fade_in）与渐出（fade_out）时长，
+        本函数会在主片段前后预留一定的缓冲区（buffer），
+        并将视频切分为以下最多三个部分：
+            - 渐入片段（fade_in）
+            - 主片段（main）
+            - 渐出片段（fade_out）
+
+        为避免转场过程中裁剪不足或特效溢出，
+        渐入和渐出片段会按 transition_reserve_factor
+        乘以对应的 fade 时长进行扩展切片。
+
+        所有切片操作通过 FFmpeg 执行，并生成独立的视频文件。
+
+        Parameters
+        ----------
+        video : str
+            已完成 normalize 的视频文件路径。
+
+        duration : float
+            视频总时长（秒）。
+
+        fade_in : float, optional
+            需要用于转场的渐入时长（秒），
+            为 0 时不生成渐入片段。
+
+        fade_out : float, optional
+            需要用于转场的渐出时长（秒），
+            为 0 时不生成渐出片段。
+
+        transition_reserve_factor : float, optional
+            转场缓冲系数，用于扩大渐入 / 渐出片段的实际切片时长。
+            例如 fade_in=1.0，factor=1.2 时，
+            实际切片长度为 1.2 秒。
+
+        Returns
+        -------
+        SplitClip
+            视频拆分结果，包含以下字段：
+
+            - main : str
+                主视频片段路径（不包含转场区域）。
+
+            - fade_in : Optional[str]
+                渐入视频片段路径，如未指定 fade_in 则为 None。
+
+            - fade_out : Optional[str]
+                渐出视频片段路径，如未指定 fade_out 则为 None。
+
+        Notes
+        -----
+        - 该函数用于「物理切片」，而非 FFmpeg filter 级别的逻辑转场。
+        - 生成的 fade_in / fade_out 片段通常会在后续拼接阶段
+          与相邻视频进行转场特效处理。
+        - 切片文件默认与原视频位于同一目录。
+    """
     dir = os.path.dirname(video)
     vname = os.path.basename(video)
 

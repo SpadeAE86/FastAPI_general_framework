@@ -8,7 +8,6 @@ from core.transition_video import transition_normalized
 from models.pydantic_models.response.mixed_video_response import MixedVideoResponse
 from utils.general_utils import delete_folder, VideoInfo
 from core.video_processing.caption import CapHelper
-from core.video_processing.normalize_process_pool import process_pool_normalize
 from exceptions.ServiceException import ServiceException
 from utils.general_utils import random_with_system_time, download_resource, get_video_info
 from config.config import *
@@ -183,7 +182,6 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
                                  audio_config=mixed_config.audio_config,
                                  bgm_path_list=bgm_list,
                                  bgm_config=mixed_config.bgm_config)
-
 
         output_file, cover_img = await task
         concat_elapsed = time.time() - concat_start
