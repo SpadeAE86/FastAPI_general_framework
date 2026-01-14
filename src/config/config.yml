@@ -104,7 +104,7 @@ ui:
 video: null
 #=============================================================================
 cache: false
-env: test
+env: local
 device: gpu
 feishu_robot: "https://open.feishu.cn/open-apis/bot/v2/hook/c004bc00-bcc5-416a-a1c3-c53b607da620"
 error_at: "49f92f95"
@@ -154,6 +154,10 @@ huawei_ces:
     project_id: 610bebab20ea4e01b14a127b565a16c1
     region: cn-east-3
     report_interval: 30
+    connect_timeout: 10  # 连接超时时间（秒）
+    read_timeout: 30  # 读取超时时间（秒）
+    max_retries: 3  # 最大重试次数
+    retry_delay: 2  # 重试延迟（秒）
   test:
     enabled: true
     access_key: HPUA60IUIP8GILNAII5U
@@ -161,6 +165,10 @@ huawei_ces:
     project_id: 610bebab20ea4e01b14a127b565a16c1
     region: cn-east-3
     report_interval: 30
+    connect_timeout: 10  # 连接超时时间（秒）
+    read_timeout: 30  # 读取超时时间（秒）
+    max_retries: 3  # 最大重试次数
+    retry_delay: 2  # 重试延迟（秒）
   prod:
     enabled: true
     access_key: HPUA60IUIP8GILNAII5U
@@ -168,6 +176,10 @@ huawei_ces:
     project_id: 610bebab20ea4e01b14a127b565a16c1
     region: cn-east-3
     report_interval: 30
+    connect_timeout: 10  # 连接超时时间（秒）
+    read_timeout: 30  # 读取超时时间（秒）
+    max_retries: 3  # 最大重试次数
+    retry_delay: 2  # 重试延迟（秒）
 
 obs_img_prefix:
   local:

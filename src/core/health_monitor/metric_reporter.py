@@ -2,6 +2,7 @@
 监控指标上报服务
 将 RabbitMQ 队列监控数据上报到华为云 CES
 """
+import asyncio
 import threading
 import time
 from typing import Optional, List, Dict, Any
@@ -101,11 +102,11 @@ class MetricReporter:
         
         return metric_data
     
-    def _report_metrics(self):
+    async def _report_metrics(self):
         """
-        上报监控指标
+        上报监控指标（异步方法）
         
-        收集队列指标数据，构建CES格式的指标数据，并上报到华为云CES服务。
+        收集队列指标数据，构建CES格式的指标数据，并异步上报到华为云CES服务。
         如果上报失败，会记录警告日志但不抛出异常。
         """
         if not self.enabled or not self.ces_client:
@@ -120,8 +121,8 @@ class MetricReporter:
         # 构建指标数据
         metric_data = self._build_metric_data(queue_length)
         
-        # 上报到 CES
-        success = self.ces_client.create_metric_data(metric_data)
+        # 异步上报到 CES
+        success = await self.ces_client.create_metric_data(metric_data)
         if success:
             log.debug(
                 f"成功上报监控指标: 队列={self.queue_name}, "
@@ -137,25 +138,48 @@ class MetricReporter:
         """
         上报循环线程函数
         
-        在后台线程中定期执行指标上报，直到服务停止。
-        每次上报后会等待配置的间隔时间，如果出错会等待5秒后继续。
+        在后台线程中创建并运行asyncio事件循环，定期执行异步指标上报。
         """
         log.info("监控指标上报线程已启动")
         
+        # 创建新的事件循环用于此线程
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            # 运行异步上报循环
+            loop.run_until_complete(self._async_report_loop())
+        finally:
+            loop.close()
+        
+        log.info("监控指标上报线程已停止")
+    
+    async def _async_report_loop(self):
+        """
+        异步上报循环
+        
+        在事件循环中定期执行异步指标上报，直到服务停止。
+        每次上报后会等待配置的间隔时间，如果出错会等待5秒后继续。
+        """
         while self.running and not self._stop_event.is_set():
             try:
-                # 上报指标
-                self._report_metrics()
+                # 异步上报指标
+                await self._report_metrics()
                 
-                # 等待下次上报
-                self._stop_event.wait(timeout=self.report_interval)
+                # 异步等待下次上报（使用asyncio.sleep以避免阻塞事件循环）
+                # 同时检查停止事件
+                for _ in range(self.report_interval):
+                    if self._stop_event.is_set():
+                        break
+                    await asyncio.sleep(1)
                 
             except Exception as e:
                 log.error(f"监控指标上报循环出错: {e}", exc_info=True)
                 # 出错后等待一段时间再继续
-                self._stop_event.wait(timeout=5)
-        
-        log.info("监控指标上报线程已停止")
+                for _ in range(5):
+                    if self._stop_event.is_set():
+                        break
+                    await asyncio.sleep(1)
     
     def start(self):
         """
