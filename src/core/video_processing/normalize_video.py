@@ -5,7 +5,8 @@ from config.config import *
 from core.video_processing.caption import CaptionDistributor
 from exceptions.ServiceException import ServiceException
 from models.pydantic_models.request import transition_config
-from utils.ffmpeg_utils import check_audio_stream_simple, build_atempo_filter, split_normalize, SplitClip, quick_segment
+from utils.ffmpeg_utils import check_audio_stream_simple, build_atempo_filter, split_normalize, SplitClip, \
+    quick_segment, SegmentResult
 from utils.general_utils import run_ffmpeg_command, VideoInfo
 
 
@@ -23,6 +24,138 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
                                    cache_hit=False, fade_in_duration=0, fade_out_duration=0, audio_config=None,
                                    audio_path_list=None, vindex = 0, cap_helper = None, ai_mode = False,
                                    sticker_config = None, sticker_list= None):
+    """
+    对单个视频素材进行标准化处理并生成 FFmpeg filter_complex，
+    用于视频混剪流水线中的「单片段处理阶段」。
+
+    该函数会根据传入的裁剪、变换、字幕、贴纸、音频等配置，
+    对原始素材视频进行如下处理（按需启用）：
+        - 时间裁剪 / 倍速
+        - 分辨率统一、像素格式转换
+        - 平移 / 旋转 / 缩放 / 镜像
+        - 颜色或自定义滤镜（extra_filter）
+        - 渐入 / 渐出
+        - 原音频静音或重配音频
+        - 字幕图片与贴纸叠加
+    最终输出可直接拼接到整体混剪的 FFmpeg filter_complex 中。
+
+    该函数通常通过 functools.partial 预绑定参数，
+    交由线程池 / 进程池并行执行。
+
+    Parameters
+    ----------
+    video : str
+        视频素材文件路径。
+
+    video_info : VideoInfo
+        视频基础信息对象，包含分辨率、时长、编码格式等元数据。
+
+    max_len : float
+        当前片段允许的最大时长（秒），通常为片段结束时间。
+
+    width : int
+        目标输出视频宽度。
+
+    height : int
+        目标输出视频高度。
+
+    fps : int or float
+        目标输出帧率。
+
+    cap_config : object
+        字幕配置对象，用于控制字幕内容、样式与出现时机。
+
+    start_time : float, optional
+        当前片段在原视频中的起始时间（秒）。
+
+    mute_origin : bool, optional
+        是否静音原始视频音频。
+
+    project_id : str, optional
+        项目 ID，用于日志、缓存或中间产物区分。
+
+    translate_x : int or float, optional
+        视频在 X 轴方向的平移偏移量。
+
+    translate_y : int or float, optional
+        视频在 Y 轴方向的平移偏移量。
+
+    rotation : int or float, optional
+        视频旋转角度（度）。
+
+    scale : float, optional
+        视频缩放比例。
+
+    mirror : bool, optional
+        是否进行水平镜像翻转。
+
+    speed : float, optional
+        视频播放倍速（>1 加速，<1 减速）。
+
+    extra_filter : str, optional
+        额外的 FFmpeg 视频滤镜字符串（如调色、风格化滤镜）。
+
+    processed_so_far : float, optional
+        当前片段在整条视频时间轴上的起始时间（秒），
+        用于字幕、音频在全局时间轴上的对齐。
+
+    pix_fmt : str, optional
+        输出视频像素格式，如 "yuv420p"。
+
+    cache_hit : bool, optional
+        是否命中缓存结果。
+        由于线程池内状态不共享，需要由外部判断并传入。
+
+    fade_in_duration : float, optional
+        视频渐入时长（秒）。
+
+    fade_out_duration : float, optional
+        视频渐出时长（秒）。
+
+    audio_config : object, optional
+        音频处理配置，如配音、音量、对齐方式等。
+
+    audio_path_list : list[str], optional
+        可用的音频文件路径列表（配音 / BGM 等）。
+
+    vindex : int, optional
+        当前视频在混剪序列中的索引位置。
+
+    cap_helper : object, optional
+        字幕图片或缓存辅助工具，用于减少重复生成字幕资源。
+
+    ai_mode : bool, optional
+        是否为 AI 混剪模式，用于切换特定处理逻辑。
+
+    sticker_config : object, optional
+        贴纸相关配置（出现时间、位置、层级等）。
+
+    sticker_list : list[str], optional
+        贴纸资源路径列表。
+
+    Returns
+    -------
+    NormalizeResult
+        单个视频片段的处理结果，包含以下字段：
+
+        - output : str
+            当前片段生成的视频文件名（或输出标识）。
+
+        - duration : float
+            实际生成片段的视频时长（秒）。
+
+        - cache_path : str
+            缓存文件路径，用于后续复用或跳过重复处理。
+
+        - transition : SplitClip
+            转场相关片段信息，用于后续拼接处理，其中：
+                - main : str
+                    主视频片段路径。
+                - fade_in : Optional[str]
+                    渐入视频片段路径（如存在）。
+                - fade_out : Optional[str]
+                    渐出视频片段路径（如存在）。
+    """
 
     # 获取视频信息
     fname = os.path.basename(video)
@@ -67,7 +200,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         segment_dir = f"{RESOURCE_DIR}/{project_id}/"
         os.makedirs(f"{segment_dir}", exist_ok=True)
         log.info(f"{max_len - start_time}/{duration} >=5, make extra cropping ")  #huristic
-        segment_result = quick_segment(segment, vindex, segment_dir, start_time, max_len)
+        segment_result: SegmentResult = quick_segment(segment, vindex, segment_dir, start_time, max_len)  #快速裁切
         segment = segment_result.segment
         start_time = segment_result.start_time
         max_len = segment_result.end_time

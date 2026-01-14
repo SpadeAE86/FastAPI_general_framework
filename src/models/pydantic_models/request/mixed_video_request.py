@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+from utils.general_utils import is_valid_hex_color
 from .crop_config import CropConfig
 from .caption_config import CapConfig, Cap
 from .transition_config import TransitionConfig
@@ -63,4 +65,44 @@ class MixedVideoRequest(BaseModel):
     sticker_config: List[StickerConfig] = Field(default_factory=lambda: [])  # 贴纸配置
     obs_sticker_path_list: Optional[List[str]] = Field(default_factory=lambda: [])  # 贴纸路径
     request_data: Optional[object] = Field(default=None)
+
+    @model_validator(mode='after')
+    def validate_business_logic(self) -> 'MixedVideoRequest':
+        num = len(self.obs_video_path_list)
+
+        # 1. 基础非空校验
+        if num == 0:
+            raise ValueError("get empty video path list")
+
+        # 2. 数量匹配校验 (对应原 433-436)
+        if self.timeline_config and len(self.timeline_config) != num:
+            raise ValueError(f"传入的时间线拖拽剪辑配置与视频数量{num}不匹配")
+
+        if self.crop_config and len(self.crop_config) != num:
+            raise ValueError(f"传入的裁剪剪辑配置与视频数量{num}不匹配")
+
+        if self.mute_config and len(self.mute_config) != num:
+            raise ValueError(f"传入的静音配置与视频数量{num}不匹配")
+
+        if self.transition_config and len(self.transition_config) < num - 1:
+            raise ValueError(f"传入的过渡配置数量不足，至少需要{num - 1}个")
+
+        # 3. 音频匹配校验 (对应原 437)
+        audio_num = len(self.obs_audio_path_list or [])
+        audio_cfg_num = len(self.audio_config or [])
+        if self.audio_config and audio_num != audio_cfg_num:
+            raise ValueError(f"传入的音频配置{audio_cfg_num}和音频数量{audio_num}不匹配")
+
+        # 4. 滤镜校验 (对应原 438)
+        if self.filter_config and len(self.filter_config) != num:
+            raise ValueError("传入的滤镜配置和视频数量不匹配")
+
+        # 5. 颜色合法性校验 (对应原 488)
+        if self.cap_config:
+            c1 = self.cap_config.get("cap_color")
+            c2 = self.cap_config.get("cap_outline_color")
+            if not (is_valid_hex_color(c1) and is_valid_hex_color(c2)):
+                raise ValueError("输入的颜色不合法, 参考#FFFFFF")
+
+        return self
 
