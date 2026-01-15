@@ -195,7 +195,7 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
 
         # 上传视频
         upload_start = time.time()
-        upload_video_path = f"aigc/aigc_{my_config['env']}/{mixed_config.user_name}"
+        upload_video_path = f"aigc/aigc_{my_config['env']}/{mixed_config.user_name}/"
         obs_video_url, obs_cover_url = await asyncio.gather(upload_to_obs(output_file, obs_prefix=upload_video_path, project_id=project_id),
                                                             upload_to_obs(output_file, obs_prefix=upload_video_path, project_id=project_id))
         log.info(f"successfully uploaded to obs available by {obs_video_url}")
