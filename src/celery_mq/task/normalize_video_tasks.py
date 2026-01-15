@@ -245,7 +245,7 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str):
     #回调
     callback = my_config["callback"][ENV]["mixed"]
     callback_url = callback if not mixed_config.callback_url else mixed_config.callback_url
-    need_callback = not my_config["no_callback"]
+    need_callback = my_config["need_callback"]
     if need_callback:
         asyncio.run(post(callback_url, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
     else:
