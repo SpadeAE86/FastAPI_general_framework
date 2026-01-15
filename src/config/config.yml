@@ -290,7 +290,7 @@ monitoring:
   metric_name: rabbitmq_queue_length  # 指标名称
   ttl: 604800  # 数据有效期（秒，7天）
 
-need_callback: true
+need_callback: false
 # HTTP 请求配置
 http:
   post:
