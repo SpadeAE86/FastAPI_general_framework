@@ -74,10 +74,6 @@ class MixedVideoRequest(BaseModel):
         if num == 0:
             raise ValueError("get empty video path list")
 
-        # 2. 数量匹配校验 (对应原 433-436)
-        if self.timeline_config and len(self.timeline_config) != num:
-            raise ValueError(f"传入的时间线拖拽剪辑配置与视频数量{num}不匹配")
-
         if self.crop_config and len(self.crop_config) != num:
             raise ValueError(f"传入的裁剪剪辑配置与视频数量{num}不匹配")
 
