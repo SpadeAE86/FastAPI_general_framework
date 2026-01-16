@@ -13,20 +13,8 @@ RUN pip install --timeout=600 \
 WORKDIR /app/src
 
 
-
-
-
-
 # 暴露端口
 EXPOSE 5000
 
-
 # 启动命令
-CMD [
-  "sw-python", "run",
-  "gunicorn",
-  "FastAPI_server:app",
-  "-k", "uvicorn.workers.UvicornWorker",
-  "-w", "1",
-  "-b", "0.0.0.0:5000"
-]
+CMD ["sw-python","run","gunicorn","FastAPI_server:app","-k","uvicorn.workers.UvicornWorker","-w","1","-b","0.0.0.0:5000"]
