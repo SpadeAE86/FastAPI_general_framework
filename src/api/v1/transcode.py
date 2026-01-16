@@ -13,13 +13,13 @@ from celery_mq.task_manager import task_manager
 from models.pydantic_models.request.transcode_video_request import TranscodeVideoRequest
 from utils.log_utils import logger as log
 
-video_router = APIRouter(prefix="/api/v1/video", tags=["video"])
+transcode_router = APIRouter(prefix="/api/v1/video", tags=["video"])
 
 # 模块级依赖，支持测试时替换
 _task_manager: TaskManagerProtocol = task_manager
 
 
-@video_router.post("/transcode")
+@transcode_router.post("/transcode")
 async def create_transcode_task(
     transcode_request: TranscodeVideoRequest
 ) -> Dict[str, Any]:

@@ -41,8 +41,8 @@ ratio_option = {
         "9:16": (2160, 3840),
     }
 }
-ratio_type_option = ["1:1", "4:3", "16:9", "3:4", "9:16"]
-resolution_option = ["720p", "1080p", "2k", "4k"]
+Ratio = Literal["1:1", "4:3", "16:9", "3:4", "9:16"]
+Resolution = Literal["720p", "1080p", "2k", "4k"]
 
 # 定义混剪请求体
 class MixedVideoRequest(BaseRequest):
@@ -51,12 +51,12 @@ class MixedVideoRequest(BaseRequest):
         description="视频链接列表"
     )
 
-    ratio_type: Optional[Literal[*ratio_type_option]] = Field(
+    ratio_type: Optional[Ratio] = Field(
         default=None,
         description="导出的视频尺幅类型"
     )
 
-    resolution: Optional[Literal[*resolution_option]] = Field(
+    resolution: Optional[Resolution] = Field(
         default=None,
         description="导出的视频分辨率"
     )

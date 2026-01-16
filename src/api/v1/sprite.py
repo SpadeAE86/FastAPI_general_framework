@@ -13,13 +13,13 @@ from celery_mq.task_manager import task_manager
 from models.pydantic_models.request.sprite_image_request import SpriteImageRequest
 from utils.log_utils import logger as log
 
-video_router = APIRouter(prefix="/api/v1/video", tags=["image"])
+sprite_router = APIRouter(prefix="/api/v1/video", tags=["image"])
 
 # 模块级依赖，支持测试时替换
 _task_manager: TaskManagerProtocol = task_manager
 
 
-@video_router.post("/sprite")
+@sprite_router.post("/sprite")
 async def create_sprite_task(
     sprite_request: SpriteImageRequest
 ) -> Dict[str, Any]:
