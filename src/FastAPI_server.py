@@ -11,14 +11,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from exceptions.ServiceException import ServiceException
 from database import *
 from core.health_monitor.lifespan import start_health_monitor, stop_health_monitor
-# from skywalking import agent, config
+from skywalking import agent, config
 
-# config.init(
-#     collector_address='100.125.11.177:11800',
-#     authentication='tcZCXQWz1PW0LwjPkusHGFV6gSdsvjmST2u0OgeM1bJYr7ZAAHVpKerD6EaoQESHdDxAnNOWP3q74UrBx1qIdmZJRpRpUBIfPkJVaPaGYVu9zRdbmVY4Zp5sJc8fBiBloMuRR1IzAZoSIPJ7RHwkvB8SumxsM5qU3fosvqyqm2ZBzug4wdjPbXF2QJMhH3b64AejZxPlhsz658N729MGRfk61XqAklnlfPJKfybqiS5AN48rfmk2i2YpdsIRVJKa',
-#     service_name='apply name',
-# )
-# agent.start()
+config.init(
+    collector_address='100.125.11.177:11800',
+    authentication='tcZCXQWz1PW0LwjPkusHGFV6gSdsvjmST2u0OgeM1bJYr7ZAAHVpKerD6EaoQESHdDxAnNOWP3q74UrBx1qIdmZJRpRpUBIfPkJVaPaGYVu9zRdbmVY4Zp5sJc8fBiBloMuRR1IzAZoSIPJ7RHwkvB8SumxsM5qU3fosvqyqm2ZBzug4wdjPbXF2QJMhH3b64AejZxPlhsz658N729MGRfk61XqAklnlfPJKfybqiS5AN48rfmk2i2YpdsIRVJKa',
+    service_name='apply name',
+)
+agent.start()
 
 
 @asynccontextmanager

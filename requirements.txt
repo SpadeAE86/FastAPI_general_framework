@@ -91,7 +91,7 @@ vine==5.1.0
 wcwidth==0.2.14
 wheel==0.45.1
 #  skywalking
-#apache-skywalking
-#apache-skywalking[http]
-#apache-skywalking[kafka]
-#apache-skywalking==0.7.0
+apache-skywalking
+apache-skywalking[http]
+apache-skywalking[kafka]
+apache-skywalking==0.7.0

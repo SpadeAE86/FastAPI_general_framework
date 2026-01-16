@@ -22,4 +22,11 @@ EXPOSE 5000
 
 
 # 启动命令
-CMD ["uvicorn", "FastAPI_server:app", "--host", "0.0.0.0", "--port", "5000"]
+CMD [
+  "sw-python", "run",
+  "gunicorn",
+  "FastAPI_server:app",
+  "-k", "uvicorn.workers.UvicornWorker",
+  "-w", "1",
+  "-b", "0.0.0.0:5000"
+]
