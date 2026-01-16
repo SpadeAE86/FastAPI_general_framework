@@ -6,16 +6,16 @@
 当检测到进程丢失时，会将任务状态重置为pending以便重新分发。
 """
 import threading
-import time
-from config.config import my_config, ENV
+
+from celery_mq.task_manager import task_manager
+from config.config import my_config
 from core.health_monitor.heartbeat_checker import HeartbeatChecker
-from core.health_monitor.timeout_checker import TaskTimeoutChecker
-from core.health_monitor.restart_handler import ProcessRestartHandler
-from core.health_monitor.reassignment_handler import TaskReassignmentHandler
-from core.health_monitor.worker_checker import WorkerChecker
 from core.health_monitor.metric_reporter import metric_reporter
 from core.health_monitor.monitor import process_health_monitor
-from celery_mq.task_manager import task_manager
+from core.health_monitor.reassignment_handler import TaskReassignmentHandler
+from core.health_monitor.restart_handler import ProcessRestartHandler
+from core.health_monitor.timeout_checker import TaskTimeoutChecker
+from core.health_monitor.worker_checker import WorkerChecker
 from utils.log_utils import logger as log
 
 

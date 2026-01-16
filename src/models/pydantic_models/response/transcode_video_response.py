@@ -1,5 +1,6 @@
-from typing import Generic, TypeVar, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from typing import Optional
+
+from pydantic import Field
 
 from models.pydantic_models.response.base_response import BaseResponse
 

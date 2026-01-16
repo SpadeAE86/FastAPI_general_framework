@@ -1,26 +1,22 @@
-from datetime import datetime
-from utils.post_utils import post
-from ffmpeg import run_async
-
-import os
-import time
-import threading
+import asyncio
+import json
 import socket
-from celery_mq.celery_app import celery_app
+import threading
+from datetime import datetime
+
 from celery.signals import worker_shutting_down
-from models.pydantic_models.request.mixed_video_request import MixedVideoRequest, ratio_option
+
+from celery_mq.celery_app import celery_app
 from celery_mq.task_manager import task_manager
-from core.video_processing.normalize_process_pool import *
+from config.config import my_config
 from core.health_monitor import process_health_monitor
+from core.video_processing.caption import *
+from models.pydantic_models.request.mixed_video_request import MixedVideoRequest
 from models.pydantic_models.response.mixed_video_response import MixedVideoResponse
 from service.mixed_video_service import mixed_video_service
 from utils.general_utils import *
-from core.video_processing.caption import *
 from utils.log_utils import logger as log
-from config.config import my_config
-import json
-import threading
-import asyncio
+from utils.post_utils import post
 
 # 从配置读取任务重试参数
 celery_config = my_config.get("celery", {})

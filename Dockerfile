@@ -16,7 +16,7 @@ WORKDIR /app/src
 # 暴露端口
 EXPOSE 5000
 
-
+RUN which sw-python || echo "sw-python NOT FOUND"
 # 启动命令
 CMD [
   "sw-python", "run",

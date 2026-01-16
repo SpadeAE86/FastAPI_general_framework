@@ -4,14 +4,14 @@
 重构说明：通过模块级变量支持依赖注入，提高可测试性。
 遵循依赖倒置原则 (DIP)。
 """
-from fastapi import APIRouter, HTTPException, Path
+from typing import Dict, Any
+
+from fastapi import APIRouter, HTTPException
+
 from celery_mq.protocols import TaskManagerProtocol
-from models.pydantic_models.request.mixed_video_request import MixedVideoRequest
 from celery_mq.task_manager import task_manager
-from models.pydantic_models.request.sprite_image_request import SpriteImageRequest
 from models.pydantic_models.request.transcode_video_request import TranscodeVideoRequest
 from utils.log_utils import logger as log
-from typing import Dict, Any, List, Optional
 
 video_router = APIRouter(prefix="/api/v1/video", tags=["video"])
 

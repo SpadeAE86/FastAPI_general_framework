@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field, model_validator
-
 from typing import *
+
+from pydantic import Field
 
 from models.pydantic_models.request.base_request import BaseRequest
 

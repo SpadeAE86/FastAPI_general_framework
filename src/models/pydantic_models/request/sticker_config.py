@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import *
+
 
 class StickerConfig(BaseModel):
     start: float = Field(ge=0, default=0, description = "绝对的起始时间")

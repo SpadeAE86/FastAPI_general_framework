@@ -4,13 +4,15 @@
 重构说明：通过模块级变量支持依赖注入，提高可测试性。
 遵循依赖倒置原则 (DIP)。
 """
+from typing import Dict, Any
+
 from fastapi import APIRouter, HTTPException, Path
-from core.health_monitor import process_health_monitor
-from celery_mq.protocols import ProcessHealthMonitorProtocol
+
 from celery_mq.celery_app import celery_app
-from utils.process_utils import parse_process_id
+from celery_mq.protocols import ProcessHealthMonitorProtocol
+from core.health_monitor import process_health_monitor
 from utils.log_utils import logger as log
-from typing import Dict, Any, List, Optional
+from utils.process_utils import parse_process_id
 
 process_router = APIRouter(prefix="/api/v1/process", tags=["process"])
 

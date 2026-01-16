@@ -1,9 +1,7 @@
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, AsyncEngine
-from sqlalchemy.orm import sessionmaker
-from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy import select, insert, update, delete, Row, URL
+from sqlalchemy import URL
+from sqlalchemy.ext.asyncio import create_async_engine
+
 from config.config import *
-import sqlalchemy
 
 
 def create_url(config, async_mode=True):

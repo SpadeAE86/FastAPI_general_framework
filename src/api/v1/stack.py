@@ -1,9 +1,11 @@
 import os.path
+import sys
 import threading
-from tabulate import tabulate
+import traceback
+
 from fastapi import APIRouter
-from models import *
-import sys, traceback
+from tabulate import tabulate
+
 from utils.log_utils import logger as log
 
 stack_router = APIRouter()

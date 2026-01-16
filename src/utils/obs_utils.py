@@ -1,11 +1,13 @@
-import asyncio, hashlib
-from utils.memory_utils import memory
-from obs import ObsClient
-from exceptions.ServiceException import ServiceException
-import os, time, threading
-from config.config import my_config
-from utils.log_utils import logger as log
+import asyncio
+import hashlib
+import os
+import time
 
+from obs import ObsClient
+
+from exceptions.ServiceException import ServiceException
+from utils.log_utils import logger as log
+from utils.memory_utils import memory
 
 # === OBS 配置 ===
 BUCKET_NAME = 'freeuuu'

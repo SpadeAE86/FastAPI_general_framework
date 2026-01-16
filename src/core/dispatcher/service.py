@@ -1,14 +1,13 @@
 """
 调度服务：公平调度任务到RabbitMQ
 """
-import json
-import time
 import signal
 import sys
-from typing import List, Set
-from celery_mq.celery_app import celery_app
-from config.config import my_config, ENV
+import time
+from typing import List
+
 from celery_mq.task_manager import task_manager
+from config.config import my_config
 from utils.log_utils import logger as log
 from utils.rabbitmq_management import RabbitMQManagementClient
 

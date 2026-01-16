@@ -1,23 +1,18 @@
 """
 视频处理API路由
 """
-import asyncio
 import datetime
 import json
+from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter
 
-from config.config import my_config, ENV
+from config.config import my_config
 from models.pydantic_models.request.mixed_video_request import MixedVideoRequest
-from celery_mq.task_manager import task_manager
 from models.pydantic_models.response.mixed_video_response import MixedVideoResponse
 from service.mixed_video_service import mixed_video_service
 from utils.general_utils import random_with_system_time
 from utils.log_utils import logger as log
-from typing import Dict, Any
-from datetime import datetime
-
-from utils.post_utils import post
 
 test_router = APIRouter(prefix="/api/v1/test", tags=["test"])
 
