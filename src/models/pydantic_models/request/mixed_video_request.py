@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, model_validator
 
 from utils.general_utils import is_valid_hex_color
+from .base_request import BaseRequest
 from .crop_config import CropConfig
 from .caption_config import CapConfig, Cap
 from .transition_config import TransitionConfig
@@ -8,6 +9,7 @@ from .audio_config import AudioConfig
 from .filter_config import VideoFilterConfig
 from .sticker_config import StickerConfig
 from typing import *
+
 
 ratio_option = {
     "720p": {
@@ -43,7 +45,7 @@ ratio_type_option = ["1:1", "4:3", "16:9", "3:4", "9:16"]
 resolution_option = ["720p", "1080p", "2k", "4k"]
 
 # 定义混剪请求体
-class MixedVideoRequest(BaseModel):
+class MixedVideoRequest(BaseRequest):
     obs_video_path_list: List[str] = Field(
         default_factory=list,
         description="视频链接列表"
@@ -69,11 +71,6 @@ class MixedVideoRequest(BaseModel):
     crop_config: List[CropConfig] = Field(
         default_factory=list,
         description="视频拼接模式配置"
-    )
-
-    user_name: str = Field(
-        default="",
-        description="用户名"
     )
 
     cap_config: Optional[CapConfig] = Field(
@@ -124,11 +121,6 @@ class MixedVideoRequest(BaseModel):
     mix_id: Optional[int] = Field(
         default=123,
         description="混剪任务 ID"
-    )
-
-    trace_id: Optional[int] = Field(
-        default=None,
-        description="请求链路追踪 ID，用于日志透传与问题排查"
     )
 
     retry_count: Optional[int] = Field(

@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 
 from models.pydantic_models.response.base_response import BaseResponse
 
+# 定义混剪响应，url和封面图，文件大小等
 class MixedVideoResponse(BaseResponse):
     videoUrl: str
     coverImg: str

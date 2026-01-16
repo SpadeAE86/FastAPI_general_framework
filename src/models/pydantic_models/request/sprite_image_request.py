@@ -1,0 +1,19 @@
+from pydantic import BaseModel, Field, model_validator
+
+from typing import *
+
+from models.pydantic_models.request.base_request import BaseRequest
+
+
+# 定义雪碧图请求体
+class SpriteImageRequest(BaseRequest):
+
+    obs_video_path: str = Field(...,
+        description="视频链接"
+    )
+
+    sprite_id: Optional[int] = Field(
+        default=123,
+        description="雪碧图任务 ID"
+    )
+
