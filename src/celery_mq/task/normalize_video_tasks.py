@@ -9,6 +9,7 @@ from celery.signals import worker_shutting_down
 from celery_mq.celery_app import celery_app
 from celery_mq.task_manager import task_manager
 from config.config import my_config
+from core.celery_conponent.heartbeat import _heartbeat_loop
 from core.health_monitor import process_health_monitor
 from core.video_processing.caption import *
 from models.pydantic_models.request.mixed_video_request import MixedVideoRequest
