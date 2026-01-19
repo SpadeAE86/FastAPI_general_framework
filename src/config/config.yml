@@ -259,7 +259,7 @@ celery:
     retry_backoff_max: 30  # 最大退避时间（秒）
   
   worker:
-    prefetch_multiplier: 1  # Worker预取倍数
+    prefetch_multiplier: 2  # Worker预取倍数（提升至2以减少空闲等待）
     max_tasks_per_child: 50  # 每个worker进程最大任务数
   
   broker:
@@ -271,9 +271,10 @@ celery:
 # 调度服务配置
 dispatcher:
   queue_name: video_queue_test  # 队列名称
-  dispatch_interval: 2  # 调度间隔（秒）
+  dispatch_interval: 2  # 调度间隔（秒，降低以提升响应速度）
   vip_task_count: 3  # VIP用户每次取出的任务数
   normal_task_count: 1  # 普通用户每次取出的任务数
+  batch_size: 50  # 批量分发大小（单次最多分发的任务数）
   
   # 流控配置
   flow_control:

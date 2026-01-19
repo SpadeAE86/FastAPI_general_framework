@@ -161,9 +161,9 @@ class DispatcherService:
         执行一次完整的调度周期：
         1. 检查流控（队列长度是否超过阈值）
         2. 使用加权轮询算法获取待分发的任务
-        3. 验证任务数据是否存在
-        4. 发布任务到RabbitMQ
-        5. 更新任务状态为dispatched
+        3. 批量验证任务数据是否存在
+        4. 批量发布任务到RabbitMQ（使用Celery group提升性能）
+        5. 批量更新任务状态为dispatched
         """
         # 检查流控
         if not self.check_flow_control():
@@ -175,25 +175,93 @@ class DispatcherService:
         if not tasks_to_dispatch:
             return
         
-        # 分发任务到RabbitMQ
+        log.info(f"本轮调度获取到 {len(tasks_to_dispatch)} 个任务，开始批量分发")
+        
+        # 批量验证和分发任务
+        valid_tasks = []
+        failed_tasks = []
+        
+        # 第一步：批量验证任务数据
         for task_id in tasks_to_dispatch:
             try:
-                # 验证任务数据是否存在
                 task_data = task_manager.get_task_data(task_id)
                 if not task_data:
                     log.error(f"任务数据不存在: task_id={task_id}")
-                    task_manager.update_task_status(task_id, "failed", error="任务数据不存在")
-                    continue
-                
-                # 发布到RabbitMQ（只发送task_id）
-                self.publish_to_rabbitmq(task_id)
-                
-                # 更新任务状态为dispatched
-                task_manager.update_task_status(task_id, "dispatched")
-                
+                    failed_tasks.append((task_id, "任务数据不存在"))
+                else:
+                    valid_tasks.append(task_id)
             except Exception as e:
-                log.error(f"分发任务失败: task_id={task_id}, error={e}")
-                task_manager.update_task_status(task_id, "failed", error=str(e))
+                log.error(f"验证任务数据失败: task_id={task_id}, error={e}")
+                failed_tasks.append((task_id, str(e)))
+        
+        # 第二步：批量发布有效任务到RabbitMQ
+        if valid_tasks:
+            try:
+                self.batch_publish_to_rabbitmq(valid_tasks)
+                log.info(f"成功批量发布 {len(valid_tasks)} 个任务到RabbitMQ")
+            except Exception as e:
+                log.error(f"批量发布任务失败: error={e}", exc_info=True)
+                # 如果批量发布失败，降级为逐个发布
+                log.warning("批量发布失败，降级为逐个发布模式")
+                for task_id in valid_tasks:
+                    try:
+                        self.publish_to_rabbitmq(task_id)
+                        task_manager.update_task_status(task_id, "dispatched")
+                    except Exception as e2:
+                        log.error(f"发布任务失败: task_id={task_id}, error={e2}")
+                        failed_tasks.append((task_id, str(e2)))
+                return
+        
+        # 第三步：批量更新任务状态
+        for task_id in valid_tasks:
+            try:
+                task_manager.update_task_status(task_id, "dispatched")
+            except Exception as e:
+                log.error(f"更新任务状态失败: task_id={task_id}, error={e}")
+        
+        # 第四步：处理失败任务
+        for task_id, error in failed_tasks:
+            try:
+                task_manager.update_task_status(task_id, "failed", error=error)
+            except Exception as e:
+                log.error(f"更新失败任务状态出错: task_id={task_id}, error={e}")
+        
+        if failed_tasks:
+            log.warning(f"本轮调度有 {len(failed_tasks)} 个任务失败")
+    
+    def batch_publish_to_rabbitmq(self, task_ids: List[str]):
+        """
+        批量发布任务到RabbitMQ队列
+        
+        使用Celery的group原语批量发送任务，相比逐个发送可以显著提升性能。
+        group会并行发送所有任务到RabbitMQ，减少网络往返时间。
+        
+        Args:
+            task_ids: 任务ID列表，每个任务的数据已在Redis中
+        """
+        try:
+            from celery import group
+            from celery_mq.task.normalize_video_tasks import process_video_task
+            
+            # 创建任务签名列表
+            task_signatures = [
+                process_video_task.s(task_id).set(
+                    queue=self.queue_name,
+                    delivery_mode=2,  # 持久化消息
+                )
+                for task_id in task_ids
+            ]
+            
+            # 使用group批量发送
+            job = group(task_signatures)
+            result = job.apply_async()
+            
+            log.info(f"批量发布任务到RabbitMQ: count={len(task_ids)}, group_id={result.id}")
+            
+        except Exception as e:
+            log.error(f"批量发布任务到RabbitMQ失败: error={e}")
+            raise
+
     
     def dispatch_loop(self):
         """
