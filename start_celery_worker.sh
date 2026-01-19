@@ -8,5 +8,5 @@
 cd "$(dirname "$0")/src"
 # 启动 Celery worker
 
-/root/miniconda3/envs/test_gpu/bin/python -m celery -A celery_mq.celery_app worker --hostname=celery_test@%h --loglevel=INFO --queues=video_queue_test --concurrency=4
+/root/miniconda3/envs/test_gpu/bin/python -m celery -A celery_mq.celery_app worker --hostname=celery_test@%h --loglevel=INFO --queues=video_queue_test --concurrency=1
 
