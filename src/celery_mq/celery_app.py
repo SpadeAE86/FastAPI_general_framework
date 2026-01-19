@@ -2,9 +2,6 @@ import os
 import socket
 
 from celery import Celery
-from celery.signals import worker_shutting_down
-
-from celery_mq.task_manager import task_manager
 from config.config import my_config, ENV
 from utils.log_utils import logger as log
 
