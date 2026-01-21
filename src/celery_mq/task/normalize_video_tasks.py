@@ -40,7 +40,7 @@ queue_name = queue_config.get("name", "video_queue")
     retry_backoff_max=retry_backoff_max,  # 从配置读取最大退避时间
     retry_jitter=True,  # 添加随机抖动避免同时重试
 )
-def process_video_task(self, task_id: str):
+def process_video_task(self, data):
     """
     处理视频任务
 
@@ -54,8 +54,30 @@ def process_video_task(self, task_id: str):
     - 更新任务进度和状态
 
     Args:
-        task_id: 任务ID，从RabbitMQ消息中获取，用于标识和追踪任务
+        data: 任务数据(dict) 或 任务ID(str, 兼容旧版)
     """
+    # 1. 解析参数
+    task_id = self.request.headers.get("task_id")
+    task_data = None
+    
+    if isinstance(data, str):
+        # 旧模式兼容
+        if not task_id: task_id = data
+        task_data = task_manager.get_task_data(task_id)
+    elif isinstance(data, dict):
+        task_data = data
+    else:
+        raise ValueError(f"Unsupported data type: {type(data)}")
+
+    # 标记是否为内部追踪任务
+    is_tracked = bool(task_id)
+    
+    if not is_tracked:
+        # 外部调用，生成临时 ID
+        import uuid
+        task_id = f"ext_mix_{uuid.uuid4().hex[:8]}"
+        log.info(f"[外部调用] 生成临时 ID: {task_id}")
+
     # 获取worker名称和进程ID
     if hasattr(self.request, 'hostname') and self.request.hostname:
         worker_name = self.request.hostname
@@ -69,35 +91,35 @@ def process_video_task(self, task_id: str):
     heartbeat_thread = None
 
     try:
-        # 注册进程到Redis
-        process_health_monitor.register_process(worker_name, pid)
+        if is_tracked:
+            # 注册进程到Redis
+            process_health_monitor.register_process(worker_name, pid)
 
-        # 更新任务状态为running
-        task_manager.update_task_status(task_id, "running", started_at=datetime.now().isoformat())
+            # 更新任务状态为running
+            task_manager.update_task_status(task_id, "running", started_at=datetime.now().isoformat())
 
+            # 记录任务分配时间
+            task_manager.record_task_start_time(task_id)
 
-        # 记录任务分配时间
-        task_manager.record_task_start_time(task_id)
+            # 更新进程任务分配信息
+            process_health_monitor.update_task_assignment(worker_name, pid, task_id)
 
-        # 更新进程任务分配信息
-        process_health_monitor.update_task_assignment(worker_name, pid, task_id)
+            # 启动心跳线程
+            heartbeat_interval = my_config.get("process_health", {}).get("heartbeat_interval", 10)
+            heartbeat_thread = threading.Thread(
+                target=_heartbeat_loop,
+                args=(worker_name, pid, heartbeat_stop_event, heartbeat_interval),
+                name=f"HeartbeatThread-{pid}",
+                daemon=True
+            )
+            heartbeat_thread.start()
 
-        # 启动心跳线程
-        heartbeat_interval = my_config.get("process_health", {}).get("heartbeat_interval", 10)
-        heartbeat_thread = threading.Thread(
-            target=_heartbeat_loop,
-            args=(worker_name, pid, heartbeat_stop_event, heartbeat_interval),
-            name=f"HeartbeatThread-{pid}",
-            daemon=True
-        )
-        heartbeat_thread.start()
-
-        # 从Redis获取任务数据
-        task_data = task_manager.get_task_data(task_id)
+        # 检查数据
         if not task_data:
             error_msg = f"任务数据不存在: task_id={task_id}"
             log.error(error_msg)
-            task_manager.update_task_status(task_id, "failed", error=error_msg)
+            if is_tracked:
+                task_manager.update_task_status(task_id, "failed", error=error_msg)
             raise ValueError(error_msg)
 
         # 将字典转换为Pydantic模型
@@ -110,7 +132,9 @@ def process_video_task(self, task_id: str):
         _process_video_internal(mixed_config, task_id)
 
         # 任务完成，更新状态
-        task_manager.update_task_status(task_id, "completed", completed_at=datetime.now().isoformat())
+        if is_tracked:
+            task_manager.update_task_status(task_id, "completed", completed_at=datetime.now().isoformat())
+        
         self.update_state(state='SUCCESS', meta={'progress': 100, 'message': '任务完成'})
 
         log.info(f"任务处理完成: task_id={task_id}")
@@ -118,17 +142,19 @@ def process_video_task(self, task_id: str):
     except Exception as e:
         error_msg = f"任务处理失败: task_id={task_id}, error={str(e)}"
         log.error(error_msg, exc_info=True)
-        task_manager.update_task_status(task_id, "failed", error=str(e), failed_at=datetime.now().isoformat())
+        if is_tracked:
+            task_manager.update_task_status(task_id, "failed", error=str(e), failed_at=datetime.now().isoformat())
         self.update_state(state='FAILURE', meta={'error': str(e)})
         raise
     finally:
-        # 停止心跳线程
-        if heartbeat_thread:
-            heartbeat_stop_event.set()
-            heartbeat_thread.join(timeout=2)
+        if is_tracked:
+            # 停止心跳线程
+            if heartbeat_thread:
+                heartbeat_stop_event.set()
+                heartbeat_thread.join(timeout=2)
 
-        # 清除进程任务分配信息
-        process_health_monitor.clear_task_assignment(worker_name, pid)
+            # 清除进程任务分配信息
+            process_health_monitor.clear_task_assignment(worker_name, pid)
 
         # 注意：不在这里清理进程注册信息，因为进程可能还会执行其他任务
         # 进程退出时会自动清理（通过信号处理或监控服务检测）

@@ -22,7 +22,7 @@ class MetricReporter:
         
         self.enabled = ces_config.get("enabled", False)
         self.report_interval = ces_config.get("report_interval", 30)  # 默认30秒
-        self.queue_name = monitoring_config.get("queue_name", "video_queue")  # 监控的队列名称
+        self.queue_name = monitoring_config.get("queue_name", f"{ENV}_video_queue")  # 监控的队列名称
         self.namespace = monitoring_config.get("namespace", "celery.rabbitmq")  # 指标命名空间
         self.metric_name = monitoring_config.get("metric_name", "rabbitmq_queue_length")  # 指标名称
         self.ttl = monitoring_config.get("ttl", 604800)  # 数据有效期7天

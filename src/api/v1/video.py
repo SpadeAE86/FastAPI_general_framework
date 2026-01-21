@@ -37,7 +37,7 @@ async def create_video_task(mixed_config: MixedVideoRequest) -> Dict[str, Any]:
         
         # 创建任务
         task_id = _task_manager.create_task(user_id, task_data)
-        
+        task_data["task_type"] = "mix"
         # 获取任务状态
         task_status = _task_manager.get_task_status(task_id)
         

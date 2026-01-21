@@ -104,7 +104,7 @@ ui:
 video: null
 #=============================================================================
 cache: false
-env: test
+env: local
 device: gpu
 feishu_robot: "https://open.feishu.cn/open-apis/bot/v2/hook/c004bc00-bcc5-416a-a1c3-c53b607da620"
 error_at: "49f92f95"
@@ -242,10 +242,16 @@ process_health:
   worker_check_interval: 30  # Worker检查间隔（秒）
   min_healthy_workers: 1  # 最小健康worker数量
 
+task_type:
+  mix: video_queue
+  sprite: sprite_queue
+  transcode: transcode_queue
+
+
 # Celery 和消息队列配置
 celery:
   queue:
-    name: video_queue_test  # 队列名称
+    name: video_queue  # 队列名称
     exchange: tasks  # 交换机名称
     exchange_type: direct  # 交换机类型
     routing_key: default  # 路由键
@@ -286,7 +292,7 @@ dispatcher:
 
 # 监控指标配置
 monitoring:
-  queue_name: video_queue_test  # 监控的队列名称
+  queue_name: test_video_queue  # 监控的队列名称
   namespace: celery.rabbitmq  # 指标命名空间
   metric_name: rabbitmq_queue_length  # 指标名称
   ttl: 604800  # 数据有效期（秒，7天）

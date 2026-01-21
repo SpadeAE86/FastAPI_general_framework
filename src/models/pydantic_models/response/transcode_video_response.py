@@ -7,13 +7,16 @@ from models.pydantic_models.response.base_response import BaseResponse
 
 # 定义转码请求体
 class TranscodeVideoRequest(BaseResponse):
-    obs_video_path: str = Field(...,
-                                description="转码后视频链接"
+    low_resolution_video_url: str = Field(...,
+                                description="转码后低视频链接"
                                 )
-    height: int = Field(...,
+    raw_resolution_video_url: str = Field(...,
+                                description="转码后原视频链接"
+                                )
+    raw_resolution_x: int = Field(...,
                         description="转码后高度"
                         )
-    width: int = Field(...,
+    raw_resolution_y: int = Field(...,
                     description="转码后宽度"
                     )
 

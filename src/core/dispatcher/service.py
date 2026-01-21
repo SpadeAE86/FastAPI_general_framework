@@ -4,13 +4,15 @@
 import signal
 import sys
 import time
-from typing import List
-
+from typing import List, Dict
+from collections import defaultdict
 from celery_mq.task_manager import task_manager
-from config.config import my_config
+from config.config import my_config, ENV
 from utils.log_utils import logger as log
 from utils.rabbitmq_management import RabbitMQManagementClient
-
+from celery import group
+from celery import group
+# from celery_mq.task import process_functions  <-- Removed to fix circular import
 
 class DispatcherService:
     """调度服务主类"""
@@ -21,8 +23,8 @@ class DispatcherService:
         
         # 从配置读取调度服务参数
         dispatcher_config = my_config.get("dispatcher", {})
-        self.queue_name = dispatcher_config.get("queue_name", "video_queue")
-        self.dispatch_interval = dispatcher_config.get("dispatch_interval", 2)  # 调度间隔（秒）
+
+        self.dispatch_interval = dispatcher_config.get("dispatch_interval", 1)  # 调度间隔（秒）
         self.vip_task_count = dispatcher_config.get("vip_task_count", 3)  # VIP用户每次取出的任务数
         self.normal_task_count = dispatcher_config.get("normal_task_count", 1)  # 普通用户每次取出的任务数
         self.max_queue_length = dispatcher_config.get("max_queue_length", 100)  # RabbitMQ队列最大长度阈值
@@ -47,61 +49,86 @@ class DispatcherService:
         log.info(f"收到信号 {signum}，准备关闭调度服务...")
         self.stop()
         sys.exit(0)
-    
-    
-    def check_flow_control(self) -> bool:
+
+    def check_flow_control(self) -> Dict[str, bool]:
         """
-        流控检查：检查RabbitMQ队列长度
-        
-        通过 RabbitMQ Management API 查询队列中的消息总数（ready + unacknowledged），
-        如果超过阈值则暂停分发，避免队列积压。
-        
+        流控检查（按 task_type 维度）
+
         Returns:
-            True表示可以继续分发，False表示需要暂停
+            Dict[task_type, bool]:
+            True  -> 该任务类型可以继续分发
+            False -> 该任务类型需要暂停
         """
+        result = {}
+
         try:
-            # 通过 RabbitMQ Management API 获取队列长度
-            queue_length = self.rabbitmq_client.get_queue_length(self.queue_name)
-            
-            log.debug(
-                f"流控检查: 队列 {self.queue_name} 当前长度={queue_length}, "
-                f"阈值={self.max_queue_length}"
-            )
-            
-            # 如果队列长度超过阈值，暂停分发
-            if queue_length >= self.max_queue_length:
-                log.warning(
-                    f"队列长度 {queue_length} 超过阈值 {self.max_queue_length}，"
-                    f"暂停分发任务到队列 {self.queue_name}"
-                )
-                return False
-            
-            # 队列长度未超过阈值，可以继续分发
-            return True
-            
+            task2queue = my_config.get("task_type", {})
+
+            for task_type, queue_name in task2queue.items():
+                real_queue_name = f"{ENV}_{queue_name}"
+                try:
+                    queue_length = self.rabbitmq_client.get_queue_length(real_queue_name)
+
+                    log.debug(
+                        f"流控检查: task_type={task_type}, "
+                        f"queue={real_queue_name}, length={queue_length}, "
+                        f"threshold={self.max_queue_length}"
+                    )
+
+                    if queue_length >= self.max_queue_length:
+                        log.warning(
+                            f"队列流控触发: task_type={task_type}, "
+                            f"queue={real_queue_name}, length={queue_length}"
+                        )
+                        result[task_type] = False
+                    else:
+                        result[task_type] = True
+
+                except Exception as qe:
+                    log.error(
+                        f"获取队列长度失败: task_type={task_type}, queue={real_queue_name}, error={qe}"
+                    )
+                    # 单个队列失败，不影响其他队列
+                    result[task_type] = True
+
+            return result
+
         except Exception as e:
-            log.error(f"检查流控时出错: {e}", exc_info=True)
-            # 出错时允许继续分发，避免因网络问题导致调度完全停止
-            return True
+            log.error("流控系统异常，默认放行所有任务", exc_info=True)
+            # 全异常时兜底：全部放行
+            return {task_type: True for task_type in my_config.get("task_type", {})}
     
-    def publish_to_rabbitmq(self, task_id: str):
+    def publish_to_rabbitmq(self, task_id: str, task_type: str, task_data: dict = None):
         """
         发布任务到RabbitMQ队列（使用Celery API）
         
         使用Celery的apply_async方法将任务发送到指定的RabbitMQ队列。
-        任务数据已经在Redis中，这里只发送task_id。
+        body塞完整的请求体，header塞task_id。
         
         Args:
-            task_id: 任务ID，用于标识要发布的任务（任务数据已在Redis中）
+            task_id: 任务ID，用于标识要发布的任务
+            task_type: 任务类型
+            task_data: 任务数据（可选，如果不传则尝试从Redis获取）
         """
+        if task_data is None:
+            task_data = task_manager.get_task_data(task_id)
+            if not task_data:
+                 log.error(f"任务数据不存在,无法发布: task_id={task_id}")
+                 raise ValueError(f"Task data missing for task_id={task_id}")
+        
         try:
             # 使用Celery的send_task方法发送任务
-            from celery_mq.task.normalize_video_tasks import process_video_task
+            task2queue = my_config.get("task_type", {})
+            queue_name = task2queue.get(task_type, f"{ENV}_video_queue")
+            # 延迟导入，解决循环依赖
+            from celery_mq.task import process_functions
+            process_function = process_functions[task_type]
             
-            result = process_video_task.apply_async(
-                args=[task_id],
-                queue=self.queue_name,
+            result = process_function.apply_async(
+                args=[task_data],
+                queue=queue_name,
                 delivery_mode=2,
+                headers={"task_id": task_id}
             )
             
             log.info(f"任务已发布到RabbitMQ: task_id={task_id}, celery_task_id={result.id}")
@@ -166,8 +193,7 @@ class DispatcherService:
         5. 批量更新任务状态为dispatched
         """
         # 检查流控
-        if not self.check_flow_control():
-            return
+        flow_control = self.check_flow_control()
         
         # 加权轮询获取任务
         tasks_to_dispatch = self.weighted_round_robin()
@@ -178,7 +204,7 @@ class DispatcherService:
         log.info(f"本轮调度获取到 {len(tasks_to_dispatch)} 个任务，开始批量分发")
         
         # 批量验证和分发任务
-        valid_tasks = []
+        valid_tasks = defaultdict(list)
         failed_tasks = []
         
         # 第一步：批量验证任务数据
@@ -189,80 +215,130 @@ class DispatcherService:
                     log.error(f"任务数据不存在: task_id={task_id}")
                     failed_tasks.append((task_id, "任务数据不存在"))
                 else:
-                    valid_tasks.append(task_id)
+                    task_type = task_data.get("task_type", "mix")
+                    valid_tasks[task_type].append((task_id, task_data))
             except Exception as e:
                 log.error(f"验证任务数据失败: task_id={task_id}, error={e}")
                 failed_tasks.append((task_id, str(e)))
-        
-        # 第二步：批量发布有效任务到RabbitMQ
-        if valid_tasks:
+
+        # 第二步：按 task_type 批量发布任务到 RabbitMQ
+        for task_type, task_items in valid_tasks.items():
+
+            # 流控检查（task_type 级别）
+            if not flow_control.get(task_type, True):
+                log.info(f"任务类型被流控，暂不分发: task_type={task_type}")
+                continue
+
+            # 先尝试 batch 发布
             try:
-                self.batch_publish_to_rabbitmq(valid_tasks)
-                log.info(f"成功批量发布 {len(valid_tasks)} 个任务到RabbitMQ")
-            except Exception as e:
-                log.error(f"批量发布任务失败: error={e}", exc_info=True)
-                # 如果批量发布失败，降级为逐个发布
-                log.warning("批量发布失败，降级为逐个发布模式")
-                for task_id in valid_tasks:
+                self.batch_publish_to_rabbitmq(task_type, task_items)
+                log.info(
+                    f"批量发布成功: task_type={task_type}, count={len(task_items)}"
+                )
+
+                # batch 成功后，统一更新状态
+                for task_id, _ in task_items:
                     try:
-                        self.publish_to_rabbitmq(task_id)
-                        task_manager.update_task_status(task_id, "dispatched")
-                    except Exception as e2:
-                        log.error(f"发布任务失败: task_id={task_id}, error={e2}")
-                        failed_tasks.append((task_id, str(e2)))
-                return
-        
-        # 第三步：批量更新任务状态
-        for task_id in valid_tasks:
-            try:
-                task_manager.update_task_status(task_id, "dispatched")
+                        task_manager.update_task_status(task_id, "dispatching")
+                    except Exception as e:
+                        log.error(
+                            f"更新任务状态失败: task_id={task_id}, "
+                            f"task_type={task_type}, error={e}"
+                        )
+
             except Exception as e:
-                log.error(f"更新任务状态失败: task_id={task_id}, error={e}")
-        
+                log.error(
+                    f"批量发布失败: task_type={task_type}, error={e}",
+                    exc_info=True,
+                )
+                log.warning(
+                    f"task_type={task_type} 批量发布失败，降级为逐个发布"
+                )
+
+                # ⚠️ 关键点：只降级这一种 task_type
+                for task_id, task_data in task_items:
+                    try:
+                        self.publish_to_rabbitmq(task_id, task_type, task_data=task_data)
+                        task_manager.update_task_status(task_id, "dispatching")
+                    except Exception as e2:
+                        log.error(
+                            f"发布任务失败: task_id={task_id}, "
+                            f"task_type={task_type}, error={e2}"
+                        )
+                        failed_tasks.append((task_id, str(e2)))
+
+        # 第三步：批量更新任务状态（valid_tasks: Dict[str, List[Tuple[str, dict]]]）
+        for task_type, task_items in valid_tasks.items():
+            for task_id, _ in task_items:
+                try:
+                    task_manager.update_task_status(task_id, "dispatched")
+                except Exception as e:
+                    log.error(
+                        f"更新任务状态失败: task_id={task_id}, "
+                        f"task_type={task_type}, error={e}"
+                    )
+
         # 第四步：处理失败任务
         for task_id, error in failed_tasks:
             try:
                 task_manager.update_task_status(task_id, "failed", error=error)
             except Exception as e:
-                log.error(f"更新失败任务状态出错: task_id={task_id}, error={e}")
-        
+                log.error(
+                    f"更新失败任务状态出错: task_id={task_id}, error={e}"
+                )
+
         if failed_tasks:
             log.warning(f"本轮调度有 {len(failed_tasks)} 个任务失败")
-    
-    def batch_publish_to_rabbitmq(self, task_ids: List[str]):
+
+    def batch_publish_to_rabbitmq(self, task_type: str, task_items: List[tuple]):
         """
-        批量发布任务到RabbitMQ队列
-        
-        使用Celery的group原语批量发送任务，相比逐个发送可以显著提升性能。
-        group会并行发送所有任务到RabbitMQ，减少网络往返时间。
+        批量发布同一 task_type 的任务到 RabbitMQ
         
         Args:
-            task_ids: 任务ID列表，每个任务的数据已在Redis中
+            task_type: 任务类型
+            task_items: List[Tuple(task_id, task_data)]
+
+        使用 Celery group 批量发送任务。
+        注意：
+        - 该方法不保证“全成功或全失败”
+        - 抛异常仅表示发布过程中出现客户端异常
+        - 不做任何状态更新或补偿逻辑
         """
+        if not task_items:
+            return
+
         try:
-            from celery import group
-            from celery_mq.task.normalize_video_tasks import process_video_task
-            
-            # 创建任务签名列表
+            task2queue = my_config.get("task_type", {})
+            queue_name = task2queue.get(task_type, f"{ENV}_video_queue")
+            # 延迟导入，解决循环依赖
+            from celery_mq.task import process_functions
+            process_function = process_functions[task_type]
+
             task_signatures = [
-                process_video_task.s(task_id).set(
-                    queue=self.queue_name,
+                process_function.s(task_data).set(
+                    queue=queue_name,
                     delivery_mode=2,  # 持久化消息
+                    headers={"task_id": task_id}
                 )
-                for task_id in task_ids
+                for task_id, task_data in task_items
             ]
-            
-            # 使用group批量发送
+
             job = group(task_signatures)
             result = job.apply_async()
-            
-            log.info(f"批量发布任务到RabbitMQ: count={len(task_ids)}, group_id={result.id}")
-            
+
+            log.info(
+                f"批量发布任务到RabbitMQ成功: "
+                f"task_type={task_type}, count={len(task_items)}, group_id={result.id}"
+            )
+
         except Exception as e:
-            log.error(f"批量发布任务到RabbitMQ失败: error={e}")
+            log.error(
+                f"批量发布任务到RabbitMQ失败: "
+                f"task_type={task_type}, count={len(task_items)}, error={e}",
+                exc_info=True,
+            )
             raise
 
-    
     def dispatch_loop(self):
         """
         主调度循环
