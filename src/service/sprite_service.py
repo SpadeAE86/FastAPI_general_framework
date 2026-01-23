@@ -15,7 +15,7 @@ from utils.obs_utils import upload_to_obs, batch_upload_to_obs
 
 async def sprite_service(sprite_config: SpriteImageRequest) -> SpriteImageResponse:
 
-    project_id = "sprite_" + str(random_with_system_time()) if not sprite_config.sprite_id else "sprite_" + str(
+    project_id = "sprite_" + str(random_with_system_time()) if not sprite_config.biz_id else "sprite_" + str(
         sprite_config.sprite_id)  # 该次混剪资源所在的子文件夹名
     log.info(f"project_id: {project_id}")
 

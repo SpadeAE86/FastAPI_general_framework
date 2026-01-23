@@ -141,7 +141,7 @@ def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str):
     """
     核心处理逻辑：生成雪碧图
     """
-    project_id = "sprite_" + str(random_with_system_time()) if not sprite_request.sprite_id else "sprite_" + str(
+    project_id = "sprite_" + str(random_with_system_time()) if not sprite_request.biz_id else "sprite_" + str(
         sprite_request.transcode_id)  # 该次混剪资源所在的子文件夹名
     log.info(f"project_id: {project_id}")
     video_path = sprite_request.get("video_path")

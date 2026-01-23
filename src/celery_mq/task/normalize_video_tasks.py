@@ -174,7 +174,7 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str):
         mixed_config: 视频混剪配置，包含视频路径、音频路径、字幕配置等所有处理参数
         task_id: 任务ID，用于更新任务进度和日志记录
     """
-    project_id = "mix_" + str(random_with_system_time()) if not mixed_config.mix_id else "mix_" + str(
+    project_id = "mix_" + str(random_with_system_time()) if not mixed_config.biz_id else "mix_" + str(
         mixed_config.mix_id)  # 该次混剪资源所在的子文件夹名
     log.info(f"project_id: {project_id}")
 
