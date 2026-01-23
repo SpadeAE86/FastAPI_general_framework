@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import os
 import time
+from typing import List
 
 from obs import ObsClient
 
@@ -12,6 +13,7 @@ from utils.memory_utils import memory
 # === OBS 配置 ===
 BUCKET_NAME = 'freeuuu'
 OBS_BASE_URL = 'https://freeuuu.obs.cn-east-3.myhuaweicloud.com'
+CDN_BASE_URL = "https://obs.freeuuu.com"
 audio_output_dir = "../work"
 obs_client = ObsClient(
     access_key_id='UJDPK31ANIBV0XTEUN5N',
@@ -30,7 +32,7 @@ async def upload_to_obs(filename: str, obs_prefix: str = "ai_picture/mark/demo/f
         resp = await asyncio.to_thread(obs_client.putFile, bucketName=BUCKET_NAME, objectKey=obs_key,
                                        file_path=filename)
         if resp.status < 300:
-            return f"{OBS_BASE_URL}/{obs_key}"
+            return f"{CDN_BASE_URL}/{obs_key}"
         else:
             raise ServiceException(code=461, message=f"obs上传异常，状态码{resp.status}")
     except Exception as e:
@@ -92,3 +94,22 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
             raise ServiceException(code=460, message=f"obs下载异常，状态码{resp.status}")
     except Exception as e:
         raise ServiceException(code=440, message=f"obs下载异常，请检查{filename}文件是否存在", data=str(e))
+
+async def batch_upload_to_obs(
+    file_paths: List[str],
+    obs_key_prefix: str,
+    max_concurrency: int = 5,
+) -> List[str]:
+    sem = asyncio.Semaphore(max_concurrency)
+
+    async def _upload(path: str):
+        async with sem:
+            file_name = os.path.basename(path)
+            obs_key = f"{obs_key_prefix}/{file_name}"
+            url = await upload_to_obs(path, obs_key)
+            return url
+
+    tasks = [_upload(p) for p in file_paths]
+    obs_keys = await asyncio.gather(*tasks)
+
+    return obs_keys

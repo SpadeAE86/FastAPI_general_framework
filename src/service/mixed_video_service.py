@@ -41,6 +41,7 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         log.info(f"config user_name: {mixed_config.user_name}")
         download_start = time.time()
 
+        output_dir = None
         # 下载/vpc储存卷获取资源
         if my_config["direct_download"]:
             output_dir = f"{RESOURCE_DIR}/{project_id}"

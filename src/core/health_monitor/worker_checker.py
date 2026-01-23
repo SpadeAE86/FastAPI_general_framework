@@ -5,7 +5,7 @@ import os
 import socket
 import re
 from typing import List, Dict, Any, Set, Optional, Tuple
-from celery_mq.celery_app import celery_app
+
 from core.health_monitor.monitor import process_health_monitor
 from utils.process_utils import parse_process_id
 from utils.env_utils import (
@@ -44,6 +44,7 @@ class WorkerChecker:
         Returns:
             Set[str]: 当前环境的活跃worker名称集合，格式为 {"worker_name@hostname", ...}
         """
+        from celery_mq.celery_app import celery_app
         try:
             inspect = celery_app.control.inspect()
             

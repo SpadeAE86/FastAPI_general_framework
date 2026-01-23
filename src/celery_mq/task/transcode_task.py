@@ -1,11 +1,17 @@
+import asyncio
 import os
 import socket
 import threading
 from datetime import datetime
 import logging
-from utils.tencent.vod_uploader import TencentVodUploader
+
 from celery_mq.task_manager import task_manager
 from config.config import my_config, ENV
+from models.pydantic_models.request.transcode_video_request import TranscodeVideoRequest
+from models.pydantic_models.response.transcode_video_response import TranscodeVideoResponse
+from service.transcode_video_service import transcode_video_service
+from utils.general_utils import random_with_system_time
+from utils.post_utils import post
 from utils.tencent.cos_uploader import vod_upload_to_cos
 
 from core import process_health_monitor
@@ -14,40 +20,6 @@ from core.celery_conponent.heartbeat import _heartbeat_loop
 from celery_mq.celery_app import celery_app
 
 log = logging.getLogger(__name__)
-
-def _process_transcode_internal(task_data: dict, task_id: str):
-    """
-    核心处理逻辑：提交视频到腾讯 VOD 上传并轮询结果
-    """
-    video_path = task_data.get("video_path")
-    if not video_path or not isinstance(video_path, str):
-        raise ValueError(f"任务缺少 video_path: task_id={task_id}")
-
-    # 初始化 VOD 上传器
-    uploader = TencentVodUploader(
-        secret_id=task_data.get("secret_id"),
-        secret_key=task_data.get("secret_key"),
-        sub_app_id=task_data.get("sub_app_id")
-    )
-
-    # 1. 申请上传
-    apply_resp = uploader.apply_upload(video_path=video_path, media_type="mp4")
-    vod_session_key = apply_resp["VodSessionKey"]
-    log.info(f"申请上传成功: task_id={task_id}, VodSessionKey={vod_session_key}")
-
-    # 2. 上传到 COS
-    vod_upload_to_cos(apply_resp, video_path)
-    log.info(f"视频已上传到 COS: task_id={task_id}")
-
-    # 3. 提交上传并轮询结果
-    transcode_result = uploader.commit_and_poll(vod_session_key)
-    media_url = transcode_result.get("MediaUrl")
-    if not media_url:
-        raise RuntimeError(f"Transcode 完成但未返回 MediaUrl: task_id={task_id}")
-
-    log.info(f"转码完成: task_id={task_id}, media_url={media_url}")
-
-    return transcode_result
 
 
 @celery_app.task(
@@ -154,3 +126,27 @@ def process_transcode_task(self, data):
 
             # 清除进程任务分配信息
             process_health_monitor.clear_task_assignment(worker_name, pid)
+
+def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_id: str):
+    """
+    核心处理逻辑：提交视频到腾讯 VOD 上传并轮询结果
+    """
+    project_id = "transcode_" + str(random_with_system_time()) if not transcode_request.transcode_id else "transcode_" + str(
+        transcode_request.transcode_id)  # 该次混剪资源所在的子文件夹名
+    log.info(f"project_id: {project_id}")
+    video_path = transcode_request.get("video_path")
+
+    if not video_path or not isinstance(video_path, str):
+        raise ValueError(f"任务缺少 video_path: task_id={task_id}")
+
+    # 初始化 VOD 上传器
+    resp: TranscodeVideoResponse = asyncio.run(transcode_video_service(transcode_request))
+    #回调
+    callback = my_config["callback"][ENV]["transcode"]
+    callback_url = callback if not transcode_request.callback_url else transcode_request.callback_url
+    need_callback = my_config["need_callback"]
+    if need_callback:
+        asyncio.run(post(callback_url, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
+    else:
+        log.info(f"{transcode_request.transcode_id} 任务完成: {resp.model_dump()}")
+

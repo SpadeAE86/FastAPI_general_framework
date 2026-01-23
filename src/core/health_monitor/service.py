@@ -7,7 +7,7 @@
 """
 import threading
 
-from celery_mq.task_manager import task_manager
+
 from config.config import my_config
 from core.health_monitor.heartbeat_checker import HeartbeatChecker
 from core.health_monitor.metric_reporter import metric_reporter
@@ -228,6 +228,7 @@ class HealthMonitorService:
             pid: 进程ID，用于日志记录
             task_id: 任务ID，用于标识要恢复的任务
         """
+        from celery_mq.task_manager import task_manager
         try:
             # 检查任务状态
             task_info = task_manager.get_task_status(task_id)

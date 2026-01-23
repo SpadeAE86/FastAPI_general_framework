@@ -3,7 +3,7 @@
 """
 import time
 from typing import List, Dict, Any
-from celery_mq.task_manager import task_manager
+
 from core.health_monitor.monitor import process_health_monitor
 from utils.process_utils import parse_process_id
 from utils.log_utils import logger as log
@@ -33,7 +33,7 @@ class TaskTimeoutChecker:
         """
         timeout_tasks = []
         current_time = time.time()
-        
+        from celery_mq.task_manager import task_manager
         try:
             # 获取所有运行中的进程
             processes = process_health_monitor.get_all_processes()

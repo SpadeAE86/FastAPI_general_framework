@@ -322,10 +322,58 @@ def run_ffmpeg_command(command, video_name=""):
             f"timeout while running command: {command}, Exception {e}"
         )
 
+async def run_ffmpeg_command_async(command, video_name=""):
+    try:
+        log.debug(f"full command: {command}")
+        t0 = time.time()
+
+        process = await asyncio.create_subprocess_exec(
+            *command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        t1 = time.time()
+
+        try:
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                process.communicate(),
+                timeout=500
+            )
+        except asyncio.TimeoutError:
+            process.kill()
+            await process.wait()
+            raise ServiceException(
+                888,
+                f"timeout while running command: {command}"
+            )
+
+        t2 = time.time()
+
+        stdout = stdout_bytes.decode("utf-8", errors="ignore")
+        stderr = stderr_bytes.decode("utf-8", errors="ignore")
+
+        log.info(f"FFmpeg启动耗时: {t1 - t0:.2f}s")
+        log.info(f"FFmpeg运行耗时: {t2 - t1:.2f}s")
+
+        if process.returncode != 0:
+            log.error(stderr)
+            raise RuntimeError(f"ffmpeg failed for {video_name}")
+
+        log.info("Command executed successfully.")
+
+        return stdout
+
+    except Exception as e:
+        log.exception("ffmpeg execution failed")
+        raise ServiceException(
+            888,
+            f"error while running command: {command}, Exception {e}"
+        )
+
 async def delete_folder(folder_name: str):
     shutil.rmtree(folder_name, ignore_errors=True)
 
-async def download_resource(path_list, output_dir=""):
+async def download_resource(path_list, output_dir=None):
     decode_path_list = [decode_chinese_url(path) for path in path_list]  #把中文unicode转换成中文字符串
     if not output_dir:
         vpc_prefix = vpc + "/"

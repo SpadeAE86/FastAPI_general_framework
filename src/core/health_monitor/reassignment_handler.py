@@ -4,7 +4,7 @@
 注意：监控服务不再自动重新分配任务，任务重试由 Celery retries 机制处理。
 此类主要用于标记和记录超时任务的状态。
 """
-from celery_mq.task_manager import task_manager
+
 from core.health_monitor.monitor import process_health_monitor
 from utils.log_utils import logger as log
 import time
@@ -12,7 +12,7 @@ import time
 
 class TaskReassignmentHandler:
     """任务重新分配处理器"""
-    
+
     def reassign_task(self, task_id: str) -> bool:
         """
         重新分配任务到队列
@@ -27,6 +27,7 @@ class TaskReassignmentHandler:
             bool: 如果重新分配成功返回True，否则返回False
         """
         try:
+            from celery_mq.task_manager import task_manager
             # 获取任务信息
             task_info = task_manager.get_task_status(task_id)
             if not task_info:

@@ -3,6 +3,8 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
+from config.config import FINAL_DIR
+from exceptions.ServiceException import ServiceException
 from utils.general_utils import run_ffmpeg_command, get_video_info
 from utils.log_utils import logger as log
 
@@ -218,3 +220,57 @@ def quick_segment(video, vindex, output_dir, start_time, end_time) -> SegmentRes
     return SegmentResult(segment=segment,
                          start_time=start_time,
                          end_time=end_time)
+
+def extract_audio(video_file: str, project_id: str = "test") -> str:
+    """
+    从视频中提取音频（wav），如果没有音频流则返回空字符串
+    """
+
+    abs_path = os.path.abspath(video_file)
+    fn = os.path.splitext(os.path.basename(video_file))[0]
+
+    output_dir = os.path.join(FINAL_DIR, project_id)
+    os.makedirs(output_dir, exist_ok=True)
+
+    output_audio = os.path.join(output_dir, f"{fn}.wav")
+
+    # 1️⃣ 检查是否存在音频流
+    check_audio_cmd = [
+        "ffprobe",
+        "-v", "error",
+        "-select_streams", "a",
+        "-show_entries", "stream=index",
+        "-of", "csv=p=0",
+        abs_path,
+    ]
+
+    try:
+        result = subprocess.run(
+            check_audio_cmd,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError as e:
+        raise ServiceException(466, "检查是否有音频流失败", data=e.stderr)
+
+    if not result.stdout.strip():
+        log.info(f"{video_file} does not contain audio stream")
+        return ""
+
+    # 2️⃣ 抽取音频
+    ffmpeg_cmd = [
+        "ffmpeg",
+        "-i", abs_path,
+        "-vn",
+        "-acodec", "pcm_s16le",
+        "-f", "wav",
+        "-threads", "1",
+        output_audio,
+        "-y",
+    ]
+
+    run_ffmpeg_command(ffmpeg_cmd, video_name=video_file)
+
+    return output_audio
+

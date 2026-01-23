@@ -25,7 +25,7 @@ def setup_logger():
     """配置全局logger"""
     RESET = '\033[0m'
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     # 控制台输出
     console_handler = logging.StreamHandler(sys.stdout)

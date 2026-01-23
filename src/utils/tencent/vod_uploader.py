@@ -1,5 +1,5 @@
 import time
-from typing import Optional, Dict
+from typing import Optional, Dict, List, Any
 
 from tencentcloud.common import credential
 from tencentcloud.common.profile.client_profile import ClientProfile
@@ -11,7 +11,7 @@ from qcloud_cos import CosS3Client
 import sys
 import os
 import logging
-from .cos_uploader import vod_upload_to_cos
+from utils.log_utils import logger as log
 import os
 import json
 import types
@@ -122,14 +122,69 @@ class TencentVodUploader:
             raise last_exception
         raise RuntimeError("CommitUpload 超时，未获取到 MediaUrl")
 
+    def describe_media_infos(
+            self,
+            file_id: str,
+            filters: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        调用 DescribeMediaInfos 获取媒体详情（含转码信息）
+        """
+        req = models.DescribeMediaInfosRequest()
+
+        params = {
+            "FileIds": [file_id],
+        }
+
+        if filters:
+            params["Filters"] = filters
+
+        if self.sub_app_id:
+            params["SubAppId"] = self.sub_app_id
+
+        req.from_json_string(json.dumps(params))
+
+        resp = self.client.DescribeMediaInfos(req)
+        resp_json = json.loads(resp.to_json_string())
+        log.info(f"media info resp: {resp_json}")
+
+        media_info_set = resp_json.get("MediaInfoSet", [])
+        if not media_info_set:
+            raise RuntimeError(f"DescribeMediaInfos 未返回 MediaInfoSet, file_id={file_id}")
+
+        return media_info_set[0]
+
+
+def describe_transcode_info():
+    tencent_uploader = TencentVodUploader(secret_id="REDACTED",
+                                          secret_key="REDACTED", sub_app_id=1394787485)
+
+    file_id = "5145403714210262892"
+
+    # 只拉转码信息，减少 payload
+    media_info = tencent_uploader.describe_media_infos(
+        file_id=file_id,
+        filters=["transcodeInfo"]
+    )
+
+    print("=== DescribeMediaInfos (TranscodeInfo only) ===")
+    print(json.dumps(media_info, indent=2, ensure_ascii=False))
+    transcode_info = media_info.get("TranscodeInfo", {})
+    transcode_set = transcode_info.get("TranscodeSet", [])
+    log.info(f"returned len: {len(transcode_set)}")
+
+    return media_info
+
+
 if __name__ == "__main__":
-    tencent_uploader = TencentVodUploader(secret_id="REDACTED", secret_key="REDACTED", sub_app_id= 1394787485)
-    video_path = r"/test/test2.mp4"
-    apply_resp = tencent_uploader.apply_upload(video_path=video_path, media_type="mp4")
-    print("upload request success:", apply_resp)
-
-    vod_upload_to_cos(apply_resp, video_path)
-
-    task_id = apply_resp["VodSessionKey"]
-    transcode_result = tencent_uploader.commit_and_poll(task_id)
-    print(transcode_result)
+    # tencent_uploader = TencentVodUploader(secret_id="REDACTED", secret_key="REDACTED", sub_app_id= 1394787485)
+    # video_path = r"/test/test2.mp4"
+    # apply_resp = tencent_uploader.apply_upload(video_path=video_path, media_type="mp4")
+    # print("upload request success:", apply_resp)
+    #
+    # vod_upload_to_cos(apply_resp, video_path)
+    #
+    # task_id = apply_resp["VodSessionKey"]
+    # transcode_result = tencent_uploader.commit_and_poll(task_id)
+    # print(transcode_result)
+    describe_transcode_info()

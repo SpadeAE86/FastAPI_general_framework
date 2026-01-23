@@ -192,6 +192,12 @@ obs_img_prefix:
 pbase: https://freeuuu.obs.cn-east-3.myhuaweicloud.com/
 direct_download: true
 
+tencent:
+  vod:
+    secret_id: REDACTED
+    secret_key: REDACTED
+    sub_app_id: 1394787485
+
 callback:
   local:
     mixed: https://gateway-test.freeuuu.com:18080/api/aigc/video/mix/callback
@@ -199,18 +205,24 @@ callback:
     reformat: https://gateway-test.freeuuu.com:18080/api/aigc/video/frame-extract/callback
     hls: https://gateway-test.freeuuu.com:18080/api/aigc/video/frame-extract/callback
     feishu: https://server-test.freeuuu.com/app-api/aigc/video/frame-extract/callback
+    transcode: https://gateway-test.freeuuu.com:18080/api/aigc/video/transcode/callback
+    sprite: https://gateway-test.freeuuu.com:18080/api/aigc/video/sprite/callback
   test:
     mixed: https://gateway-test.freeuuu.com:18080/api/aigc/video/mix/callback
     frames: https://gateway-test.freeuuu.com:18080/api/aigc/video/frame-extract/callback
     reformat: https://gateway-test.freeuuu.com:18080/api/aigc/video/frame-extract/callback
     hls: https://gateway-test.freeuuu.com:18080/api/aigc/video/frame-extract/callback
     feishu: https://server-test.freeuuu.com/app-api/aigc/video/frame-extract/callback
+    transcode: https://gateway-test.freeuuu.com:18080/api/aigc/video/transcode/callback
+    sprite: https://gateway-test.freeuuu.com:18080/api/aigc/video/sprite/callback
   prod:
     mixed: https://gateway.freeuuu.com/api/aigc/video/mix/callback
     frames: https://gateway.freeuuu.com/api/aigc/video/frame-extract/callback
     reformat: https://gateway.freeuuu.com/api/aigc/video/frame-extract/callback
     hls: https://gateway.freeuuu.com/api/aigc/video/frame-extract/callback
     feishu: https://server-test.freeuuu.com/app-api/aigc/video/frame-extract/callback
+    transcode: https://gateway.freeuuu.com/api/aigc/video/transcode/callback
+    sprite: https://gateway-test.freeuuu.com:18080/api/aigc/video/sprite/callback
 
 mysql:
   local:

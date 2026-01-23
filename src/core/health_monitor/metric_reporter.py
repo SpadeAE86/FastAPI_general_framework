@@ -22,7 +22,18 @@ class MetricReporter:
         
         self.enabled = ces_config.get("enabled", False)
         self.report_interval = ces_config.get("report_interval", 30)  # 默认30秒
-        self.queue_name = monitoring_config.get("queue_name", f"{ENV}_video_queue")  # 监控的队列名称
+        
+        # 动态获取所有要监控的队列
+        self.queues = []
+        task2queue = my_config.get("task_type", {})
+        for _, queue_name in task2queue.items():
+             # 统一加上环境变量前缀
+             self.queues.append(f"{ENV}_{queue_name}")
+        
+        # 如果没有配置任务队列，给一个默认值兜底（虽然可能不正确，但保持原有行为）
+        if not self.queues:
+             self.queues.append(f"{ENV}_video_queue")
+
         self.namespace = monitoring_config.get("namespace", "celery.rabbitmq")  # 指标命名空间
         self.metric_name = monitoring_config.get("metric_name", "rabbitmq_queue_length")  # 指标名称
         self.ttl = monitoring_config.get("ttl", 604800)  # 数据有效期7天
@@ -40,7 +51,7 @@ class MetricReporter:
                 self.rabbitmq_client = RabbitMQManagementClient()
                 log.info(
                     f"监控指标上报服务已初始化: "
-                    f"队列={self.queue_name}, "
+                    f"队列列表={self.queues}, "
                     f"上报间隔={self.report_interval}秒"
                 )
         else:
@@ -51,56 +62,59 @@ class MetricReporter:
         self.report_thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
     
-    def _collect_queue_metrics(self) -> Optional[int]:
+    def _collect_queue_metrics(self) -> Dict[str, Optional[int]]:
         """
-        收集队列监控指标
+        收集所有配置队列的监控指标
         
         通过RabbitMQ Management API获取指定队列的消息数量（ready + unacknowledged）。
         
         Returns:
-            Optional[int]: 队列消息数量，如果获取失败返回None
+            Dict[str, Optional[int]]: 队列名到消息数量的映射
         """
+        results = {}
         if not self.rabbitmq_client:
-            return None
+            return results
         
-        try:
-            queue_length = self.rabbitmq_client.get_queue_length(self.queue_name)
-            return queue_length
-        except Exception as e:
-            log.error(f"获取队列 {self.queue_name} 长度失败: {e}", exc_info=True)
-            return None
+        for queue_name in self.queues:
+            try:
+                queue_length = self.rabbitmq_client.get_queue_length(queue_name)
+                results[queue_name] = queue_length
+            except Exception as e:
+                log.error(f"获取队列 {queue_name} 长度失败: {e}", exc_info=True)
+                results[queue_name] = None
+        
+        return results
     
-    def _build_metric_data(self, queue_length: int) -> List[Dict[str, Any]]:
+    def _build_metric_data(self, queue_name: str, queue_length: int) -> Dict[str, Any]:
         """
-        构建监控指标数据
+        构建单条监控指标数据
         
         将队列长度数据转换为华为云CES API要求的格式。
         
         Args:
+            queue_name: 队列名称
             queue_length: 队列消息数量，用于构建指标值
         
         Returns:
-            List[Dict[str, Any]]: 监控指标数据列表，包含命名空间、指标名称、维度、时间戳等信息
+            Dict[str, Any]: 监控指标数据对象
         """
         # 获取当前时间戳（毫秒）
         collect_time = int(time.time() * 1000)
         
-        metric_data = [{
+        return {
             "metric": {
                 "namespace": self.namespace,
                 "metric_name": self.metric_name,
                 "dimensions": [{
                     "name": "queue_name",
-                    "value": self.queue_name
+                    "value": queue_name
                 }]
             },
             "ttl": self.ttl,
             "collect_time": collect_time,
             "value": queue_length,
             "unit": "count"
-        }]
-        
-        return metric_data
+        }
     
     async def _report_metrics(self):
         """
@@ -112,26 +126,31 @@ class MetricReporter:
         if not self.enabled or not self.ces_client:
             return
         
-        # 收集队列指标
-        queue_length = self._collect_queue_metrics()
-        if queue_length is None:
-            log.warning(f"无法获取队列 {self.queue_name} 的长度，跳过本次上报")
+        # 收集所有队列指标
+        queue_metrics = self._collect_queue_metrics()
+        if not queue_metrics:
+            return
+            
+        # 构建指标数据列表
+        metric_data_list = []
+        for queue_name, length in queue_metrics.items():
+            if length is not None:
+                metric_data_list.append(self._build_metric_data(queue_name, length))
+            else:
+                 log.warning(f"无法获取队列 {queue_name} 的长度，跳过该队列上报")
+
+        if not metric_data_list:
             return
         
-        # 构建指标数据
-        metric_data = self._build_metric_data(queue_length)
-        
-        # 异步上报到 CES
-        success = await self.ces_client.create_metric_data(metric_data)
+        # 批量异步上报到 CES
+        success = await self.ces_client.create_metric_data(metric_data_list)
         if success:
             log.debug(
-                f"成功上报监控指标: 队列={self.queue_name}, "
-                f"消息数量={queue_length}"
+                f"成功上报监控指标: 数量={len(metric_data_list)}"
             )
         else:
             log.warning(
-                f"上报监控指标失败: 队列={self.queue_name}, "
-                f"消息数量={queue_length}"
+                f"上报监控指标失败: 数量={len(metric_data_list)}"
             )
     
     def _report_loop(self):

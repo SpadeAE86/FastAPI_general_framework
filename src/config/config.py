@@ -1,7 +1,7 @@
 import os
 import shutil
 import requests
-import streamlit as st
+
 import yaml
 from utils.log_utils import logger as log
 

@@ -1,3 +1,4 @@
+import asyncio
 import os
 import socket
 import threading
@@ -11,6 +12,12 @@ from core.video_processing.sprite import generate_sprite
 
 from core import process_health_monitor
 from core.celery_conponent.heartbeat import _heartbeat_loop
+from models.pydantic_models.request.sprite_image_request import SpriteImageRequest
+from models.pydantic_models.response.sprite_image_response import SpriteImageResponse
+from service.sprite_service import sprite_service
+from utils.ffmpeg_utils import extract_audio
+from utils.general_utils import random_with_system_time
+from utils.post_utils import post
 
 log = logging.getLogger(__name__)
 
@@ -130,18 +137,23 @@ def process_sprite_task(self, data):
 
 
 
-def _process_sprite_internal(task_data: dict, task_id: str):
+def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str):
     """
     核心处理逻辑：生成雪碧图
     """
-    video_path = task_data.get("video_path")
+    project_id = "sprite_" + str(random_with_system_time()) if not sprite_request.sprite_id else "sprite_" + str(
+        sprite_request.transcode_id)  # 该次混剪资源所在的子文件夹名
+    log.info(f"project_id: {project_id}")
+    video_path = sprite_request.get("video_path")
     if not video_path or not isinstance(video_path, str):
         raise ValueError(f"任务缺少 video_path: task_id={task_id}")
 
-    # 调用核心函数生成雪碧图
-    sprite_paths = generate_sprite(video_path, task_id)
-    if not sprite_paths:
-        raise RuntimeError(f"生成雪碧图失败: task_id={task_id}")
-
-    log.info(f"生成雪碧图成功: task_id={task_id}, count={len(sprite_paths)}")
-    return sprite_paths
+    resp: SpriteImageResponse = asyncio.run(sprite_service(sprite_request))
+    log.info(f"生成雪碧图成功: task_id={task_id}, result={resp.sprite_image_url_list}")
+    callback = my_config["callback"][ENV]["sprite"]
+    callback_url = callback if not sprite_request.callback_url else sprite_request.callback_url
+    need_callback = my_config["need_callback"]
+    if need_callback:
+        asyncio.run(post(callback_url, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
+    else:
+        log.info(f"{sprite_request.sprite_id} 任务完成: {resp.model_dump()}")

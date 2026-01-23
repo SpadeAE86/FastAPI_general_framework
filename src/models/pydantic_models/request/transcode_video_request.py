@@ -16,5 +16,3 @@ class TranscodeVideoRequest(BaseRequest):
         default=123,
         description="转码任务 ID"
     )
-
-    target_resolution: Optional[Resolution] = Field("1080p", description="目标分辨率")

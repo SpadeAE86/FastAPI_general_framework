@@ -4,8 +4,8 @@
 注意：监控服务不再自动执行重启操作，任务异常由 Celery retries 机制处理。
 此类主要用于标记和记录挂起进程的状态，以及提供手动重启功能（供 API 使用）。
 """
-from celery_mq.celery_app import celery_app
-from celery_mq.task_manager import task_manager
+
+
 from core.health_monitor.monitor import process_health_monitor
 from utils.log_utils import logger as log
 import time
@@ -37,6 +37,7 @@ class ProcessRestartHandler:
         Returns:
             bool: 如果重启命令发送成功返回True，否则返回False
         """
+        from celery_mq.celery_app import celery_app
         try:
             control = celery_app.control
 
@@ -82,6 +83,7 @@ class ProcessRestartHandler:
         Returns:
             bool: 如果处理成功返回True，否则返回False
         """
+        from celery_mq.task_manager import task_manager
         try:
             log.error(f"停止任务并标记失败: task_id={task_id}, worker={worker_name}:{pid}")
 
