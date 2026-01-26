@@ -315,7 +315,6 @@ class DispatcherService:
 
             task_signatures = [
                 process_function.s(task_data).set(
-                    args=[task_data],
                     queue=f"{ENV}_{queue_name}",
                     delivery_mode=2,  # 持久化消息
                     headers={"task_id": task_id}

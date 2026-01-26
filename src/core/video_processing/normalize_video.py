@@ -228,8 +228,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         )
     pre_transform_str = ",".join(pre_transform)
     if pre_transform_str:
-        video_filter_list.append(pre_transform_str)
+        video_filter_list.append(f"{end_v}{pre_transform_str}[v_pre]")
         end_v = "[v_pre]"
+
 
 
     # 变换滤镜
@@ -379,6 +380,15 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         audio_input_option.extend(["-i", p])
     if audio_filter:
         video_filter_list.append(audio_filter)
+
+    #后置滤镜上传到gpu
+    if my_config["device"] == "gpu":
+        video_filter_list.append(
+            f"{end_v}hwupload,format=cuda[v_out]"
+        )
+        end_v = "[v_out]"
+
+
     # 组装总滤镜
     video_filter = ";".join(video_filter_list)
 
