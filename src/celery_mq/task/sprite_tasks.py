@@ -111,7 +111,7 @@ def process_sprite_task(self, data):
 
         # 任务完成
         if is_tracked:
-            task_manager.update_task_status(task_id, "completed", completed_at=datetime.now().isoformat(), result={"sprite_paths": sprite_paths})
+            task_manager.update_task_status(task_id, "completed", completed_at=datetime.now().isoformat())
         
         self.update_state(state='SUCCESS', meta={'progress': 100, 'message': '任务完成'})
 
@@ -145,7 +145,7 @@ def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str):
     project_id = "sprite_" + str(random_with_system_time()) if not sprite_request.biz_id else "sprite_" + str(
         sprite_request.biz_id)  # 该次混剪资源所在的子文件夹名
     log.info(f"project_id: {project_id}")
-    video_path = sprite_request.get("video_path")
+    video_path = sprite_request.obs_video_path
     if not video_path or not isinstance(video_path, str):
         raise ValueError(f"任务缺少 video_path: task_id={task_id}")
 

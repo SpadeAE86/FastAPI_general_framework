@@ -104,7 +104,7 @@ def process_transcode_task(self, data):
 
         # 任务完成
         if is_tracked:
-            task_manager.update_task_status(task_id, "completed", completed_at=datetime.now().isoformat(), result=transcode_result)
+            task_manager.update_task_status(task_id, "completed", completed_at=datetime.now().isoformat())
         
         self.update_state(state='SUCCESS', meta={'progress': 100, 'message': '任务完成'})
 
@@ -135,7 +135,7 @@ def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_i
     project_id = "transcode_" + str(random_with_system_time()) if not transcode_request.transcode_id else "transcode_" + str(
         transcode_request.transcode_id)  # 该次混剪资源所在的子文件夹名
     log.info(f"project_id: {project_id}")
-    video_path = transcode_request.get("video_path")
+    video_path = transcode_request.obs_video_path
 
     if not video_path or not isinstance(video_path, str):
         raise ValueError(f"任务缺少 video_path: task_id={task_id}")
