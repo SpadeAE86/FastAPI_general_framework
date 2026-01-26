@@ -125,12 +125,12 @@ class DispatcherService:
             
             result = process_function.apply_async(
                 args=[task_data],
-                queue=queue_name,
+                queue=f"{ENV}_{queue_name}",
                 delivery_mode=2,
                 headers={"task_id": task_id}
             )
             
-            log.info(f"任务已发布到RabbitMQ: task_id={task_id}, celery_task_id={result.id}")
+            log.info(f"任务已发布到RabbitMQ: task_queue: {queue_name}, task_id={task_id}, celery_task_id={result.id}")
         except Exception as e:
             log.error(f"发布任务到RabbitMQ失败: task_id={task_id}, error={e}")
             raise
@@ -315,7 +315,8 @@ class DispatcherService:
 
             task_signatures = [
                 process_function.s(task_data).set(
-                    queue=queue_name,
+                    args=[task_data],
+                    queue=f"{ENV}_{queue_name}",
                     delivery_mode=2,  # 持久化消息
                     headers={"task_id": task_id}
                 )
@@ -327,7 +328,7 @@ class DispatcherService:
 
             log.info(
                 f"批量发布任务到RabbitMQ成功: "
-                f"task_type={task_type}, count={len(task_items)}, group_id={result.id}"
+                f"task_queue: {queue_name},task_type={task_type}, count={len(task_items)}, group_id={result.id}"
             )
 
         except Exception as e:

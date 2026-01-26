@@ -5,6 +5,7 @@ from config.config import *
 from core.video_processing.caption import CaptionDistributor
 from exceptions.ServiceException import ServiceException
 from models.pydantic_models.request import transition_config
+from models.pydantic_models.request.caption_config import CapConfig
 from utils.ffmpeg_utils import check_audio_stream_simple, build_atempo_filter, split_normalize, SplitClip, \
     quick_segment, SegmentResult
 from utils.general_utils import run_ffmpeg_command, VideoInfo
@@ -17,7 +18,7 @@ class NormalizeResult:
     cache_path: str
     transition: SplitClip
 
-def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width, height, fps, cap_config,
+def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width, height, fps, cap_config: CapConfig,
                                    start_time=0, mute_origin=False,
                                    project_id='test', translate_x=0, translate_y=0, rotation=0, scale=1,
                                    mirror=False, speed=1, extra_filter="", processed_so_far=0, pix_fmt="yuv420p",
@@ -62,7 +63,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     fps : int or float
         目标输出帧率。
 
-    cap_config : object
+    cap_config : CapConfig
         字幕配置对象，用于控制字幕内容、样式与出现时机。
 
     start_time : float, optional
@@ -166,6 +167,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         video_width, video_height = video_height, video_width
     print(f"start normalize {video} with :", video_width, video_height, "|target:", width, height)
 
+
     # 创建文件夹
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     subfolder = "/".join([OUTPUT_DIR, project_id])
@@ -206,7 +208,29 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         max_len = segment_result.end_time
 
     end_v= "[0:v]"  #如果没滤镜就直接
+
     video_filter_list = []   # 总滤镜列表
+    # 先行滤镜
+    pre_transform = []
+    # === GPU → CPU（必须最前）===
+    if my_config["device"] == "gpu":
+        pre_transform.extend([
+            "hwdownload",
+            "format=yuv420p",  # 或 nv12 → yuv420p，CPU 滤镜最稳
+        ])
+
+    # === 处理 rotation（只在 CPU 上做）===
+    if rot:
+        # rot 是 metadata 的角度（90 / 180 / 270）
+        # FFmpeg rotate 用的是弧度
+        pre_transform.append(
+            f"rotate={rot}*PI/180:fillcolor=black"
+        )
+    pre_transform_str = ",".join(pre_transform)
+    if pre_transform_str:
+        video_filter_list.append(pre_transform_str)
+        end_v = "[v_pre]"
+
 
     # 变换滤镜
     preset_option = ['-preset', 'ultrafast'] if my_config['device'] == "cpu" else ['-preset', '12']
@@ -224,21 +248,15 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         muted_audio = ["-f", "lavfi", "-i", 'anullsrc=channel_layout=stereo:sample_rate=44100']
     audio_filter = ""
 
-    #如果配置是cpu，旋转是90度，10le特殊格式，编码格式是mjpeg等奇怪格式，就用cpu滤镜
-    if my_config["device"] == "cpu" or rot != 0 or "10le" in pix_format or codec == "mjpeg":
-        # transform = [
-        #     f"scale=-1:{height}:flags=bicubic" if video_width / video_height > width / height else f"scale={width}:-1:flags=bicubic",
-        #     f"crop={width}:{height}:(iw-{width})/2:(ih-{height})/2"
-        # ]
-        transform = [
-            f"scale={width}:{height}:force_original_aspect_ratio=decrease:flags=lanczos",
-            f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:black"
-        ]
-    else:
-        transform = [
-            f"scale_cuda={width}:-1" if video_width / video_height > width / height else f"scale_cuda=-1:{height}",
-            f"pad_cuda={width}:{height}:(ow-iw)/2:(oh-ih)/2"
-        ]
+    # transform = [
+    #     f"scale=-1:{height}:flags=bicubic" if video_width / video_height > width / height else f"scale={width}:-1:flags=bicubic",
+    #     f"crop={width}:{height}:(iw-{width})/2:(ih-{height})/2"
+    # ]
+    transform = [
+        f"scale={width}:{height}:force_original_aspect_ratio=decrease:flags=lanczos",
+        f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:black"
+    ]
+
     # 调色滤镜
     if extra_filter:
         transform.append(f"{extra_filter}")
