@@ -144,12 +144,11 @@ def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_i
     resp: TranscodeVideoResponse = asyncio.run(transcode_video_service(transcode_request))
     #回调
     callback = my_config["callback"][ENV]["transcode"]
-    callback_url = callback if not transcode_request.callback_url else transcode_request.callback_url
     need_callback = my_config["need_callback"]
 
 
     if need_callback:
-        asyncio.run(post(callback_url, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
+        asyncio.run(post(callback, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
     result_queue = f"{ENV}_" + my_config["result_queue"]["transcode"]
     log.info(f"{transcode_request.transcode_id} 任务完成: {resp.model_dump()}")
     mq_producer.send(result_queue, data=resp.model_dump())

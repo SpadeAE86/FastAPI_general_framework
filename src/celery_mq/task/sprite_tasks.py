@@ -152,10 +152,9 @@ def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str):
     resp: SpriteImageResponse = asyncio.run(sprite_service(sprite_request))
     log.info(f"生成雪碧图成功: task_id={task_id}, result={resp.sprite_image_url_list}")
     callback = my_config["callback"][ENV]["sprite"]
-    callback_url = callback if not sprite_request.callback_url else sprite_request.callback_url
     need_callback = my_config["need_callback"]
     if need_callback:
-        asyncio.run(post(callback_url, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
+        asyncio.run(post(callback, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
     result_queue = f"{ENV}_" + my_config["result_queue"]["sprite"]
     log.info(f"{sprite_request.biz_id} 任务完成: {resp.model_dump()}")
     mq_producer.send(result_queue, data=resp.model_dump())
