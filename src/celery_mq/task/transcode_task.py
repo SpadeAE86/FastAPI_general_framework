@@ -151,7 +151,7 @@ def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_i
         asyncio.run(post(callback, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
     result_queue = f"{ENV}_" + my_config["result_queue"]["transcode"]
     log.info(f"{transcode_request.transcode_id} 任务完成: {resp.model_dump()}")
-    mq_producer.send(result_queue, data=resp.model_dump())
+    mq_producer.send(result_queue, message=resp.model_dump())
 
 
 

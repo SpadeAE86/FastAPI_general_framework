@@ -157,4 +157,4 @@ def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str):
         asyncio.run(post(callback, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
     result_queue = f"{ENV}_" + my_config["result_queue"]["sprite"]
     log.info(f"{sprite_request.biz_id} 任务完成: {resp.model_dump()}")
-    mq_producer.send(result_queue, data=resp.model_dump())
+    mq_producer.send(result_queue, message=resp.model_dump())
