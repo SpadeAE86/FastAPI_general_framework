@@ -382,11 +382,18 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         video_filter_list.append(audio_filter)
 
     #后置滤镜上传到gpu
+    post_filter = []
     if my_config["device"] == "gpu":
-        video_filter_list.append(
-            f"{end_v}hwupload,format=cuda[v_out]"
+        post_filter.extend(
+            [
+            "hwupload","format=cuda"
+            ]
         )
-        end_v = "[v_out]"
+
+    post_filter_str = ",".join(post_filter)
+    if post_filter_str:
+        video_filter_list.append(f"{end_v}{post_filter_str}[v_post]")
+        end_v = "[v_post]"
 
 
     # 组装总滤镜
@@ -394,13 +401,13 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
 
     # 如果不是奇怪的格式，就试用gpu解码
     gpu_activate_flag = ["-hwaccel", "cuda", "-hwaccel_output_format", "cuda"]\
-        if (my_config['device'] == "gpu" and "10le" not in pix_format
-            and abs(rot) == 0 and codec != "mjpeg") else []
+        if my_config['device'] == "gpu" else []
 
     # 使用三个filter一次性完成
     normalize_cmd = [
         'ffmpeg', "-ignore_editlist", "1",
         *gpu_activate_flag,
+        '-noautorotate',
         '-i', segment,
         *subtitle_png_input,
         *muted_audio,
