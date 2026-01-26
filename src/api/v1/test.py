@@ -35,8 +35,8 @@ async def test_video_mix(mixed_config: MixedVideoRequest) -> MixedVideoResponse:
     Returns:
         包含task_id和状态的响应
     """
-    project_id = "mix_" + str(random_with_system_time()) if not mixed_config.mix_id else "mix_" + str(
-        mixed_config.mix_id)  # 该次混剪资源所在的子文件夹名
+    project_id = "mix_" + str(random_with_system_time()) if not mixed_config.biz_id else "mix_" + str(
+        mixed_config.biz_id)  # 该次混剪资源所在的子文件夹名
     log.info(f"project_id: {project_id}")
 
     current_time = datetime.now()
@@ -59,8 +59,8 @@ async def test_sprite(sprite_request: SpriteImageRequest) -> SpriteImageResponse
     """
     project_id = (
         "sprite_" + str(random_with_system_time())
-        if not sprite_request.sprite_id
-        else "sprite_" + str(sprite_request.sprite_id)
+        if not sprite_request.biz_id
+        else "sprite_" + str(sprite_request.biz_id)
     )
 
     log.info(f"project_id: {project_id}")
@@ -98,8 +98,8 @@ async def test_video_transcode(
     """
     project_id = (
         "transcode_" + str(random_with_system_time())
-        if not transcode_request.transcode_id
-        else "transcode_" + str(transcode_request.transcode_id)
+        if not transcode_request.biz_id
+        else "transcode_" + str(transcode_request.biz_id)
     )
 
     log.info(f"project_id: {project_id}")

@@ -6,7 +6,7 @@
 """
 from typing import Dict, Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 
 from celery_mq.protocols import TaskManagerProtocol
 from celery_mq.task_manager import task_manager
@@ -21,14 +21,14 @@ _task_manager: TaskManagerProtocol = task_manager
 
 @transcode_router.post("/transcode")
 async def create_transcode_task(
-    transcode_request: TranscodeVideoRequest
+    transcode_request: TranscodeVideoRequest, trace_id = Header(None)
 ) -> Dict[str, Any]:
     """
     创建视频转码任务（异步）
 
     Args:
         transcode_request: 转码请求体
-
+        trace_id: 追踪id
     Returns:
         task_id 及任务状态
     """
@@ -53,9 +53,8 @@ async def create_transcode_task(
                 "task_type": "transcode",
                 "status": task_status.get("status") if task_status else "pending",
                 "created_at": task_status.get("created_at") if task_status else None,
-                "transcode_id": transcode_request.transcode_id,
-                "target_resolution": transcode_request.target_resolution,
-                "trace_id": transcode_request.trace_id,
+                "biz_id": transcode_request.biz_id,
+                "trace_id": trace_id,
             },
         }
     except Exception as e:

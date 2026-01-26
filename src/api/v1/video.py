@@ -4,7 +4,7 @@
 重构说明：通过模块级变量支持依赖注入，提高可测试性。
 遵循依赖倒置原则 (DIP)。
 """
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Header
 from celery_mq.protocols import TaskManagerProtocol
 from models.pydantic_models.request.mixed_video_request import MixedVideoRequest
 from celery_mq.task_manager import task_manager
@@ -18,12 +18,13 @@ _task_manager: TaskManagerProtocol = task_manager
 
 
 @video_router.post("/edit")
-async def create_video_task(mixed_config: MixedVideoRequest) -> Dict[str, Any]:
+async def create_video_task(mixed_config: MixedVideoRequest, trace_id = Header(None)) -> Dict[str, Any]:
     """
     接收视频剪辑请求，创建任务并写入用户队列
 
     Args:
         mixed_config: 视频混剪配置
+        trace_id: 追踪id
         
     Returns:
         包含task_id和状态的响应
@@ -49,7 +50,8 @@ async def create_video_task(mixed_config: MixedVideoRequest) -> Dict[str, Any]:
             "data": {
                 "task_id": task_id,
                 "status": task_status.get("status") if task_status else "pending",
-                "created_at": task_status.get("created_at") if task_status else None
+                "created_at": task_status.get("created_at") if task_status else None,
+                "trace_id": trace_id
             }
         }
     except Exception as e:

@@ -6,7 +6,7 @@
 """
 from typing import Dict, Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 
 from celery_mq.protocols import TaskManagerProtocol
 from celery_mq.task_manager import task_manager
@@ -21,13 +21,14 @@ _task_manager: TaskManagerProtocol = task_manager
 
 @sprite_router.post("/sprite")
 async def create_sprite_task(
-    sprite_request: SpriteImageRequest
+    sprite_request: SpriteImageRequest, trace_id = Header(None)
 ) -> Dict[str, Any]:
     """
     创建雪碧图生成任务（异步）
 
     Args:
         sprite_request: 雪碧图请求体
+        trace_id: 追踪id
 
     Returns:
         task_id 及任务状态
@@ -42,7 +43,7 @@ async def create_sprite_task(
         task_status = _task_manager.get_task_status(task_id)
 
         log.info(
-            f"雪碧图任务创建成功: task_id={task_id}, sprite_id={sprite_request.sprite_id}"
+            f"雪碧图任务创建成功: task_id={task_id}, sprite_id={sprite_request.biz_id}"
         )
 
         return {
@@ -53,8 +54,8 @@ async def create_sprite_task(
                 "task_type": "sprite",
                 "status": task_status.get("status") if task_status else "pending",
                 "created_at": task_status.get("created_at") if task_status else None,
-                "sprite_id": sprite_request.sprite_id,
-                "trace_id": sprite_request.trace_id,
+                "biz_id": sprite_request.biz_id,
+                "trace_id": trace_id
             },
         }
     except Exception as e:
