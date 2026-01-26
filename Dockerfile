@@ -4,6 +4,7 @@ FROM swr.cn-east-3.myhuaweicloud.com/freeuuu/python312-ffmpeg:2.1
 # 复制代码文件
 COPY . /app
 WORKDIR /app
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 #从requirements.txt里安装依赖
 RUN pip install --timeout=600 \
@@ -11,7 +12,6 @@ RUN pip install --timeout=600 \
 
 
 WORKDIR /app/src
-
 
 
 
