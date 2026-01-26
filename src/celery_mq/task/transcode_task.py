@@ -11,6 +11,7 @@ from models.pydantic_models.request.transcode_video_request import TranscodeVide
 from models.pydantic_models.response.transcode_video_response import TranscodeVideoResponse
 from service.transcode_video_service import transcode_video_service
 from utils.general_utils import random_with_system_time
+from utils.mq.rabbit_mq_producer import mq_producer
 from utils.post_utils import post
 from utils.tencent.cos_uploader import vod_upload_to_cos
 
@@ -34,6 +35,7 @@ def process_transcode_task(self, data):
     """
     Celery 任务函数：处理 transcode 任务
     """
+
     # 1. 解析参数
     task_id = self.request.headers.get("task_id")
     task_data = None
@@ -145,8 +147,13 @@ def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_i
     callback = my_config["callback"][ENV]["transcode"]
     callback_url = callback if not transcode_request.callback_url else transcode_request.callback_url
     need_callback = my_config["need_callback"]
+
+
     if need_callback:
         asyncio.run(post(callback_url, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
-    else:
-        log.info(f"{transcode_request.transcode_id} 任务完成: {resp.model_dump()}")
+    result_queue = f"{ENV}_" + my_config["result_queue"]["transcode"]
+    log.info(f"{transcode_request.transcode_id} 任务完成: {resp.model_dump()}")
+    mq_producer.send(result_queue, data=resp.model_dump())
+
+
 

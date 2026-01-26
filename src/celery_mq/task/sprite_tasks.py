@@ -17,6 +17,7 @@ from models.pydantic_models.response.sprite_image_response import SpriteImageRes
 from service.sprite_service import sprite_service
 from utils.ffmpeg_utils import extract_audio
 from utils.general_utils import random_with_system_time
+from utils.mq.rabbit_mq_producer import mq_producer
 from utils.post_utils import post
 
 log = logging.getLogger(__name__)
@@ -142,7 +143,7 @@ def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str):
     核心处理逻辑：生成雪碧图
     """
     project_id = "sprite_" + str(random_with_system_time()) if not sprite_request.biz_id else "sprite_" + str(
-        sprite_request.transcode_id)  # 该次混剪资源所在的子文件夹名
+        sprite_request.biz_id)  # 该次混剪资源所在的子文件夹名
     log.info(f"project_id: {project_id}")
     video_path = sprite_request.get("video_path")
     if not video_path or not isinstance(video_path, str):
@@ -155,5 +156,6 @@ def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str):
     need_callback = my_config["need_callback"]
     if need_callback:
         asyncio.run(post(callback_url, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
-    else:
-        log.info(f"{sprite_request.sprite_id} 任务完成: {resp.model_dump()}")
+    result_queue = f"{ENV}_" + my_config["result_queue"]["sprite"]
+    log.info(f"{sprite_request.biz_id} 任务完成: {resp.model_dump()}")
+    mq_producer.send(result_queue, data=resp.model_dump())

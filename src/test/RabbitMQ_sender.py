@@ -38,6 +38,5 @@ def send_message():
 if __name__ == "__main__":
     # 先发送消息
     send_message()
-
     # 等待1秒后接收消息
     time.sleep(1)

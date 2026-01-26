@@ -114,7 +114,7 @@ redis:
     host: localhost
     database: 0
     port: 6379
-    password:
+    password: RootDev123
   test:
       host: 192.168.0.27
       database: 0
@@ -259,6 +259,10 @@ task_type:
   sprite: sprite_queue
   transcode: transcode_queue
 
+result_queue:
+  mix: video_result_queue
+  sprite: sprite_result_queue
+  transcode: transcode_result_queue
 
 # Celery 和消息队列配置
 celery:

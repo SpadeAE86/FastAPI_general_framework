@@ -10,8 +10,7 @@ from celery_mq.task_manager import task_manager
 from config.config import my_config, ENV
 from utils.log_utils import logger as log
 from utils.rabbitmq_management import RabbitMQManagementClient
-from celery import group
-from celery import group
+from celery import group, chain
 # from celery_mq.task import process_functions  <-- Removed to fix circular import
 
 class DispatcherService:

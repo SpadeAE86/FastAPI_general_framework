@@ -5,7 +5,7 @@ import threading
 from datetime import datetime
 
 from celery.signals import worker_shutting_down
-
+from utils.mq.rabbit_mq_producer import mq_producer
 from celery_mq.celery_app import celery_app
 from celery_mq.task_manager import task_manager
 from config.config import my_config
@@ -191,8 +191,9 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str):
     need_callback = my_config["need_callback"]
     if need_callback:
         asyncio.run(post(callback_url, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
-    else:
-        log.info(f"{mixed_config.mix_id} 任务完成: {resp.model_dump()}")
+    result_queue = f"{ENV}_" + my_config["result_queue"]["sprite"]
+    log.info(f"{mixed_config.biz_id} 任务完成: {resp.model_dump()}")
+    mq_producer.send(result_queue, data=resp.model_dump())
 
 def _process_video_internal_test(mixed_config: MixedVideoRequest, task_id: str):
     """
