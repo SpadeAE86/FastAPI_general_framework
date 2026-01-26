@@ -213,6 +213,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     gpu_encoder = []
     if my_config["device"] == "gpu":
         gpu_encoder.extend(["-c:v", "h264_nvenc"])
+
+
+
     pix_fmt_option = ["-pix_fmt", pix_fmt] if "10le" in pix_format or codec == "mjpeg" else []
     has_audio = check_audio_stream_simple(video)
     # 音频静音
