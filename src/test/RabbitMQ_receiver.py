@@ -14,7 +14,7 @@ def receive_message():
         channel = connection.channel()
 
         # 声明队列（确保队列存在）
-        channel.queue_declare(queue='hello', durable=True)
+        channel.queue_declare(queue='test_transcode_result_queue', durable=True)
 
         print("等待接收消息... 按 Ctrl+C 退出")
 
@@ -29,7 +29,7 @@ def receive_message():
 
         # 开始消费消息
         channel.basic_consume(
-            queue='hello',
+            queue='test_transcode_result_queue',
             on_message_callback=callback,
             auto_ack=False  # 关闭自动确认，改为手动确认
         )

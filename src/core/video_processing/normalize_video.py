@@ -386,7 +386,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     if my_config["device"] == "gpu":
         post_filter.extend(
             [
-            "hwupload","format=cuda"
+            "hwupload=0"
             ]
         )
 
