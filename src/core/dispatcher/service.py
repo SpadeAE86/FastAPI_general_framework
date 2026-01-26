@@ -130,7 +130,7 @@ class DispatcherService:
                 headers={"task_id": task_id}
             )
             
-            log.info(f"任务已发布到RabbitMQ: task_queue: {queue_name}, task_id={task_id}, celery_task_id={result.id}")
+            log.info(f"任务已发布到RabbitMQ: task_queue: {ENV}_{queue_name}, task_id={task_id}, celery_task_id={result.id}")
         except Exception as e:
             log.error(f"发布任务到RabbitMQ失败: task_id={task_id}, error={e}")
             raise
@@ -327,7 +327,7 @@ class DispatcherService:
 
             log.info(
                 f"批量发布任务到RabbitMQ成功: "
-                f"task_queue: {queue_name},task_type={task_type}, count={len(task_items)}, group_id={result.id}"
+                f"task_queue: {ENV}_{queue_name},task_type={task_type}, count={len(task_items)}, group_id={result.id}"
             )
 
         except Exception as e:

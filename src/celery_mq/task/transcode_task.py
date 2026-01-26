@@ -99,7 +99,8 @@ def process_transcode_task(self, data):
         self.update_state(state='PROGRESS', meta={'progress': 0, 'message': '开始处理转码任务'})
 
         # 核心处理
-        transcode_result = _process_transcode_internal(task_data, task_id)
+        transcode_request: TranscodeVideoRequest = TranscodeVideoRequest.model_validate(task_data)  # v2 的标准做法
+        _process_transcode_internal(transcode_request, task_id)
 
         # 任务完成
         if is_tracked:
@@ -108,8 +109,6 @@ def process_transcode_task(self, data):
         self.update_state(state='SUCCESS', meta={'progress': 100, 'message': '任务完成'})
 
         log.info(f"Transcode 任务处理完成: task_id={task_id}")
-
-        return transcode_result
 
     except Exception as e:
         error_msg = f"Transcode 任务处理失败: task_id={task_id}, error={str(e)}"

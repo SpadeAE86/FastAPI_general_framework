@@ -106,7 +106,8 @@ def process_sprite_task(self, data):
         self.update_state(state='PROGRESS', meta={'progress': 0, 'message': '开始生成雪碧图'})
 
         # 核心处理
-        sprite_paths = _process_sprite_internal(task_data, task_id)
+        sprite_request: SpriteImageRequest = SpriteImageRequest.model_validate(task_data)  # v2 的标准做法
+        _process_sprite_internal(sprite_request, task_id)
 
         # 任务完成
         if is_tracked:
@@ -115,7 +116,6 @@ def process_sprite_task(self, data):
         self.update_state(state='SUCCESS', meta={'progress': 100, 'message': '任务完成'})
 
         log.info(f"雪碧图任务处理完成: task_id={task_id}")
-        return sprite_paths
 
     except Exception as e:
         error_msg = f"雪碧图任务处理失败: task_id={task_id}, error={str(e)}"

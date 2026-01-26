@@ -122,13 +122,12 @@ def process_video_task(self, data):
                 task_manager.update_task_status(task_id, "failed", error=error_msg)
             raise ValueError(error_msg)
 
-        # 将字典转换为Pydantic模型
-        mixed_config = MixedVideoRequest(**task_data)
 
         # 更新任务进度
         self.update_state(state='PROGRESS', meta={'progress': 0, 'message': '开始处理任务'})
 
         # 执行测试处理逻辑（用于测试任务创建和执行流程）
+        mixed_config: MixedVideoRequest  = MixedVideoRequest.model_validate(task_data)  # v2 的标准做法
         _process_video_internal(mixed_config, task_id)
 
         # 任务完成，更新状态
