@@ -400,12 +400,14 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     video_filter = ";".join(video_filter_list)
 
     # 如果不是奇怪的格式，就试用gpu解码
+    gpu_cuda_device_init = ["-init_hw_device", "cuda=cuda0"] if my_config['device'] == "gpu" else []
     gpu_activate_flag = ["-hwaccel", "cuda", "-hwaccel_output_format", "cuda"]\
         if my_config['device'] == "gpu" else []
 
     # 使用三个filter一次性完成
     normalize_cmd = [
         'ffmpeg', "-ignore_editlist", "1",
+        *gpu_cuda_device_init,
         *gpu_activate_flag,
         '-noautorotate',
         '-i', segment,
