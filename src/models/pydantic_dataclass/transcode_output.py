@@ -18,7 +18,6 @@ class VideoStreamMeta:
     fps: Optional[float] = None      # 已归一化（fps / 100）
     bitrate: Optional[int] = None
     dynamic_range: Optional[DynamicRangeInfo] = None
-    size: Optional[int] = None
 
 
 @dataclass

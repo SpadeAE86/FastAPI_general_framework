@@ -4,6 +4,7 @@ import os
 from models.pydantic_dataclass.transcode_output import TranscodeOutput, AudioStreamMeta, VideoStreamMeta, DynamicRangeInfo
 from typing import List, Optional
 
+from service.transcode_video_service_v2 import transcode_video_service_v2
 from utils.log_utils import logger as log
 from config.config import my_config, RESOURCE_DIR
 from exceptions.ServiceException import ServiceException
@@ -15,7 +16,7 @@ from utils.general_utils import random_with_system_time, download_resource
 from utils.tencent.cos_uploader import vod_upload_to_cos
 from utils.tencent.vod_uploader import TencentVodUploader
 
-async def transcode_video_service(transcode_config: TranscodeVideoRequest):
+async def transcode_video_service(transcode_config: TranscodeVideoRequest) -> TranscodeVideoResponse:
 
     project_id = "transcode_" + str(random_with_system_time()) if not transcode_config.biz_id else "transcode_" + str(
         transcode_config.biz_id)  # 该次混剪资源所在的子文件夹名
@@ -86,7 +87,6 @@ async def transcode_video_service(transcode_config: TranscodeVideoRequest):
     for item in snapshot_set:
 
         definition = item.get("Definition")
-        log.info(f"debug:!!! ] {item}: {definition}")
         if definition == 216455:
             cover_image_url = item.get("PicInfoSet", {})[0].get("Url", "")
     for item in transcode_set:
@@ -115,7 +115,7 @@ async def transcode_video_service(transcode_config: TranscodeVideoRequest):
 
 def parse_transcode_set(transcode_result) -> TranscodeOutput:
 
-    log.info(f"[parse_transcode_set] | transcode result: {transcode_result}")
+    log.info(f"[parse_transcode_set] | transcode result: {transcode_result}, size={transcode_result.get("Size")}")
     video_stream = transcode_result.get("VideoStreamSet", [])
     audio_stream = transcode_result.get("AudioStreamSet", [])
 
@@ -139,8 +139,7 @@ def parse_transcode_set(transcode_result) -> TranscodeOutput:
             height=v.get("Height"),
             fps=fps,
             bitrate=v.get("Bitrate"),
-            dynamic_range=dynamic_range,
-            size=transcode_result.get("Size"),
+            dynamic_range=dynamic_range
         )
 
     # -------- Audio Meta --------
@@ -159,6 +158,7 @@ def parse_transcode_set(transcode_result) -> TranscodeOutput:
         duration=transcode_result.get("Duration"),
         width=transcode_result.get("Width"),
         height=transcode_result.get("Height"),
+        size=transcode_result.get("Size"),
         video_meta=video_meta,
         audio_meta=audio_meta
     )
@@ -170,7 +170,7 @@ async def my_test_transcode_video_service():
     )
 
     try:
-        resp = await transcode_video_service(req)
+        resp = await transcode_video_service_v2(req)
     except Exception as e:
         print("❌ transcode_video_service 执行失败")
         raise
@@ -180,7 +180,9 @@ async def my_test_transcode_video_service():
     print(f"biz_id: {resp.biz_id}")
     print(f"cover_image: {resp.cover_image}")
     print(f"low_resolution_video_url: {resp.low_resolution_video_url}")
+    print(f"low_resolution_video_meta: {resp.low_resolution_video_meta}")
     print(f"raw_resolution_video_url: {resp.raw_resolution_video_url}")
+    print(f"raw_resolution_video_meta: {resp.raw_resolution_video_meta}")
 
 
 if __name__ == "__main__":
