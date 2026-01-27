@@ -12,8 +12,4 @@ class SpriteImageRequest(BaseRequest):
         description="视频链接"
     )
 
-    sprite_id: Optional[int] = Field(
-        default=123,
-        description="雪碧图任务 ID"
-    )
 

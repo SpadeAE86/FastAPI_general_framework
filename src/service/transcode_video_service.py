@@ -45,8 +45,8 @@ async def transcode_video_service(transcode_config: TranscodeVideoRequest):
     vod_upload_to_cos(apply_resp, video_path)
     log.info(f"视频已上传到 COS: task_id={project_id}")
 
-    low_resolution_template = 80000
-    raw_resolution_template = 100010
+    low_resolution_template = 100010
+    raw_resolution_template = 80000
     # 3. 提交上传并轮询结果
     transcode_result = uploader.commit_and_poll(vod_session_key)
     media_url = transcode_result.get("MediaUrl")
@@ -85,9 +85,10 @@ async def transcode_video_service(transcode_config: TranscodeVideoRequest):
 
         if definition == low_resolution_template:
             low_resolution_info = parse_transcode_set(item)
-
+            log.info(f"#low_resolution_info: {low_resolution_info}")
         elif definition == raw_resolution_template:
             raw_resolution_info = parse_transcode_set(item)
+            log.info(f"#raw_resolution_info: {raw_resolution_info}")
 
     log.info(f"转码完成: task_id={project_id}, raw_resolution_video_url={media_url}")
     resp: TranscodeVideoResponse = TranscodeVideoResponse(
