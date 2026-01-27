@@ -216,7 +216,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     if my_config["device"] == "gpu":
         pre_transform.extend([
             "hwdownload",
-            "format=yuv420p",  # 或 nv12 → yuv420p，CPU 滤镜最稳
+            "format=nv12",  # 或 nv12 → yuv420p，CPU 滤镜最稳
         ])
 
     # === 处理 rotation（只在 CPU 上做）===
