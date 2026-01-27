@@ -56,8 +56,9 @@ def process_video_task(self, data):
     Args:
         data: 任务数据(dict) 或 任务ID(str, 兼容旧版)
     """
+    trace_id: str = self.request.headers.get("trace_id", "")
     # 1. 解析参数
-    task_id = self.request.headers.get("task_id")
+    task_id = self.request.headers.get("task_id", "")
     task_data = None
     
     if isinstance(data, str):
@@ -128,7 +129,7 @@ def process_video_task(self, data):
 
         # 执行测试处理逻辑（用于测试任务创建和执行流程）
         mixed_config: MixedVideoRequest  = MixedVideoRequest.model_validate(task_data)  # v2 的标准做法
-        _process_video_internal(mixed_config, task_id)
+        _process_video_internal(mixed_config, task_id, trace_id)
 
         # 任务完成，更新状态
         if is_tracked:
@@ -159,7 +160,7 @@ def process_video_task(self, data):
         # 进程退出时会自动清理（通过信号处理或监控服务检测）
 
 
-def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str):
+def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str = "", trace_id: str = ""):
     """
     内部视频处理逻辑（原有代码）
 
@@ -191,7 +192,8 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str):
         asyncio.run(post(callback, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
     result_queue = f"{ENV}_" + my_config["result_queue"]["sprite"]
     log.info(f"{mixed_config.biz_id} 任务完成: {resp.model_dump()}")
-    mq_producer.send(result_queue, message=resp.model_dump())
+    headers = {"trace_id": trace_id, "task_id": task_id}
+    mq_producer.send(result_queue, message=resp.model_dump(), headers = headers)
 
 def _process_video_internal_test(mixed_config: MixedVideoRequest, task_id: str):
     """

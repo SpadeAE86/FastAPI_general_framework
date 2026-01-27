@@ -37,8 +37,9 @@ def process_sprite_task(self, data):
     """
     Celery 任务函数：生成视频雪碧图
     """
+    trace_id: str = self.request.headers.get("trace_id", "")
     # 1. 解析参数
-    task_id = self.request.headers.get("task_id")
+    task_id = self.request.headers.get("task_id", "")
     task_data = None
     
     # 兼容性处理
@@ -107,7 +108,7 @@ def process_sprite_task(self, data):
 
         # 核心处理
         sprite_request: SpriteImageRequest = SpriteImageRequest.model_validate(task_data)  # v2 的标准做法
-        _process_sprite_internal(sprite_request, task_id)
+        _process_sprite_internal(sprite_request, task_id, trace_id)
 
         # 任务完成
         if is_tracked:
@@ -138,7 +139,7 @@ def process_sprite_task(self, data):
 
 
 
-def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str):
+def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str = "", trace_id: str = ""):
     """
     核心处理逻辑：生成雪碧图
     """
@@ -157,4 +158,5 @@ def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str):
         asyncio.run(post(callback, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
     result_queue = f"{ENV}_" + my_config["result_queue"]["sprite"]
     log.info(f"{sprite_request.biz_id} 任务完成: {resp.model_dump()}")
-    mq_producer.send(result_queue, message=resp.model_dump())
+    headers = {"trace_id": trace_id, "task_id": task_id}
+    mq_producer.send(result_queue, message=resp.model_dump(), headers = headers)

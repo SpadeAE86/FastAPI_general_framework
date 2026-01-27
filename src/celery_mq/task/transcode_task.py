@@ -35,9 +35,9 @@ def process_transcode_task(self, data):
     """
     Celery 任务函数：处理 transcode 任务
     """
-
+    trace_id: str = self.request.headers.get("trace_id", "")
     # 1. 解析参数
-    task_id = self.request.headers.get("task_id")
+    task_id = self.request.headers.get("task_id", "")
     task_data = None
     
     if isinstance(data, str):
@@ -100,7 +100,7 @@ def process_transcode_task(self, data):
 
         # 核心处理
         transcode_request: TranscodeVideoRequest = TranscodeVideoRequest.model_validate(task_data)  # v2 的标准做法
-        _process_transcode_internal(transcode_request, task_id)
+        _process_transcode_internal(transcode_request, task_id, trace_id)
 
         # 任务完成
         if is_tracked:
@@ -128,7 +128,7 @@ def process_transcode_task(self, data):
             # 清除进程任务分配信息
             process_health_monitor.clear_task_assignment(worker_name, pid)
 
-def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_id: str):
+def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_id: str = "", trace_id: str = ""):
     """
     核心处理逻辑：提交视频到腾讯 VOD 上传并轮询结果
     """
@@ -151,7 +151,9 @@ def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_i
         asyncio.run(post(callback, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
     result_queue = f"{ENV}_" + my_config["result_queue"]["transcode"]
     log.info(f"{transcode_request.biz_id} 任务完成: {resp.model_dump()}")
-    mq_producer.send(result_queue, message=resp.model_dump())
+    headers = {"trace_id": trace_id, "task_id": task_id}
+    mq_producer.send(result_queue, message=resp.model_dump(), headers = headers)
+
 
 
 
