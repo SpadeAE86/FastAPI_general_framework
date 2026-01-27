@@ -11,4 +11,3 @@ class MixedVideoResponse(BaseResponse):
     video_size: int
     request_data: Optional[Dict[str, Any]] = None
     isSuccess: bool
-    mixId: str

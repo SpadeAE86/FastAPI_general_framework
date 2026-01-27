@@ -174,7 +174,7 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str):
         task_id: 任务ID，用于更新任务进度和日志记录
     """
     project_id = "mix_" + str(random_with_system_time()) if not mixed_config.biz_id else "mix_" + str(
-        mixed_config.mix_id)  # 该次混剪资源所在的子文件夹名
+        mixed_config.biz_id)  # 该次混剪资源所在的子文件夹名
     log.info(f"project_id: {project_id}")
 
     current_time = datetime.now()

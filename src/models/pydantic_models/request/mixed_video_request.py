@@ -118,11 +118,6 @@ class MixedVideoRequest(BaseRequest):
         description="背景音乐配置"
     )
 
-    mix_id: Optional[int] = Field(
-        default=123,
-        description="混剪任务 ID"
-    )
-
     retry_count: Optional[int] = Field(
         default=0,
         description="重试次数"

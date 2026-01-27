@@ -43,7 +43,7 @@ async def create_sprite_task(
         task_status = _task_manager.get_task_status(task_id)
 
         log.info(
-            f"雪碧图任务创建成功: task_id={task_id}, sprite_id={sprite_request.biz_id}"
+            f"雪碧图任务创建成功: task_id={task_id}, biz_id={sprite_request.biz_id}"
         )
 
         return {

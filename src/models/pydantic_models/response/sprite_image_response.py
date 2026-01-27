@@ -19,7 +19,3 @@ class SpriteImageResponse(BaseResponse):
     video_resolution_y: int = Field(...,
                     description="视频高度"
                     )
-    sprite_id: int = Field(
-        default=123,
-        description="雪碧图任务 ID"
-    )

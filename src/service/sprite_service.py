@@ -16,7 +16,7 @@ from utils.obs_utils import upload_to_obs, batch_upload_to_obs
 async def sprite_service(sprite_config: SpriteImageRequest) -> SpriteImageResponse:
 
     project_id = "sprite_" + str(random_with_system_time()) if not sprite_config.biz_id else "sprite_" + str(
-        sprite_config.sprite_id)  # 该次混剪资源所在的子文件夹名
+        sprite_config.biz_id)  # 该次混剪资源所在的子文件夹名
     log.info(f"project_id: {project_id}")
 
 
@@ -52,7 +52,7 @@ async def sprite_service(sprite_config: SpriteImageRequest) -> SpriteImageRespon
         video_resolution_x=sprite_result.video_width,
         video_resolution_y=sprite_result.video_height,
         audio_url=audio_url,
-        sprite_id=sprite_config.sprite_id
+        biz_id=sprite_config.biz_id
     )  # 业务逻辑
 
     return resp
@@ -62,7 +62,7 @@ async def sprite_service(sprite_config: SpriteImageRequest) -> SpriteImageRespon
 async def my_test_sprite_service():
     req = SpriteImageRequest(
         obs_video_path="aigc/aigc_test/153/mix_125/final-1768470072480.mp4",  # 你稍后填
-        sprite_id=123
+        biz_id=123
     )
 
     try:
@@ -73,7 +73,7 @@ async def my_test_sprite_service():
 
     print("✅ sprite_service 执行成功")
     print("返回结果：")
-    print(f"sprite_id: {resp.sprite_id}")
+    print(f"biz_id: {resp.biz_id}")
     print(f"sprite_image_url_list: {resp.sprite_image_url_list}")
     print(f"audio_url: {resp.audio_url}")
     print(f"video_resolution: {resp.video_resolution_x} x {resp.video_resolution_y}")

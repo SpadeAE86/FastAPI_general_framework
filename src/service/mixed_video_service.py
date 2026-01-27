@@ -24,8 +24,8 @@ semaphore = Semaphore(1)
 
 async def mixed_video_service(mixed_config: MixedVideoRequest):
 
-    project_id = "mix_" + str(random_with_system_time()) if not mixed_config.mix_id else "mix_" + str(
-        mixed_config.mix_id)  # 该次混剪资源所在的子文件夹名
+    project_id = "mix_" + str(random_with_system_time()) if not mixed_config.biz_id else "mix_" + str(
+        mixed_config.biz_id)  # 该次混剪资源所在的子文件夹名
     log.info(f"project_id: {project_id}")
 
     # 获取信号量，完成后释放
@@ -225,7 +225,7 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
             duration= round(duration, 2),
             request_data = mixed_config.request_data,
             video_size = file_size,
-            mixId = str(mixed_config.mix_id),
+            biz_id = mixed_config.biz_id,
             isSuccess = True
         )
         return resp

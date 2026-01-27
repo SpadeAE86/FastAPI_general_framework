@@ -132,8 +132,8 @@ def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_i
     """
     核心处理逻辑：提交视频到腾讯 VOD 上传并轮询结果
     """
-    project_id = "transcode_" + str(random_with_system_time()) if not transcode_request.transcode_id else "transcode_" + str(
-        transcode_request.transcode_id)  # 该次混剪资源所在的子文件夹名
+    project_id = "transcode_" + str(random_with_system_time()) if not transcode_request.biz_id else "transcode_" + str(
+        transcode_request.biz_id)  # 该次混剪资源所在的子文件夹名
     log.info(f"project_id: {project_id}")
     video_path = transcode_request.obs_video_path
 
@@ -150,7 +150,7 @@ def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_i
     if need_callback:
         asyncio.run(post(callback, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
     result_queue = f"{ENV}_" + my_config["result_queue"]["transcode"]
-    log.info(f"{transcode_request.transcode_id} 任务完成: {resp.model_dump()}")
+    log.info(f"{transcode_request.biz_id} 任务完成: {resp.model_dump()}")
     mq_producer.send(result_queue, message=resp.model_dump())
 
 

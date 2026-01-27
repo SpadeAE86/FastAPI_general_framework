@@ -20,7 +20,3 @@ class TranscodeVideoResponse(BaseResponse):
                                 description="转码后低视频信息"
                                 )
 
-    transcode_id: Optional[int] = Field(
-        default=123,
-        description="转码任务 ID"
-    )

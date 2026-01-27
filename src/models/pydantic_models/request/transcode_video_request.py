@@ -11,8 +11,3 @@ class TranscodeVideoRequest(BaseRequest):
     obs_video_path: str = Field(...,
         description="视频链接"
     )
-
-    transcode_id: Optional[int] = Field(
-        default=123,
-        description="转码任务 ID"
-    )

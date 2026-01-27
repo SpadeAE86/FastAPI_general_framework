@@ -17,8 +17,8 @@ from utils.tencent.vod_uploader import TencentVodUploader
 
 async def transcode_video_service(transcode_config: TranscodeVideoRequest):
 
-    project_id = "transcode_" + str(random_with_system_time()) if not transcode_config.transcode_id else "transcode_" + str(
-        transcode_config.transcode_id)  # 该次混剪资源所在的子文件夹名
+    project_id = "transcode_" + str(random_with_system_time()) if not transcode_config.biz_id else "transcode_" + str(
+        transcode_config.biz_id)  # 该次混剪资源所在的子文件夹名
     log.info(f"project_id: {project_id}")
 
     output_dir = None
@@ -96,7 +96,7 @@ async def transcode_video_service(transcode_config: TranscodeVideoRequest):
         low_resolution_video_meta=low_resolution_info,
         raw_resolution_video_url=raw_resolution_info.url,
         raw_resolution_video_meta=raw_resolution_info,
-        transcode_id=123
+        biz_id=123
     )  # 业务逻辑
 
     return resp
@@ -155,7 +155,7 @@ def parse_transcode_set(transcode_result) -> TranscodeOutput:
 async def my_test_transcode_video_service():
     req = TranscodeVideoRequest(
         obs_video_path="aigc/aigc_prod/1447/1999061725840629762/0/video/1765448404442.mp4",  # 替换为真实可用路径
-        transcode_id=123,
+        biz_id=123,
     )
 
     try:
@@ -166,7 +166,7 @@ async def my_test_transcode_video_service():
 
     print("✅ transcode_video_service 执行成功")
     print("返回结果：")
-    print(f"transcode_id: {resp.transcode_id}")
+    print(f"biz_id: {resp.biz_id}")
     print(f"low_resolution_video_url: {resp.low_resolution_video_url}")
     print(f"raw_resolution_video_url: {resp.raw_resolution_video_url}")
 

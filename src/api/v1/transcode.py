@@ -42,7 +42,7 @@ async def create_transcode_task(
         task_status = _task_manager.get_task_status(task_id)
 
         log.info(
-            f"转码任务创建成功: task_id={task_id}, transcode_id={transcode_request.transcode_id}"
+            f"转码任务创建成功: task_id={task_id}, biz_id={transcode_request.biz_id}"
         )
 
         return {
