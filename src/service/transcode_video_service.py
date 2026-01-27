@@ -170,7 +170,7 @@ async def my_test_transcode_video_service():
     )
 
     try:
-        resp = await transcode_video_service_v2(req)
+        resp = await transcode_video_service(req)
     except Exception as e:
         print("❌ transcode_video_service 执行失败")
         raise

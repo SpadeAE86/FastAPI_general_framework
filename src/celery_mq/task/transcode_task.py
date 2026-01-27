@@ -10,6 +10,7 @@ from config.config import my_config, ENV
 from models.pydantic_models.request.transcode_video_request import TranscodeVideoRequest
 from models.pydantic_models.response.transcode_video_response import TranscodeVideoResponse
 from service.transcode_video_service import transcode_video_service
+from service.transcode_video_service_v2 import transcode_video_service_v2
 from utils.general_utils import random_with_system_time
 from utils.mq.rabbit_mq_producer import mq_producer
 from utils.post_utils import post
@@ -141,7 +142,7 @@ def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_i
         raise ValueError(f"任务缺少 video_path: task_id={task_id}")
 
     # 初始化 VOD 上传器
-    resp: TranscodeVideoResponse = asyncio.run(transcode_video_service(transcode_request))
+    resp: TranscodeVideoResponse = asyncio.run(transcode_video_service_v2(transcode_request))
     #回调
     callback = my_config["callback"][ENV]["transcode"]
     need_callback = my_config["need_callback"]
