@@ -36,7 +36,6 @@ class TranscodeOutput:
     size: Optional[int] = None              # 字节
     width: Optional[int] = None             # 输出分辨率
     height: Optional[int] = None
-
     # ===== 编码流信息 =====
     video_meta: Optional[VideoStreamMeta] = None
     audio_meta: Optional[AudioStreamMeta] = None

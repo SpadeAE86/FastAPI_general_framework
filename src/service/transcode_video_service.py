@@ -58,16 +58,21 @@ async def transcode_video_service(transcode_config: TranscodeVideoRequest):
 
     low_resolution_info: Optional[TranscodeOutput] = None
     raw_resolution_info: Optional[TranscodeOutput] = None
+    cover_image_url: str = ""
     transcode_set = []
+    snapshot_set = []
     for i in range(10):
         media_info = uploader.describe_media_infos(
             file_id=file_id,
-            filters=["transcodeInfo"]
+            filters=["transcodeInfo", "snapshotByTimeOffsetInfo"]
         )
 
         transcode_info = media_info.get("TranscodeInfo", {})
         transcode_set = transcode_info.get("TranscodeSet", [])
+        snapshot_info = media_info.get("SnapshotByTimeOffsetInfo", {})
 
+        if snapshot_info:
+            snapshot_set = snapshot_info.get("SnapshotByTimeOffsetSet", [])
 
         info_len = len(transcode_set)
         log.info(f"第{i}轮 返回长度: {info_len}")
@@ -78,7 +83,12 @@ async def transcode_video_service(transcode_config: TranscodeVideoRequest):
 
     if len(transcode_set) < 3:
         raise ServiceException(message = f"transcode fail", code = 100001)
+    for item in snapshot_set:
 
+        definition = item.get("Definition")
+        log.info(f"debug:!!! ] {item}: {definition}")
+        if definition == 216455:
+            cover_image_url = item.get("PicInfoSet", {})[0].get("Url", "")
     for item in transcode_set:
         log.info(f"[element]: {item}")
         definition = item.get("Definition")
@@ -90,10 +100,11 @@ async def transcode_video_service(transcode_config: TranscodeVideoRequest):
             raw_resolution_info = parse_transcode_set(item)
             log.info(f"#raw_resolution_info: {raw_resolution_info}")
 
-    log.info(f"转码完成: task_id={project_id}, raw_resolution_video_url={media_url}")
+    log.info(f"转码完成: task_id={project_id}, raw_resolution_video_url={media_url}, image_url={cover_image_url}")
     resp: TranscodeVideoResponse = TranscodeVideoResponse(
         low_resolution_video_url=low_resolution_info.url,
         low_resolution_video_meta=low_resolution_info,
+        cover_image=cover_image_url,
         raw_resolution_video_url=raw_resolution_info.url,
         raw_resolution_video_meta=raw_resolution_info,
         biz_id=123
@@ -167,6 +178,7 @@ async def my_test_transcode_video_service():
     print("✅ transcode_video_service 执行成功")
     print("返回结果：")
     print(f"biz_id: {resp.biz_id}")
+    print(f"cover_image: {resp.cover_image}")
     print(f"low_resolution_video_url: {resp.low_resolution_video_url}")
     print(f"raw_resolution_video_url: {resp.raw_resolution_video_url}")
 

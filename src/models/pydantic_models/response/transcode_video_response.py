@@ -16,6 +16,9 @@ class TranscodeVideoResponse(BaseResponse):
     raw_resolution_video_url: str = Field(...,
                                 description="转码后原视频链接"
                                 )
+    cover_image: str = Field(...,
+                            description="封面图链接"
+                            )
     raw_resolution_video_meta: TranscodeOutput = Field(default_factory=dict,
                                 description="转码后低视频信息"
                                 )

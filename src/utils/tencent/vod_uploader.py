@@ -164,7 +164,7 @@ def describe_transcode_info():
     # 只拉转码信息，减少 payload
     media_info = tencent_uploader.describe_media_infos(
         file_id=file_id,
-        filters=["transcodeInfo"]
+        filters=["transcodeInfo", "snapshotByTimeOffsetInfo"]
     )
 
     print("=== DescribeMediaInfos (TranscodeInfo only) ===")

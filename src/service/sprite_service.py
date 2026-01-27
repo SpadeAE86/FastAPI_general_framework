@@ -9,7 +9,7 @@ from models.pydantic_models.request.sprite_image_request import SpriteImageReque
 from models.pydantic_models.response.sprite_image_response import SpriteImageResponse
 from utils.ffmpeg_utils import extract_audio
 
-from utils.general_utils import random_with_system_time, download_resource
+from utils.general_utils import random_with_system_time, download_resource, get_video_info
 from utils.obs_utils import upload_to_obs, batch_upload_to_obs
 
 
