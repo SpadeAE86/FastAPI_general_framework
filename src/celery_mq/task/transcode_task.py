@@ -118,7 +118,7 @@ def process_transcode_task(self, data):
         log.error(error_msg, exc_info=True)
         if is_tracked:
             task_manager.update_task_status(task_id, "failed", error=str(e), failed_at=datetime.now().isoformat())
-        self.update_state(state='FAILURE', meta={'error': str(e)})
+        # self.update_state(state='FAILURE', meta={'error': str(e)})
         raise
 
     finally:
@@ -154,6 +154,7 @@ def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_i
         asyncio.run(post(callback, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
     result_queue = f"{ENV}_" + my_config["result_queue"]["transcode"]
     log.info(f"{transcode_request.biz_id} 任务完成: {resp.model_dump()}")
+    resp.trace_id = trace_id
     headers = {"trace_id": trace_id, "task_id": task_id}
     mq_producer.send(result_queue, message=resp.model_dump(), headers = headers)
     log.info(f"成功推送到{result_queue}队列")

@@ -147,7 +147,7 @@ def process_video_task(self, data):
         log.error(error_msg, exc_info=True)
         if is_tracked:
             task_manager.update_task_status(task_id, "failed", error=str(e), failed_at=datetime.now().isoformat())
-        self.update_state(state='FAILURE', meta={'error': str(e)})
+        # self.update_state(state='FAILURE', meta={'error': str(e)})
         raise
     finally:
         if is_tracked:
@@ -188,6 +188,7 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str = "", 
     log.info(f"env: {my_config['env']}")
 
     resp: MixedVideoResponse = asyncio.run(mixed_video_service(mixed_config))     #业务逻辑
+    resp.trace_id = trace_id
     #回调
     callback = my_config["callback"][ENV]["mixed"]
     need_callback = my_config["need_callback"]

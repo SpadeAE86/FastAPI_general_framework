@@ -125,7 +125,7 @@ def process_sprite_task(self, data):
         log.error(error_msg, exc_info=True)
         if is_tracked:
             task_manager.update_task_status(task_id, "failed", error=str(e), failed_at=datetime.now().isoformat())
-        self.update_state(state='FAILURE', meta={'error': str(e)})
+        # self.update_state(state='FAILURE', meta={'error': str(e)})
         raise
 
     finally:
@@ -153,7 +153,8 @@ def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str = 
         raise ValueError(f"任务缺少 video_path: task_id={task_id}")
 
     resp: SpriteImageResponse = asyncio.run(sprite_service(sprite_request))
-    log.info(f"生成雪碧图成功: task_id={task_id}, result={resp.sprite_image_url_list}")
+    resp.trace_id = trace_id
+    log.info(f"生成雪碧图成功: task_id={task_id}, result={resp}")
     callback = my_config["callback"][ENV]["sprite"]
     need_callback = my_config["need_callback"]
     if need_callback:
