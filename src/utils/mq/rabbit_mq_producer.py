@@ -16,11 +16,11 @@ class MQProducer:
             host=host,
             port=port,
             credentials=credentials,
-            # heartbeat=60,  # ⭐ 必须
-            # blocked_connection_timeout=300,  # ⭐ 防止 publish 卡死
-            # socket_timeout=10,  # ⭐ 防止 send 卡住
-            # connection_attempts=3,
-            # retry_delay=5
+            heartbeat=60,  # ⭐ 必须
+            blocked_connection_timeout=300,  # ⭐ 防止 publish 卡死
+            socket_timeout=10,  # ⭐ 防止 send 卡住
+            connection_attempts=3,
+            retry_delay=5
         )
         self.connection: Optional[pika.BlockingConnection] = None
 
