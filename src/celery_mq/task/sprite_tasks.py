@@ -38,6 +38,8 @@ def process_sprite_task(self, data):
     Celery 任务函数：生成视频雪碧图
     """
     trace_id: str = self.request.headers.get("trace_id", "")
+    log.info(f"接收到{data}请求, trace_id={trace_id}")
+
     # 1. 解析参数
     task_id = self.request.headers.get("task_id", "")
     task_data = None
@@ -161,3 +163,4 @@ def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str = 
     headers = {"trace_id": trace_id, "task_id": task_id}
     sprite_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
     sprite_mq_producer.send(result_queue, message=resp.model_dump(), headers = headers)
+    log.info(f"成功推送到{result_queue}队列")

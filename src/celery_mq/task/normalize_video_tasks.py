@@ -56,7 +56,10 @@ def process_video_task(self, data):
     Args:
         data: 任务数据(dict) 或 任务ID(str, 兼容旧版)
     """
+
     trace_id: str = self.request.headers.get("trace_id", "")
+    log.info(f"接收到{data}请求, trace_id={trace_id}")
+
     # 1. 解析参数
     task_id = self.request.headers.get("task_id", "")
     task_data = None
@@ -194,6 +197,7 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str = "", 
     log.info(f"{mixed_config.biz_id} 任务完成: {resp.model_dump()}")
     headers = {"trace_id": trace_id, "task_id": task_id}
     mq_producer.send(result_queue, message=resp.model_dump(), headers = headers)
+    log.info(f"成功推送到{result_queue}队列")
 
 def _process_video_internal_test(mixed_config: MixedVideoRequest, task_id: str):
     """

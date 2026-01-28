@@ -37,6 +37,8 @@ def process_transcode_task(self, data):
     Celery 任务函数：处理 transcode 任务
     """
     trace_id: str = self.request.headers.get("trace_id", "")
+    log.info(f"接收到{data}请求, trace_id={trace_id}")
+
     # 1. 解析参数
     task_id = self.request.headers.get("task_id", "")
     task_data = None
@@ -154,6 +156,7 @@ def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_i
     log.info(f"{transcode_request.biz_id} 任务完成: {resp.model_dump()}")
     headers = {"trace_id": trace_id, "task_id": task_id}
     mq_producer.send(result_queue, message=resp.model_dump(), headers = headers)
+    log.info(f"成功推送到{result_queue}队列")
 
 
 

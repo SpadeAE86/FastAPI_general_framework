@@ -5,7 +5,7 @@ import datetime
 import json
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Header
 
 from config.config import my_config, ENV
 from models.pydantic_models.request.mixed_video_request import MixedVideoRequest
@@ -35,6 +35,7 @@ async def test_video_mix(mixed_config: MixedVideoRequest) -> MixedVideoResponse:
     Returns:
         包含task_id和状态的响应
     """
+
     project_id = "mix_" + str(random_with_system_time()) if not mixed_config.biz_id else "mix_" + str(
         mixed_config.biz_id)  # 该次混剪资源所在的子文件夹名
     log.info(f"project_id: {project_id}")
@@ -50,13 +51,14 @@ async def test_video_mix(mixed_config: MixedVideoRequest) -> MixedVideoResponse:
 
 
 @test_router.post("/sprite", response_model=SpriteImageResponse)
-async def test_sprite(sprite_request: SpriteImageRequest) -> SpriteImageResponse:
+async def test_sprite(sprite_request: SpriteImageRequest, trace_id = Header(None)) -> SpriteImageResponse:
     """
     雪碧图测试接口（不走 Celery）
 
     - 直接调用 sprite_service
     - 用于本地 / 联调 / 验证参数
     """
+    log.info(f"received trace_id: {trace_id}")
     project_id = (
         "sprite_" + str(random_with_system_time())
         if not sprite_request.biz_id
