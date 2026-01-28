@@ -3,7 +3,7 @@ import sys
 import threading
 import traceback
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Header
 from tabulate import tabulate
 
 from utils.log_utils import logger as log

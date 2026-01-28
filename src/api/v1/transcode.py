@@ -37,7 +37,7 @@ async def create_transcode_task(
 
         task_data = transcode_request.model_dump(exclude_none=True)
         task_data["task_type"] = "transcode"
-
+        task_data["trace_id"] = trace_id
         task_id = _task_manager.create_task(user_id, task_data)
         task_status = _task_manager.get_task_status(task_id)
 

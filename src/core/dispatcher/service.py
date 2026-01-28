@@ -122,12 +122,12 @@ class DispatcherService:
             # 延迟导入，解决循环依赖
             from celery_mq.task import process_functions
             process_function = process_functions[task_type]
-            
+            trace_id = task_data.get("trace_id", "")
             result = process_function.apply_async(
                 args=[task_data],
                 queue=f"{ENV}_{queue_name}",
                 delivery_mode=2,
-                headers={"task_id": task_id}
+                headers={"task_id": task_id, "trace_id": trace_id}
             )
             
             log.info(f"任务已发布到RabbitMQ: task_queue: {ENV}_{queue_name}, task_id={task_id}, celery_task_id={result.id}")
@@ -313,15 +313,21 @@ class DispatcherService:
             from celery_mq.task import process_functions
             process_function = process_functions[task_type]
 
-            task_signatures = [
-                process_function.s(task_data).set(
+            # ✅ 2. for 里只做「签名构造」
+            task_signatures = []
+            for task_id, task_data in task_items:
+                trace_id = task_data.get("trace_id", "")
+                sig = process_function.s(task_data).set(
                     queue=f"{ENV}_{queue_name}",
-                    delivery_mode=2,  # 持久化消息
-                    headers={"task_id": task_id}
+                    delivery_mode=2,  # 持久化
+                    headers={
+                        "task_id": task_id,
+                        "trace_id": trace_id,
+                    },
                 )
-                for task_id, task_data in task_items
-            ]
+                task_signatures.append(sig)
 
+            # ✅ 3. batch 一次性提交
             job = group(task_signatures)
             result = job.apply_async()
 

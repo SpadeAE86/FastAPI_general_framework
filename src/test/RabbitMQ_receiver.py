@@ -34,7 +34,8 @@ def receive_message():
         channel.basic_consume(
             queue='test_sprite_result_queue',
             on_message_callback=callback,
-            auto_ack=False  # 关闭自动确认，改为手动确认
+            auto_ack=False,  # 关闭自动确认，改为手动确认
+            consumer_tag = 'worker_sprite_01'
         )
 
         channel.start_consuming()

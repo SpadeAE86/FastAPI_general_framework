@@ -58,7 +58,7 @@ async def test_sprite(sprite_request: SpriteImageRequest, trace_id = Header(None
     - 直接调用 sprite_service
     - 用于本地 / 联调 / 验证参数
     """
-    log.info(f"received trace_id: {trace_id}")
+    log.info(f"received Trace-Id: {trace_id}")
     project_id = (
         "sprite_" + str(random_with_system_time())
         if not sprite_request.biz_id

@@ -38,12 +38,12 @@ async def create_sprite_task(
 
         task_data = sprite_request.model_dump(exclude_none=True)
         task_data["task_type"] = "sprite"
-
+        task_data["trace_id"] = trace_id
         task_id = _task_manager.create_task(user_id, task_data)
         task_status = _task_manager.get_task_status(task_id)
 
         log.info(
-            f"雪碧图任务创建成功: task_id={task_id}, biz_id={sprite_request.biz_id}"
+            f"雪碧图任务创建成功: task_id={task_id}, biz_id={sprite_request.biz_id}, trace_id={trace_id}"
         )
 
         return {

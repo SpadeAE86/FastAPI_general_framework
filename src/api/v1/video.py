@@ -35,10 +35,11 @@ async def create_video_task(mixed_config: MixedVideoRequest, trace_id = Header(N
         
         # 将Pydantic模型转换为字典
         task_data = mixed_config.model_dump(exclude_none=True)
-        
+
         # 创建任务
         task_id = _task_manager.create_task(user_id, task_data)
         task_data["task_type"] = "mix"
+        task_data["trace_id"] = trace_id
         # 获取任务状态
         task_status = _task_manager.get_task_status(task_id)
         
