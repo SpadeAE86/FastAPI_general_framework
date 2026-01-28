@@ -31,7 +31,7 @@ async def create_video_task(mixed_config: MixedVideoRequest, trace_id = Header(N
     """
     try:
         # 从请求中获取user_name作为user_id
-        user_id = mixed_config.user_name or "anonymous"
+        user_id = f"{mixed_config.user_id}"
         
         # 将Pydantic模型转换为字典
         task_data = mixed_config.model_dump(exclude_none=True)

@@ -40,7 +40,7 @@ async def sprite_service(sprite_config: SpriteImageRequest) -> SpriteImageRespon
         raise RuntimeError(f"生成雪碧图失败: task_id={project_id}")
 
 
-    obs_key_prefix = f"aigc/aigc_{ENV}/{sprite_config.user_name}/sprite/{project_id}"
+    obs_key_prefix = f"aigc/aigc_{ENV}/{sprite_config.user_id}/sprite/{project_id}"
     upload_tasks = [
         batch_upload_to_obs(sprite_result.sprite_paths, obs_key_prefix),
         upload_to_obs(audio_path, obs_key_prefix)

@@ -34,7 +34,7 @@ async def transcode_video_service_v2(
     input_bucket, input_object = "freeuuu", transcode_config.obs_video_path
 
     output_bucket = "freeuuu"
-    output_prefix = f"aigc/aigc_{ENV}/{transcode_config.user_name}/{project_id}/"
+    output_prefix = f"aigc/aigc_{ENV}/{transcode_config.user_id}/{project_id}/"
 
 
     template_ids = [

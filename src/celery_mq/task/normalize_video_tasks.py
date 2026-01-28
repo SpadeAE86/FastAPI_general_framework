@@ -216,7 +216,7 @@ def _process_video_internal_test(mixed_config: MixedVideoRequest, task_id: str):
     """
     log.info(f"[测试模式] 开始处理任务: task_id={task_id}")
     log.info(f"[测试模式] 任务配置信息:")
-    log.info(f"  - 用户名称: {mixed_config.user_name}")
+    log.info(f"  - 用户名称: {mixed_config.user_id}")
     log.info(f"  - 视频数量: {len(mixed_config.obs_video_path_list)}")
     log.info(f"  - FPS: {mixed_config.fps}")
     log.info(f"  - 分辨率: {mixed_config.resolution}")
