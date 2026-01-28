@@ -17,7 +17,7 @@ from models.pydantic_models.response.sprite_image_response import SpriteImageRes
 from service.sprite_service import sprite_service
 from utils.ffmpeg_utils import extract_audio
 from utils.general_utils import random_with_system_time
-from utils.mq.rabbit_mq_producer import mq_producer
+from utils.mq.rabbit_mq_producer import mq_producer, MQProducer
 from utils.post_utils import post
 
 log = logging.getLogger(__name__)
@@ -159,4 +159,5 @@ def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str = 
     result_queue = f"{ENV}_" + my_config["result_queue"]["sprite"]
     log.info(f"{sprite_request.biz_id} 任务完成: {resp.model_dump()}")
     headers = {"trace_id": trace_id, "task_id": task_id}
-    mq_producer.send(result_queue, message=resp.model_dump(), headers = headers)
+    sprite_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
+    sprite_mq_producer.send(result_queue, message=resp.model_dump(), headers = headers)
