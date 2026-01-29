@@ -5,7 +5,7 @@ import threading
 from datetime import datetime
 
 from celery.signals import worker_shutting_down
-from utils.mq.rabbit_mq_producer import mq_producer
+from utils.mq.rabbit_mq_producer import mq_producer, MQProducer
 from celery_mq.celery_app import celery_app
 from celery_mq.task_manager import task_manager
 from config.config import my_config
@@ -198,7 +198,8 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str = "", 
     log.info(f"{mixed_config.biz_id} 任务完成: {resp.model_dump()}")
     resp.biz_id = resp.biz_id
     headers = {"trace_id": trace_id, "task_id": task_id}
-    mq_producer.send(result_queue, message=resp.model_dump(), headers = headers)
+    sprite_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
+    sprite_mq_producer.send(result_queue, message=resp.model_dump(), headers = headers)
     log.info(f"成功推送到{result_queue}队列")
 
 def _process_video_internal_test(mixed_config: MixedVideoRequest, task_id: str):
