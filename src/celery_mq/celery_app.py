@@ -78,7 +78,7 @@ broker_config = celery_config.get("broker", {})
 # Celery配置
 celery_app.conf.update(
     broker_connection_retry_on_startup=True,
-    task_acks_late=True,  # 任务完成后才确认
+    task_acks_late=False,  # 防止无限投递失败的请求体
     task_reject_on_worker_lost=True,  # Worker丢失时重新分发
     task_default_message_ttl=task_config.get("message_ttl", 3600000),  # 消息TTL：1小时（毫秒）
     task_default_exchange=queue_config.get("exchange", "tasks"),
