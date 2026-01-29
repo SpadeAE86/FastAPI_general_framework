@@ -79,11 +79,11 @@ async def transcode_video_service_v2(
     raw_resolution_info: Optional[TranscodeOutput] = None
 
     resolutions = sorted(outputs, key=lambda o: o.video_meta.width)
-    log.info(f"[MPC][output]{low_resolution_info}, {raw_resolution_info}")
+
 
     low_resolution_info = resolutions[0]
     raw_resolution_info = resolutions[-1]
-
+    log.info(f"[MPC][output]{low_resolution_info}, {raw_resolution_info}")
     if not low_resolution_info or not raw_resolution_info:
         raise ServiceException(message="无法识别转码清晰度结果", code=100003)
 
