@@ -2,14 +2,16 @@ import asyncio
 import hashlib
 import os
 import time
-from typing import List
-from celery_mq.signals import redis_client
+from typing import List, Optional
+
+import redis
 from obs import ObsClient
 
 from config.config import ENV, VIDEO_CACHE_PREFIX
 from exceptions.ServiceException import ServiceException
 from utils.log_utils import logger as log
 from utils.memory_utils import memory
+from utils.redis_client import RedisClientFactory
 
 # === OBS 配置 ===
 BUCKET_NAME = 'freeuuu'
@@ -22,6 +24,7 @@ obs_client = ObsClient(
     server='obs.cn-east-3.myhuaweicloud.com'
 )
 
+redis_client: Optional[redis.Redis] = None
 async def upload_to_obs(filename: str, obs_prefix: str = "ai_picture/mark/demo/frames_test/", project_id=None) -> str:
     if project_id is not None:
         obs_prefix = obs_prefix + project_id
@@ -72,15 +75,18 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
     try:
         ttl = 300  # 5 分钟
         cache_key = f"{VIDEO_CACHE_PREFIX}{path}"
-        if redis_client:
-            local_path = await redis_client.get(cache_key)
-            if local_path:
-                log.info(f"path {path} exist, reuse download: {local_path}")
-                log.info("refresh key...")
-                await redis_client.expire(cache_key, ttl)  # 等价于 memory.touch
-                return local_path
-        else:
-            log.info(f"redis client is not initialized, download directly")
+
+        global redis_client
+
+        if not redis_client:
+            redis_client = RedisClientFactory.get_client()
+            log.info(f"redis client is not initialized, create new connection {redis_client}")
+        local_path = await redis_client.get(cache_key)
+        if local_path:
+            log.info(f"[redis cache] path {path} exist, reuse download: {local_path}")
+            log.info("[redis cache] refresh key...")
+            await redis_client.expire(cache_key, ttl)  # 等价于 memory.touch
+            return local_path
 
         start = time.time()
         log.info(f"{fn}开始下载")
