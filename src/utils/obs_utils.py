@@ -7,12 +7,12 @@ from typing import List, Optional
 import redis
 from obs import ObsClient
 
-from config.config import ENV, VIDEO_CACHE_PREFIX
+from config.config import ENV, VIDEO_CACHE_PREFIX, my_config
 from exceptions.ServiceException import ServiceException
 from utils.log_utils import logger as log
 from utils.memory_utils import memory
-from utils.redis_client import RedisClientFactory
 
+from redis.asyncio import Redis
 # === OBS 配置 ===
 BUCKET_NAME = 'freeuuu'
 OBS_BASE_URL = 'https://freeuuu.obs.cn-east-3.myhuaweicloud.com'
@@ -79,7 +79,9 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
         global redis_client
 
         if not redis_client:
-            redis_client = RedisClientFactory.get_client()
+            redis_client = redis.Redis(host=my_config["redis"][ENV]["host"], port=my_config["redis"][ENV]["port"],
+                                       password=my_config["redis"][ENV]["password"], decode_responses=True,
+                                       db=my_config["redis"][ENV]["database"])  # 注意 host="redis"（服务名）
             log.info(f"redis client is not initialized, create new connection {redis_client}")
         local_path = await redis_client.get(cache_key)
         if local_path:
@@ -108,6 +110,8 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
             log.info(f"{local_path}:{sha256_file(local_path)}")
             log.info(f"add to memory: {path} {local_path}")
             memory[path] = local_path  # 创建缓存
+            await redis_client.setex(cache_key, ttl, local_path)
+            log.info(f"[redis cache] add to redis: {cache_key} -> {local_path}")
             return local_path
         else:
             raise ServiceException(code=460, message=f"obs下载异常，状态码{resp.status}")

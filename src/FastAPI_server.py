@@ -36,9 +36,9 @@ async def lifespan(app: FastAPI):
     else:
         log.info("无法获取默认线程池")
 
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=100)
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=50)
     loop.set_default_executor(executor)
-    log.info("Default thread pool executor set to max_workers=100")
+    log.info("Default thread pool executor set to max_workers=50")
     memory.inject_fastapi_loop(loop)
     if my_config["env"] == "local" and os.path.exists("memory.json"):
         with open("memory.json") as f:
