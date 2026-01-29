@@ -67,7 +67,7 @@ celery_app = Celery(
     backend=backend_url,
     include=["celery_mq.task.normalize_video_tasks"]
 )
-
+import celery_mq.signals
 # 从配置读取 Celery 参数
 celery_config = my_config.get("celery", {})
 queue_config = celery_config.get("queue", {})

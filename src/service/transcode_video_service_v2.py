@@ -111,7 +111,7 @@ async def transcode_video_service_v2(
         low_resolution_video_meta=low_resolution_info,
         raw_resolution_video_url=raw_resolution_info.url,
         raw_resolution_video_meta=raw_resolution_info,
-        cover_image=cover_image_url,
+        cover_image=rf"https://freeuuu.obs.cn-east-3.myhuaweicloud.com/{cover_image_url}",
         biz_id=transcode_config.biz_id
     )
 

@@ -3,7 +3,7 @@ import hashlib
 import os
 import time
 from typing import List
-
+from celery_mq.signals import redis_client
 from obs import ObsClient
 
 from exceptions.ServiceException import ServiceException
@@ -20,7 +20,6 @@ obs_client = ObsClient(
     secret_access_key='NhQExxv9PUYsvmvGnVReizRksaiHcJdQ6vMMw19d',
     server='obs.cn-east-3.myhuaweicloud.com'
 )
-
 
 async def upload_to_obs(filename: str, obs_prefix: str = "ai_picture/mark/demo/frames_test/", project_id=None) -> str:
     if project_id is not None:
@@ -70,14 +69,26 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
 
     # 下载文件
     try:
+        ttl = 300  # 5 分钟
+        local_path = await redis_client.get(path)
+        if redis_client:
+            if local_path:
+                log.info(f"path {path} exist, reuse download: {local_path}")
+                log.info("refresh key...")
+                await redis_client.expire(path, ttl)  # 等价于 memory.touch
+                return local_path
+        else:
+            log.info(f"redis client is not initialized, download directly")
+
+        start = time.time()
+        log.info(f"{fn}开始下载")
         if path in memory:
             local_path = memory[path]
             log.info(f"path {path} exist, reuse download: {local_path}")  # 使用缓存
             log.info("refresh key...")
             memory.touch(path, local_path)
             return local_path
-        start = time.time()
-        log.info(f"{fn}开始下载")
+
         resp = await asyncio.to_thread(obs_client.getObject, bucketName=BUCKET_NAME, objectKey=path,
                                        downloadPath=local_path)
         d = time.time() - start
