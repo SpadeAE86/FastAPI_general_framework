@@ -6,6 +6,7 @@ from typing import List
 from celery_mq.signals import redis_client
 from obs import ObsClient
 
+from config.config import ENV, VIDEO_CACHE_PREFIX
 from exceptions.ServiceException import ServiceException
 from utils.log_utils import logger as log
 from utils.memory_utils import memory
@@ -70,12 +71,13 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
     # 下载文件
     try:
         ttl = 300  # 5 分钟
-        local_path = await redis_client.get(path)
+        cache_key = f"{VIDEO_CACHE_PREFIX}{path}"
         if redis_client:
+            local_path = await redis_client.get(cache_key)
             if local_path:
                 log.info(f"path {path} exist, reuse download: {local_path}")
                 log.info("refresh key...")
-                await redis_client.expire(path, ttl)  # 等价于 memory.touch
+                await redis_client.expire(cache_key, ttl)  # 等价于 memory.touch
                 return local_path
         else:
             log.info(f"redis client is not initialized, download directly")

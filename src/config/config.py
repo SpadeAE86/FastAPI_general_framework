@@ -411,5 +411,6 @@ def save_config():
 
 my_config = load_config()
 ENV = my_config['env']
+VIDEO_CACHE_PREFIX = f"aigc_video_cache_{ENV}:"
 # 调用外部接口并更新 CosyVoice_voice
 # CosyVoice_voice = fetch_CosyVoice_voice() or CosyVoice_voice  # 如果外部接口失败，则保留原有数据
