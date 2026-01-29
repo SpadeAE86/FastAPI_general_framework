@@ -118,6 +118,9 @@ def process_transcode_task(self, data):
         log.error(error_msg, exc_info=True)
         if is_tracked:
             task_manager.update_task_status(task_id, "failed", error=str(e), failed_at=datetime.now().isoformat())
+
+
+
         # self.update_state(state='FAILURE', meta={'error': str(e)})
         raise
 

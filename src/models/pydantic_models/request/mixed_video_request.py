@@ -42,7 +42,7 @@ ratio_option = {
     }
 }
 Ratio = Literal["1:1", "4:3", "16:9", "3:4", "9:16"]
-Resolution = Literal["720p", "1080p", "2k", "4k"]
+Resolution = Literal["360p","720p", "1080p", "2k", "4k"]
 
 # 定义混剪请求体
 class MixedVideoRequest(BaseRequest):
@@ -172,8 +172,8 @@ class MixedVideoRequest(BaseRequest):
 
         # 5. 颜色合法性校验 (对应原 488)
         if self.cap_config:
-            c1 = self.cap_config.get("cap_color")
-            c2 = self.cap_config.get("cap_outline_color")
+            c1 = self.cap_config.cap_color
+            c2 = self.cap_config.cap_outline_color
             if not (is_valid_hex_color(c1) and is_valid_hex_color(c2)):
                 raise ValueError("输入的颜色不合法, 参考#FFFFFF")
 
