@@ -194,7 +194,7 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str = "", 
     need_callback = my_config["need_callback"]
     if need_callback:
         asyncio.run(post(callback, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
-    result_queue = f"{ENV}_" + my_config["result_queue"]["sprite"]
+    result_queue = f"{ENV}_" + my_config["result_queue"]["mix"]
     log.info(f"{mixed_config.biz_id} 任务完成: {resp.model_dump()}")
     headers = {"trace_id": trace_id, "task_id": task_id}
     mq_producer.send(result_queue, message=resp.model_dump(), headers = headers)
