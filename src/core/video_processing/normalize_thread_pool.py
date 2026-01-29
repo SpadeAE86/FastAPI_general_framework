@@ -110,7 +110,7 @@ def thread_pool_normalize(
 
         #从crop_config里取出开始和结束时间
         for idx, video_path in enumerate(video_list):
-            filter_str = build_from_config(mixed_video_config.filter_config)
+            filter_str = build_from_config(mixed_video_config.filter_config[idx])
             start = 0
             end = len_list[idx]
 
