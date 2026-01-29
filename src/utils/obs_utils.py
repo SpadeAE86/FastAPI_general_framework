@@ -82,12 +82,12 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
                                        password=my_config["redis"][ENV]["password"], decode_responses=True,
                                        db=my_config["redis"][ENV]["database"])  # 注意 host="redis"（服务名）
             log.info(f"redis client is not initialized, create new connection {redis_client}")
-        local_path = await redis_client.get(cache_key)
-        if local_path:
-            log.info(f"[redis cache] path {path} exist, reuse download: {local_path}")
+        cached_path = await redis_client.get(cache_key)
+        if cached_path:
+            log.info(f"[redis cache] path {path} exist, reuse download: {cached_path}")
             log.info("[redis cache] refresh key...")
             await redis_client.expire(cache_key, ttl)  # 等价于 memory.touch
-            return local_path
+            return cached_path
 
         start = time.time()
         log.info(f"{fn}开始下载")
