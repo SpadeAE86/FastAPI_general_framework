@@ -2,14 +2,16 @@ import asyncio
 import hashlib
 import os
 import time
-from typing import List
-from celery_mq.signals import redis_client
-from obs import ObsClient
+from typing import List, Optional
 
+import redis
+from obs import ObsClient
 from config.config import ENV, VIDEO_CACHE_PREFIX
 from exceptions.ServiceException import ServiceException
 from utils.log_utils import logger as log
 from utils.memory_utils import memory
+from utils.redis_client import RedisClientFactory
+
 
 # === OBS 配置 ===
 BUCKET_NAME = 'freeuuu'
@@ -49,7 +51,7 @@ def sha256_file(filename, chunk_size=512):
         m.update(b)
     return m.hexdigest()
 
-
+redis_client: Optional[redis.Redis] = None
 async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
     """
     从 OBS 下载文件并保存在本地指定目录。
@@ -72,15 +74,16 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
     try:
         ttl = 300  # 5 分钟
         cache_key = f"{VIDEO_CACHE_PREFIX}{path}"
-        if redis_client:
-            local_path = await redis_client.get(cache_key)
-            if local_path:
-                log.info(f"path {path} exist, reuse download: {local_path}")
-                log.info("refresh key...")
-                await redis_client.expire(cache_key, ttl)  # 等价于 memory.touch
-                return local_path
-        else:
-            log.info(f"redis client is not initialized, download directly")
+        global redis_client
+        if redis_client is None:
+            redis_client = RedisClientFactory().get_client()
+            log.info(f"初始化redis client = {redis_client}")
+        local_path = await redis_client.get(cache_key)
+        if local_path:
+            log.info(f"path {path} exist, reuse download: {local_path}")
+            log.info("refresh key...")
+            await redis_client.expire(cache_key, ttl)  # 等价于 memory.touch
+            return local_path
 
         start = time.time()
         log.info(f"{fn}开始下载")

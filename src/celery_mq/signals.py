@@ -9,7 +9,7 @@ from config.config import VIDEO_CACHE_PREFIX, my_config, ENV
 from utils.log_utils import logger as log
 from utils.redis_client import RedisClientFactory
 
-redis_client: Optional[redis.Redis] = None
+
 
 db = my_config.get("redis").get(ENV).get("database")
 log.info(f"listening on {db}")
@@ -45,8 +45,3 @@ def start_redis_listener(**kwargs):
     )
     t.start()
 
-@signals.worker_process_init.connect
-def on_worker_process_init(**kwargs):
-    log.info("[signals] redis client is created")
-    global redis_client
-    redis_client = RedisClientFactory.get_client()
