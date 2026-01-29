@@ -198,7 +198,7 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         upload_start = time.time()
         upload_video_path = f"aigc/aigc_{my_config['env']}/{mixed_config.user_id}/"
         obs_video_url, obs_cover_url = await asyncio.gather(upload_to_obs(output_file, obs_prefix=upload_video_path, project_id=project_id),
-                                                            upload_to_obs(output_file, obs_prefix=upload_video_path, project_id=project_id))
+                                                            upload_to_obs(output_file, obs_prefix=cover_img, project_id=project_id))
         log.info(f"successfully uploaded to obs available by {obs_video_url}")
         log.info(f"upload tasks {time.time() - upload_start} 秒")
 
@@ -220,12 +220,11 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         # 构造返回体
         resp = MixedVideoResponse(
             message = f"{num} video being processed",
-            videoUrl= obs_video_url,
-            coverImg= obs_cover_url,
+            video_url= obs_video_url,
+            cover_img= obs_cover_url,
             duration= round(duration, 2),
             request_data = mixed_config.request_data,
             video_size = file_size,
-            biz_id = mixed_config.biz_id,
-            isSuccess = True
+            biz_id = mixed_config.biz_id
         )
         return resp
