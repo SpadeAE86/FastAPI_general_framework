@@ -23,7 +23,7 @@ obs_client = ObsClient(
     server='obs.cn-east-3.myhuaweicloud.com'
 )
 
-redis_client: Optional[redis.Redis] = None
+redis_client: Optional[Redis] = None
 async def upload_to_obs(filename: str, obs_prefix: str = "ai_picture/mark/demo/frames_test/", project_id=None) -> str:
     if project_id is not None:
         obs_prefix = obs_prefix + project_id
