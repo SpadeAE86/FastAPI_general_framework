@@ -4,7 +4,6 @@ import os
 import time
 from typing import List, Optional
 
-import redis
 from obs import ObsClient
 
 from config.config import ENV, VIDEO_CACHE_PREFIX, my_config
@@ -79,7 +78,7 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
         global redis_client
 
         if not redis_client:
-            redis_client = redis.Redis(host=my_config["redis"][ENV]["host"], port=my_config["redis"][ENV]["port"],
+            redis_client = Redis(host=my_config["redis"][ENV]["host"], port=my_config["redis"][ENV]["port"],
                                        password=my_config["redis"][ENV]["password"], decode_responses=True,
                                        db=my_config["redis"][ENV]["database"])  # 注意 host="redis"（服务名）
             log.info(f"redis client is not initialized, create new connection {redis_client}")
