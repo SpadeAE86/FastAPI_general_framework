@@ -23,7 +23,7 @@ obs_client = ObsClient(
     server='obs.cn-east-3.myhuaweicloud.com'
 )
 
-redis_client: Optional[Redis] = None
+
 async def upload_to_obs(filename: str, obs_prefix: str = "ai_picture/mark/demo/frames_test/", project_id=None) -> str:
     if project_id is not None:
         obs_prefix = obs_prefix + project_id
@@ -75,13 +75,17 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
         ttl = 300  # 5 分钟
         cache_key = f"{VIDEO_CACHE_PREFIX}{path}"
 
-        global redis_client
-
-        if not redis_client:
-            redis_client = Redis(host=my_config["redis"][ENV]["host"], port=my_config["redis"][ENV]["port"],
-                                       password=my_config["redis"][ENV]["password"], decode_responses=True,
-                                       db=my_config["redis"][ENV]["database"])  # 注意 host="redis"（服务名）
-            log.info(f"redis client is not initialized, create new connection {redis_client}")
+        redis_client = Redis(
+            host=my_config["redis"][ENV]["host"],
+            port=my_config["redis"][ENV]["port"],
+            password=my_config["redis"][ENV]["password"],
+            decode_responses=True,
+            db=my_config["redis"][ENV]["database"],
+            socket_connect_timeout=3,
+            socket_timeout=3,
+            max_connections=10,
+        )
+        log.info(f"redis client is not initialized, create new connection {redis_client}")
         cached_path = await redis_client.get(cache_key)
         if cached_path:
             log.info(f"[redis cache] path {path} exist, reuse download: {cached_path}")
