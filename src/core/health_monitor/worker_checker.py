@@ -487,3 +487,22 @@ class WorkerChecker:
         
         return cleaned_count
 
+def main():
+    # 初始化 WorkerChecker 模拟环境
+    checker = WorkerChecker()
+
+    # 这里你可以手动设置当前环境测试不同情况
+    checker.current_env = "local"  # 或 "_test", "_prod"
+
+    # 调用方法获取活跃worker
+    active_workers: Set[str] = checker.get_active_workers_from_celery()
+
+    if active_workers:
+        print(f"当前环境活跃Worker列表 ({checker.current_env}):")
+        for w in active_workers:
+            print(f"  - {w}")
+    else:
+        print(f"当前环境没有活跃Worker ({checker.current_env})")
+
+if __name__ == "__main__":
+    main()

@@ -66,10 +66,11 @@ class RabbitMQManagementClient:
             - 等其他队列信息
             如果获取失败返回 None
         """
+        log.info(f"get info for {queue_name}")
         try:
             encoded_vhost = self._encode_vhost(self.vhost)
             url = f"{self.base_url}/queues/{encoded_vhost}/{queue_name}"
-            
+            log.info(f"url={url}, auth={self.auth}")
             response = requests.get(
                 url,
                 auth=self.auth,
@@ -134,3 +135,23 @@ class RabbitMQManagementClient:
         queue_info = self.get_queue_info(queue_name)
         return queue_info is not None
 
+if __name__ == "__main__":
+    # 替换为你的 RabbitMQ 管理端信息
+    host = "123.60.104.114"
+    port = 15672
+    username = "guest"
+    password = "guest"
+    vhost = "/"  # 默认 vhost
+
+    rabbit_api = RabbitMQManagementClient()
+
+    # 测试几个队列
+    test_queues = ["local_video_queue", "nonexistent_queue"]
+
+    for q in test_queues:
+        print(f"\n==== 测试队列: {q} ====")
+        info = rabbit_api.get_queue_info(q)
+        if info:
+            print(f"队列信息: messages={info.get('messages')}, consumers={info.get('consumers')}")
+        else:
+            print("未获取到队列信息")
