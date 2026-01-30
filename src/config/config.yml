@@ -257,7 +257,7 @@ process_health:
 task_type:
   mix: video_queue
   sprite: sprite_queue
-  transcode: transcode_v2_queue
+  transcode: transcode_queue
 
 result_queue:
   mix: video_result_queue
