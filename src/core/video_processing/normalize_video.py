@@ -330,7 +330,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
             end_label = f"overlay{idx}"
             cur_stream = f"[{end_label}]"
             if idx == len(subtitle_list) - 1:
-                vf_text += f"[cap_v]"
+                vf_text += f",format=nv12[cap_v]"
             else:
                 vf_text += f"{cur_stream};"
         log.info(f"{vindex} video get caption {subtitle_list}, output to {output_name}")

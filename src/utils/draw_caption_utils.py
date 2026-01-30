@@ -181,8 +181,6 @@ def create_subtitle_png(
         # ⭐ newline 也占 index（与你现有语义一致）
         global_idx += 1
 
-    log.info(f"constructed lines: {glyph_lines}")
-
     # ================================
     # 第二步：Glyph 行已经准备好
     # glyph_lines: List[List[Glyph]]

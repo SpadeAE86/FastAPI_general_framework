@@ -1,3 +1,4 @@
+from models.pydantic_models.request.filter_config import FILTER_TEMPLATES
 from utils.log_utils import logger as log
 
 FILTER_HANDLERS = {
@@ -17,9 +18,9 @@ FILTER_HANDLERS = {
     "dblur": lambda cfg: f"dblur=angle={cfg.angle}:radius={cfg.value}",
 }
 
-FILTER_TEMPLATE = {}  #固定的滤镜字典
 
-def build_from_config(filter_config, templates=None):
+
+def build_from_config(filter_config, templates=FILTER_TEMPLATES):
     """
     根据配置构建滤镜字符串
 
@@ -33,7 +34,7 @@ def build_from_config(filter_config, templates=None):
     if not filter_config:
         return ""
 
-    templates = templates or FILTER_TEMPLATE
+
     filter_list = []
 
     # 1. 添加模板滤镜
@@ -58,3 +59,4 @@ def _build_filters(filter_configs):
                 log.warning(f"构建滤镜 {cfg.type} 失败: {e}")
                 continue
     return filters
+
