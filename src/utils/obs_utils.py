@@ -4,15 +4,14 @@ import os
 import time
 from typing import List, Optional
 
-import redis
 from obs import ObsClient
-from config.config import ENV, VIDEO_CACHE_PREFIX
+
+from config.config import ENV, VIDEO_CACHE_PREFIX, my_config
 from exceptions.ServiceException import ServiceException
 from utils.log_utils import logger as log
 from utils.memory_utils import memory
-from utils.redis_client import RedisClientFactory
 
-
+from redis.asyncio import Redis
 # === OBS 配置 ===
 BUCKET_NAME = 'freeuuu'
 OBS_BASE_URL = 'https://freeuuu.obs.cn-east-3.myhuaweicloud.com'
@@ -23,6 +22,7 @@ obs_client = ObsClient(
     secret_access_key='NhQExxv9PUYsvmvGnVReizRksaiHcJdQ6vMMw19d',
     server='obs.cn-east-3.myhuaweicloud.com'
 )
+
 
 async def upload_to_obs(filename: str, obs_prefix: str = "ai_picture/mark/demo/frames_test/", project_id=None) -> str:
     if project_id is not None:
@@ -51,7 +51,7 @@ def sha256_file(filename, chunk_size=512):
         m.update(b)
     return m.hexdigest()
 
-redis_client: Optional[redis.Redis] = None
+
 async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
     """
     从 OBS 下载文件并保存在本地指定目录。
@@ -74,16 +74,24 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
     try:
         ttl = 300  # 5 分钟
         cache_key = f"{VIDEO_CACHE_PREFIX}{path}"
-        global redis_client
-        if redis_client is None:
-            redis_client = RedisClientFactory().get_client()
-            log.info(f"初始化redis client = {redis_client}")
-        local_path = await redis_client.get(cache_key)
-        if local_path:
-            log.info(f"path {path} exist, reuse download: {local_path}")
-            log.info("refresh key...")
+
+        redis_client = Redis(
+            host=my_config["redis"][ENV]["host"],
+            port=my_config["redis"][ENV]["port"],
+            password=my_config["redis"][ENV]["password"],
+            decode_responses=True,
+            db=my_config["redis"][ENV]["database"],
+            socket_connect_timeout=3,
+            socket_timeout=3,
+            max_connections=10,
+        )
+        log.info(f"redis client is not initialized, create new connection {redis_client}")
+        cached_path = await redis_client.get(cache_key)
+        if cached_path:
+            log.info(f"[redis cache] path {path} exist, reuse download: {cached_path}")
+            log.info("[redis cache] refresh key...")
             await redis_client.expire(cache_key, ttl)  # 等价于 memory.touch
-            return local_path
+            return cached_path
 
         start = time.time()
         log.info(f"{fn}开始下载")
@@ -105,6 +113,8 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
             log.info(f"{local_path}:{sha256_file(local_path)}")
             log.info(f"add to memory: {path} {local_path}")
             memory[path] = local_path  # 创建缓存
+            await redis_client.setex(cache_key, ttl, local_path)
+            log.info(f"[redis cache] add to redis: {cache_key} -> {local_path}")
             return local_path
         else:
             raise ServiceException(code=460, message=f"obs下载异常，状态码{resp.status}")
@@ -129,3 +139,41 @@ async def batch_upload_to_obs(
     obs_keys = await asyncio.gather(*tasks)
 
     return obs_keys
+
+def obs_key_exists(obs_path: str) -> bool:
+    """
+    判断 OBS 对象是否存在
+
+    Args:
+        obs_path: obs 路径，如 obs://bucket/key 或 bucket/key
+    Returns:
+        True: 存在
+        False: 不存在
+    """
+
+
+    try:
+        key = obs_path
+
+        resp = obs_client.headObject(BUCKET_NAME, key)
+
+        # ✅ 核心判断点
+        return resp.status < 300
+
+    except Exception as e:
+
+        log.exception(f"OBS 路径{obs_path}不存在 异常: {e}")
+        return False
+
+
+
+if __name__ == "__main__":
+    # 手动测试用
+    test_paths = [
+        "aigc/aigc_local/1998/1998743094727520258/0/video/1765372463420.mp4",      # 换成一个你确定存在的 key
+        "aigc/aigc_local/1998/1997943094727520258/0/video/1765372463420.mp4",  # 换成一个你确定不存在的 key
+    ]
+
+    for path in test_paths:
+        exists = obs_key_exists(path)
+        print(f"[TEST] obs_path={path}, exists={exists}")

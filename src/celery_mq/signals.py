@@ -44,4 +44,3 @@ def start_redis_listener(**kwargs):
         daemon=True,
     )
     t.start()
-
