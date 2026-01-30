@@ -82,10 +82,17 @@ class TaskRepository(TaskRepositoryProtocol):
             return None
         
         # 转换时间字段为上海时区的 ISO 格式
-        time_fields = ['created_at', 'updated_at', 'started_at']
+        time_fields = ['created_at', 'updated_at', 'started_at', 'completed_at', 'failed_at']
         for field in time_fields:
             if field in task_info:
                 task_info[field] = convert_to_shanghai_iso_time(task_info[field])
+
+        # 反序列化 result 字段
+        if 'result' in task_info and task_info['result'] and task_info['result'] != "null":
+            try:
+                task_info['result'] = json.loads(task_info['result'])
+            except json.JSONDecodeError:
+                log.warning(f"Failed to decode result for task {task_id}: {task_info['result']}")
         
         return task_info
     
@@ -99,7 +106,16 @@ class TaskRepository(TaskRepositoryProtocol):
         """
         task_key = self._get_task_key(task_id)
         update_data = {"updated_at": get_shanghai_iso_time()}
-        update_data.update(fields)
+        
+        # 序列化复杂类型
+        for k, v in fields.items():
+            if isinstance(v, (dict, list)):
+                update_data[k] = json.dumps(v, ensure_ascii=False)
+            elif v is None:
+                update_data[k] = "null" # Redis doesn't store None/null natively in hash
+            else:
+                update_data[k] = v
+                
         self.redis.hset(task_key, mapping=update_data)
     
     def delete_task(self, task_id: str) -> bool:

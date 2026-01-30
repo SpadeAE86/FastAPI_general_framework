@@ -86,11 +86,29 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
             max_connections=10,
         )
         log.info(f"redis client is not initialized, create new connection {redis_client}")
-        cached_path = await redis_client.get(cache_key)
+        log.info(f"redis client is not initialized, create new connection {redis_client}")
+        
+        # 使用 Lua 脚本保证 GET 和 EXPIRE 的原子性，避免竞争条件
+        # 如果 Key 存在，则刷新且返回；否则返回 nil
+        lua_script = """
+        if redis.call("EXISTS", KEYS[1]) == 1 then
+            redis.call("EXPIRE", KEYS[1], ARGV[1])
+            return redis.call("GET", KEYS[1])
+        else
+            return nil
+        end
+        """
+        try:
+            cached_path = await redis_client.eval(lua_script, 1, cache_key, ttl)
+        except Exception as e:
+            log.warning(f"Lua script failed: {e}, falling back to non-atomic operation")
+            cached_path = await redis_client.get(cache_key)
+            if cached_path:
+                await redis_client.expire(cache_key, ttl)
+
         if cached_path:
             log.info(f"[redis cache] path {path} exist, reuse download: {cached_path}")
-            log.info("[redis cache] refresh key...")
-            await redis_client.expire(cache_key, ttl)  # 等价于 memory.touch
+            log.info("[redis cache] refresh key (atomic)...")
             return cached_path
 
         start = time.time()

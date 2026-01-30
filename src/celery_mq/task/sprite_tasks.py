@@ -110,11 +110,11 @@ def process_sprite_task(self, data):
 
         # 核心处理
         sprite_request: SpriteImageRequest = SpriteImageRequest.model_validate(task_data)  # v2 的标准做法
-        _process_sprite_internal(sprite_request, task_id, trace_id)
+        result_data = _process_sprite_internal(sprite_request, task_id, trace_id)
 
         # 任务完成
         if is_tracked:
-            task_manager.update_task_status(task_id, "completed", completed_at=datetime.now().isoformat())
+            task_manager.update_task_status(task_id, "completed", completed_at=datetime.now().isoformat(), result=result_data)
         
         self.update_state(state='SUCCESS', meta={'progress': 100, 'message': '任务完成'})
 
@@ -141,7 +141,7 @@ def process_sprite_task(self, data):
 
 
 
-def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str = "", trace_id: str = ""):
+def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str = "", trace_id: str = "") -> dict:
     """
     核心处理逻辑：生成雪碧图
     """
@@ -155,14 +155,20 @@ def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str = 
     resp: SpriteImageResponse = asyncio.run(sprite_service(sprite_request))
     resp.trace_id = trace_id
     log.info(f"生成雪碧图成功: task_id={task_id}, result={resp}")
+    
+    # 结果数据
+    result_data = resp.model_dump()
+    
     callback = my_config["callback"][ENV]["sprite"]
     need_callback = my_config["need_callback"]
     if need_callback:
-        asyncio.run(post(callback, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
+        asyncio.run(post(callback, result_data, retry = 4, task_id=f"{project_id}"))
     result_queue = f"{ENV}_" + my_config["result_queue"]["sprite"]
-    log.info(f"{sprite_request.biz_id} 任务完成: {resp.model_dump()}")
+    log.info(f"{sprite_request.biz_id} 任务完成: {result_data}")
 
     headers = {"trace_id": trace_id, "task_id": task_id}
     sprite_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
-    sprite_mq_producer.send(result_queue, message=resp.model_dump(), headers = headers)
+    sprite_mq_producer.send(result_queue, message=result_data, headers = headers)
     log.info(f"成功推送到{result_queue}队列")
+    
+    return result_data

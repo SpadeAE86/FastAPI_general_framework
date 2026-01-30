@@ -132,11 +132,11 @@ def process_video_task(self, data):
 
         # 执行测试处理逻辑（用于测试任务创建和执行流程）
         mixed_config: MixedVideoRequest  = MixedVideoRequest.model_validate(task_data)  # v2 的标准做法
-        _process_video_internal(mixed_config, task_id, trace_id)
+        result_data = _process_video_internal(mixed_config, task_id, trace_id)
 
         # 任务完成，更新状态
         if is_tracked:
-            task_manager.update_task_status(task_id, "completed", completed_at=datetime.now().isoformat())
+            task_manager.update_task_status(task_id, "completed", completed_at=datetime.now().isoformat(), result=result_data)
         
         self.update_state(state='SUCCESS', meta={'progress': 100, 'message': '任务完成'})
 
@@ -163,7 +163,7 @@ def process_video_task(self, data):
         # 进程退出时会自动清理（通过信号处理或监控服务检测）
 
 
-def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str = "", trace_id: str = ""):
+def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str = "", trace_id: str = "") -> dict:
     """
     内部视频处理逻辑（原有代码）
 
@@ -189,18 +189,24 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str = "", 
 
     resp: MixedVideoResponse = asyncio.run(mixed_video_service(mixed_config))     #业务逻辑
     resp.trace_id = trace_id
+    
+    # 结果数据
+    result_data = resp.model_dump()
+    
     #回调
     callback = my_config["callback"][ENV]["mixed"]
     need_callback = my_config["need_callback"]
     if need_callback:
-        asyncio.run(post(callback, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
+        asyncio.run(post(callback, result_data, retry = 4, task_id=f"{project_id}"))
     result_queue = f"{ENV}_" + my_config["result_queue"]["mix"]
-    log.info(f"{mixed_config.biz_id} 任务完成: {resp.model_dump()}")
+    log.info(f"{mixed_config.biz_id} 任务完成: {result_data}")
     resp.biz_id = resp.biz_id
     headers = {"trace_id": trace_id, "task_id": task_id}
     sprite_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
-    sprite_mq_producer.send(result_queue, message=resp.model_dump(), headers = headers)
+    sprite_mq_producer.send(result_queue, message=result_data, headers = headers)
     log.info(f"成功推送到{result_queue}队列")
+    
+    return result_data
 
 def _process_video_internal_test(mixed_config: MixedVideoRequest, task_id: str):
     """

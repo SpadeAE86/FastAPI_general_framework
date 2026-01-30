@@ -95,7 +95,8 @@ class TaskManager(TaskManagerProtocol):
             "user_id": user_id,
             "status": "pending",
             "created_at": get_shanghai_iso_time(),
-            "task_hash": task_hash
+            "task_hash": task_hash,
+            "result": "null" # 初始化为空
         }
         self._repository.save_task(task_id, task_info)
         

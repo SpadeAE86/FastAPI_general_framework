@@ -43,7 +43,7 @@ async def sprite_service(sprite_config: SpriteImageRequest) -> SpriteImageRespon
     obs_key_prefix = f"aigc/aigc_{ENV}/{sprite_config.user_id}/sprite/{project_id}"
     upload_tasks = [
         batch_upload_to_obs(sprite_result.sprite_paths, obs_key_prefix),
-        upload_to_obs(audio_path, obs_key_prefix)
+        upload_to_obs(audio_path, obs_key_prefix) if audio_path else asyncio.sleep(0.1,result=""),
     ]
 
     sprite_url_list, audio_url = await asyncio.gather(*upload_tasks)

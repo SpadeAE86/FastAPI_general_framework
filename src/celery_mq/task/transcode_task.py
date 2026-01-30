@@ -103,11 +103,11 @@ def process_transcode_task(self, data):
 
         # 核心处理
         transcode_request: TranscodeVideoRequest = TranscodeVideoRequest.model_validate(task_data)  # v2 的标准做法
-        _process_transcode_internal(transcode_request, task_id, trace_id)
+        result_data = _process_transcode_internal(transcode_request, task_id, trace_id)
 
         # 任务完成
         if is_tracked:
-            task_manager.update_task_status(task_id, "completed", completed_at=datetime.now().isoformat())
+            task_manager.update_task_status(task_id, "completed", completed_at=datetime.now().isoformat(), result=result_data)
         
         self.update_state(state='SUCCESS', meta={'progress': 100, 'message': '任务完成'})
 
@@ -118,7 +118,6 @@ def process_transcode_task(self, data):
         log.error(error_msg, exc_info=True)
         if is_tracked:
             task_manager.update_task_status(task_id, "failed", error=str(e), failed_at=datetime.now().isoformat())
-
 
 
         # self.update_state(state='FAILURE', meta={'error': str(e)})
@@ -134,7 +133,7 @@ def process_transcode_task(self, data):
             # 清除进程任务分配信息
             process_health_monitor.clear_task_assignment(worker_name, pid)
 
-def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_id: str = "", trace_id: str = ""):
+def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_id: str = "", trace_id: str = "") -> dict:
     """
     核心处理逻辑：提交视频到腾讯 VOD 上传并轮询结果
     """
@@ -148,19 +147,25 @@ def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_i
 
     # 初始化 VOD 上传器
     resp: TranscodeVideoResponse = asyncio.run(transcode_video_service_v2(transcode_request))
+    
+    # 结果数据
+    result_data = resp.model_dump()
+    
     #回调
     callback = my_config["callback"][ENV]["transcode"]
     need_callback = my_config["need_callback"]
 
 
     if need_callback:
-        asyncio.run(post(callback, resp.model_dump(), retry = 4, task_id=f"{project_id}"))
+        asyncio.run(post(callback, result_data, retry = 4, task_id=f"{project_id}"))
     result_queue = f"{ENV}_" + my_config["result_queue"]["transcode"]
-    log.info(f"{transcode_request.biz_id} 任务完成: {resp.model_dump()}")
+    log.info(f"{transcode_request.biz_id} 任务完成: {result_data}")
     resp.trace_id = trace_id
     headers = {"trace_id": trace_id, "task_id": task_id}
-    mq_producer.send(result_queue, message=resp.model_dump(), headers = headers)
+    mq_producer.send(result_queue, message=result_data, headers = headers)
     log.info(f"成功推送到{result_queue}队列")
+    
+    return result_data
 
 
 

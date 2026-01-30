@@ -37,6 +37,17 @@ def redis_evict_listener():
 
 @signals.worker_ready.connect
 def start_redis_listener(**kwargs):
+    # 确保开启了键过期事件通知
+    try:
+        r = RedisClientFactory.get_client()
+        config = r.config_get("notify-keyspace-events")
+        current_config = config.get("notify-keyspace-events", "")
+        if "E" not in current_config or "x" not in current_config:
+            log.info(f"Updating notify-keyspace-events from '{current_config}' to 'Ex'")
+            r.config_set("notify-keyspace-events", "Ex")
+    except Exception as e:
+        log.error(f"Failed to config redis notify-keyspace-events: {e}")
+
     log.info("[signals] redis eviction loop injected")
     t = threading.Thread(
         target=redis_evict_listener,
