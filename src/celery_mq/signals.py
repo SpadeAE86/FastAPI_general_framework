@@ -45,7 +45,7 @@ def redis_evict_listener():
                 log.warning(f"[RedisEvict] Ignored malformed key: {key}")
                 continue
             
-            local_path = parts[1]
+            local_path = r.get(key)
             if os.path.exists(local_path):
                 os.remove(local_path)
                 log.info(f"[RedisEvict] removed {local_path} (from key {key})")
