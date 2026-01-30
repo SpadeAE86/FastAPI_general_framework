@@ -139,3 +139,41 @@ async def batch_upload_to_obs(
     obs_keys = await asyncio.gather(*tasks)
 
     return obs_keys
+
+def obs_key_exists(obs_path: str) -> bool:
+    """
+    判断 OBS 对象是否存在
+
+    Args:
+        obs_path: obs 路径，如 obs://bucket/key 或 bucket/key
+    Returns:
+        True: 存在
+        False: 不存在
+    """
+
+
+    try:
+        key = obs_path
+
+        resp = obs_client.headObject(BUCKET_NAME, key)
+
+        # ✅ 核心判断点
+        return resp.status < 300
+
+    except Exception as e:
+
+        log.exception(f"OBS 路径{obs_path}不存在 异常: {e}")
+        return False
+
+
+
+if __name__ == "__main__":
+    # 手动测试用
+    test_paths = [
+        "aigc/aigc_local/1998/1998743094727520258/0/video/1765372463420.mp4",      # 换成一个你确定存在的 key
+        "aigc/aigc_local/1998/1997943094727520258/0/video/1765372463420.mp4",  # 换成一个你确定不存在的 key
+    ]
+
+    for path in test_paths:
+        exists = obs_key_exists(path)
+        print(f"[TEST] obs_path={path}, exists={exists}")
