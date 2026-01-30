@@ -28,7 +28,7 @@ log = logging.getLogger(__name__)
     queue=f"{ENV}_" + my_config.get("task_type", {}).get("transcode", "transcode_queue"),
     bind=True,
     autoretry_for=(Exception,),
-    retry_kwargs={'max_retries': 3, 'countdown': 10},
+    retry_kwargs={'max_retries': 0, 'countdown': 10},
     retry_backoff=True,
     retry_jitter=True
 )

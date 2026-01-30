@@ -287,7 +287,8 @@ def get_video_info(video_file, need_rotation = False) -> VideoInfo:
 
 def run_ffmpeg_command(command, video_name=""):
     try:
-        log.debug(f"full command: {command}")
+
+        log.info(f"full command: {" ".join(command)}")
         t0 = time.time()
 
         # ★ 不让 Python 自动 UTF-8 解码

@@ -9,7 +9,6 @@ from utils.general_utils import run_ffmpeg_command, get_video_info
 from utils.log_utils import logger as log
 
 
-
 def check_audio_stream_simple(file_path):
     """简化版检查音频流"""
     try:
@@ -171,13 +170,50 @@ def split_normalize(video, duration, fade_in=0, fade_out=0, transition_reserve_f
 
 @dataclass
 class SegmentResult:
+    """
+    I 帧裁切结果：
+    - segment: 新生成的视频文件路径
+    - start_time / end_time: 在新视频中的相对时间
+    """
     segment: str
     start_time: float
     end_time: float
 
+# =========================
+# I 帧快速裁切策略（heuristic）
+# 使用场景：
+# - 用户上传【超长视频】，但只需要其中一小段
+# - 直接从原视频精确裁切会导致大量无用解码
+# - I 帧分布有时非常稀疏，seek 不准、解码成本高
+#
+# 核心思路：
+# 1. 仅在「视频足够长 && 所需片段相对很小」时启用
+# 2. 利用 ffmpeg 的 segment + copy：
+#    - 只在 I 帧附近切
+#    - 生成更短的视频文件
+#    - 后续精确裁切只在短视频上进行
+# =========================
 def quick_segment(video, vindex, output_dir, start_time, end_time) -> SegmentResult:
+    """
+    利用 ffmpeg segment + copy 做 I 帧级别的快速裁切
+
+    目标：
+    - 避免从视频开头解码到 start_time
+    - 只保留「可能包含目标片段」的最小视频范围
+    """
     clip_point_list = []
     s = time.time()
+    # =========================
+    # 计算粗裁切点（10 秒粒度）
+    #
+    # first_clip:
+    #   - 往 start_time 前多留 10 秒
+    #   - 防止 I 帧刚好在边界之外
+    #
+    # second_clip:
+    #   - end_time 后多留 20 秒
+    #   - 给后续精裁留 buffer
+    # =========================
     first_clip = max(10 * (start_time // 10 - 1), 0)
     second_clip = 10 * (2 + end_time // 10)
     log.info(f"first_clip: {first_clip}")
@@ -187,6 +223,21 @@ def quick_segment(video, vindex, output_dir, start_time, end_time) -> SegmentRes
     clip_point_list.append(str(second_clip))
     clip_str = ",".join(clip_point_list)
     segment = video
+    # =========================
+    # ffmpeg segment 命令说明
+    #
+    # -ignore_editlist 1
+    #   → 忽略 mp4 内部编辑列表，避免时间轴错乱
+    #
+    # -f segment
+    #   → 按时间点切成多个文件
+    #
+    # -segment_times
+    #   → 指定切点（只在 I 帧切）
+    #
+    # -c copy
+    #   → 不重新编码，速度极快
+    # =========================
     segment_cmd = [
         'ffmpeg', "-ignore_editlist", "1",
         '-i', video,
@@ -199,10 +250,21 @@ def quick_segment(video, vindex, output_dir, start_time, end_time) -> SegmentRes
     run_ffmpeg_command(segment_cmd)
     log.info(f"segmented to segment_{vindex}_000.mp4")
     if first_clip == 0:
+        # =========================
+        # 情况一：first_clip == 0
+        # → 说明目标就在视频前部
+        # → 直接使用 000 号片段
+        # =========================
         segment = f"{output_dir}segment_{vindex}_000.mp4"
         if os.path.exists(f"{output_dir}segment_{vindex}_001.mp4"):
             os.remove(f"{output_dir}segment_{vindex}_001.mp4")
     else:
+        # =========================
+        # 情况二：first_clip > 0
+        # → 生成的 000 是「目标前的视频」
+        # → 目标可能在 001 中
+        # =========================
+
         video_info = get_video_info(f"{output_dir}segment_{vindex}_000.mp4")
         w, h, d, r, f, codec = video_info.get_info()
         log.info(f"the duration of before segment_{vindex} is {d}")

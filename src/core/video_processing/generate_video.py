@@ -92,6 +92,6 @@ def generate_video(video_path_list, len_list, project_id="test",
                          merge_video,
                          *cover_cmd
                          ]
-    log.info(f"full command:\n{" ".join(ffmpeg_concat_cmd)}")
+
     run_ffmpeg_command(ffmpeg_concat_cmd)
     return merge_video, cover_output

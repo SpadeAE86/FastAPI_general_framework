@@ -171,7 +171,7 @@ if __name__ == "__main__":
     # 手动测试用
     test_paths = [
         "aigc/aigc_local/1998/1998743094727520258/0/video/1765372463420.mp4",      # 换成一个你确定存在的 key
-        "aigc/aigc_local/1998/1997943094727520258/0/video/1765372463420.mp4",  # 换成一个你确定不存在的 key
+        "aigc/aigc_local/1998/1997943094727520258/0/video/1765372463421.mp4",  # 换成一个你确定不存在的 key
     ]
 
     for path in test_paths:
