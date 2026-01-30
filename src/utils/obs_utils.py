@@ -131,8 +131,13 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
             log.info(f"{local_path}:{sha256_file(local_path)}")
             log.info(f"add to memory: {path} {local_path}")
             memory[path] = local_path  # 创建缓存
-            await redis_client.setex(cache_key, ttl, local_path)
-            log.info(f"[redis cache] add to redis: {cache_key} -> {local_path}")
+            # 使用 Shadow Key 模式：
+            # 1. 存真实数据，TTL 稍微长一点（比如 +1 小时），确保 Shadow Key 过期时数据还在
+            await redis_client.setex(cache_key, ttl + 3600, local_path)
+            # 2. 存 Shadow Key，TTL 为实际过期时间 (300s)
+            # 值无所谓，设为 1 即可
+            await redis_client.setex(f"{cache_key}:shadow", ttl, "1")
+            log.info(f"[redis cache] add to redis: {cache_key} (data) & {cache_key}:shadow (trigger) -> {local_path}")
             return local_path
         else:
             raise ServiceException(code=460, message=f"obs下载异常，状态码{resp.status}")

@@ -32,25 +32,34 @@ def redis_evict_listener():
             key = msg["data"].decode()
 
         # 使用 Base Prefix 匹配，这样可以捕获上次 crash 遗留的 key（它们有不同的 Instance ID）
-        if not key.startswith(VIDEO_CACHE_BASE_PREFIX):
+        # 使用 Base Prefix 匹配，这样可以捕获上次 crash 遗留的 key
+        # 新逻辑：只处理 Shadow Key 的过期事件
+        if not key.endswith(":shadow"):
+            continue
+        
+        # 还原真实 Key:  "xxx:shadow" -> "xxx"
+        real_key = key[:-7]
+
+        # 再次检查前缀，确保是我们的业务 Key
+        if not real_key.startswith(VIDEO_CACHE_BASE_PREFIX):
             continue
 
-        # 动态解析 Path：Prefix 格式为 "Base_InstanceID:Path"
-        # 我们分割一次 ":" 即可拿到后面的 Path
+        local_path = None
         try:
-            # key e.g. "aigc_video_cache_test_1234abcd:path/to/file"
-            # split(":", 1) -> ["aigc_video_cache_test_1234abcd", "path/to/file"]
-            parts = key.split(":", 1)
-            if len(parts) < 2:
-                log.warning(f"[RedisEvict] Ignored malformed key: {key}")
-                continue
-            
-            local_path = r.get(key)
-            if os.path.exists(local_path):
-                os.remove(local_path)
-                log.info(f"[RedisEvict] removed {local_path} (from key {key})")
+            # 获取真实数据，因为 Real Key 的 TTL 比 Shadow Key 长，理论上此时一定还在
+            local_path = r.get(real_key)
+            if local_path:
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+                    log.info(f"[RedisEvict] removed {local_path} (triggered by {key})")
+                
+                # 清理掉 Real Key
+                r.delete(real_key)
+            else:
+                log.warning(f"[RedisEvict] Real key {real_key} not found or already deleted (shadow: {key})")
+
         except Exception as e:
-            log.exception(e)
+            log.exception(f"[RedisEvict] Failed to clean up {local_path}: {e}")
 
 
 @signals.worker_ready.connect
