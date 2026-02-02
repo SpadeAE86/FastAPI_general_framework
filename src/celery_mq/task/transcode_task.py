@@ -12,7 +12,7 @@ from models.pydantic_models.response.transcode_video_response import TranscodeVi
 from service.transcode_video_service import transcode_video_service
 from service.transcode_video_service_v2 import transcode_video_service_v2
 from utils.general_utils import random_with_system_time
-from utils.mq.rabbit_mq_producer import mq_producer
+from utils.mq.rabbit_mq_producer import mq_producer, MQProducer
 from utils.post_utils import post
 from utils.tencent.cos_uploader import vod_upload_to_cos
 
@@ -162,7 +162,8 @@ def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_i
     log.info(f"{transcode_request.biz_id} 任务完成: {result_data}")
     resp.trace_id = trace_id
     headers = {"trace_id": trace_id, "task_id": task_id}
-    mq_producer.send(result_queue, message=result_data, headers = headers)
+    transcode_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
+    transcode_mq_producer.send(result_queue, message=result_data, headers = headers)
     log.info(f"成功推送到{result_queue}队列")
     
     return result_data

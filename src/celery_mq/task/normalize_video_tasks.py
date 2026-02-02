@@ -202,8 +202,8 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str = "", 
     log.info(f"{mixed_config.biz_id} 任务完成: {result_data}")
     resp.biz_id = resp.biz_id
     headers = {"trace_id": trace_id, "task_id": task_id}
-    sprite_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
-    sprite_mq_producer.send(result_queue, message=result_data, headers = headers)
+    video_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
+    video_mq_producer.send(result_queue, message=result_data, headers = headers)
     log.info(f"成功推送到{result_queue}队列")
     
     return result_data
