@@ -314,7 +314,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     if cap_helper:
         log.info(f"cap_outline: {cap_config.cap_outline_width}")
         caption_distributor = CaptionDistributor(width, height, cap_config, transition_config, cap_helper, project_id)
-        subtitle_list = caption_distributor.gen_subtitle_png()
+        subtitle_list = caption_distributor.gen_subtitle_png(duration=(min(max_len, duration) - start_time) / speed)
 
         if sticker_config and sticker_list:
             log.info(f"sticker task=-=")

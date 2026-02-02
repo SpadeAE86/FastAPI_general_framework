@@ -114,7 +114,7 @@ class CaptionDistributor:
 
     def gen_subtitle_png(self, portrait=True,
                          processed_so_far=0, target="", transition_in=0, transition_out=0,
-                         last_idx=-1, cap_cnt=1):
+                         last_idx=-1, cap_cnt=1, duration = 0.0):
         cap_cur = 0
         subtitle_png_list = []
         font_color = hex_to_bgra_v2(self.color)
@@ -133,7 +133,8 @@ class CaptionDistributor:
             cap_cur += 1
             if caption.end < processed_so_far:
                 continue
-
+            if caption.start >= processed_so_far + duration:
+                break
             subtitle_config["start"] = max(caption.start - processed_so_far, 0)
             subtitle_config["end"] = caption.end - processed_so_far
 
