@@ -399,3 +399,7 @@ def extent_audio(audio_file, pad_dur=2):
     if os.path.exists(temp_file):
         os.remove(audio_file)
         os.renames(temp_file, audio_file)
+
+if __name__ == "__main__":
+    result = get_video_info(r"C:\Users\25065\Downloads\1769682436686_H.264_2160x3840_AAC_5600.mp4")
+    print(result.get_info())

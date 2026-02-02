@@ -5,6 +5,8 @@ import threading
 from datetime import datetime
 
 from celery.signals import worker_shutting_down
+
+from models.pydantic_models.response.base_response import BaseResponse
 from utils.mq.rabbit_mq_producer import mq_producer, MQProducer
 from celery_mq.celery_app import celery_app
 from celery_mq.task_manager import task_manager
@@ -29,7 +31,7 @@ max_retries = task_config.get("max_retries", 3)
 retry_countdown = task_config.get("retry_countdown", 10)
 retry_backoff_max = task_config.get("retry_backoff_max", 300)
 queue_name = queue_config.get("name", "video_queue")
-
+result_queue = f"{ENV}_" + my_config["result_queue"]["mix"]
 
 @celery_app.task(
     queue=queue_name,
@@ -148,6 +150,24 @@ def process_video_task(self, data):
         if is_tracked:
             task_manager.update_task_status(task_id, "failed", error=str(e), failed_at=datetime.now().isoformat())
         # self.update_state(state='FAILURE', meta={'error': str(e)})
+        if self.request.retries == max_retries:
+            headers = {"trace_id": trace_id, "task_id": task_id}
+            video_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
+            biz_id = 0
+            request_data = None
+            try:
+                mixed_config: MixedVideoRequest = MixedVideoRequest.model_validate(task_data)  # v2 的标准做法
+                biz_id = mixed_config.biz_id
+                request_data = mixed_config.request_data
+            except Exception as _:
+                pass
+            failure_data = {"biz_id": biz_id, "request_data": request_data, "code": 100009, "message": f"failure due to {e}"}
+            video_mq_producer.send(
+                result_queue,
+                message=failure_data,
+                headers=headers
+            )
+            log.info(f"失败结果{failure_data}推送到{result_queue}队列")
         raise
     finally:
         if is_tracked:
@@ -188,7 +208,6 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str = "", 
     log.info(f"env: {my_config['env']}")
 
     resp: MixedVideoResponse = asyncio.run(mixed_video_service(mixed_config))     #业务逻辑
-    resp.trace_id = trace_id
     
     # 结果数据
     result_data = resp.model_dump()
@@ -198,12 +217,12 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str = "", 
     need_callback = my_config["need_callback"]
     if need_callback:
         asyncio.run(post(callback, result_data, retry = 4, task_id=f"{project_id}"))
-    result_queue = f"{ENV}_" + my_config["result_queue"]["mix"]
+
     log.info(f"{mixed_config.biz_id} 任务完成: {result_data}")
     resp.biz_id = resp.biz_id
     headers = {"trace_id": trace_id, "task_id": task_id}
-    sprite_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
-    sprite_mq_producer.send(result_queue, message=result_data, headers = headers)
+    video_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
+    video_mq_producer.send(result_queue, message=result_data, headers = headers)
     log.info(f"成功推送到{result_queue}队列")
     
     return result_data

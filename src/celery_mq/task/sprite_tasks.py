@@ -22,12 +22,14 @@ from utils.post_utils import post
 
 log = logging.getLogger(__name__)
 
+max_retries = my_config.get("celery", {}).get("task", {}).get("max_retries", 3)
+result_queue = f"{ENV}_" + my_config["result_queue"]["sprite"]
 
 @celery_app.task(
     queue= f"{ENV}_" + my_config.get("task_type", {}).get("sprite", "sprite_queue"),
     bind=True,
     autoretry_for=(Exception,),
-    retry_kwargs={'max_retries': my_config.get("celery", {}).get("task", {}).get("max_retries", 3),
+    retry_kwargs={'max_retries': max_retries,
                   'countdown': my_config.get("celery", {}).get("task", {}).get("retry_countdown", 10)},
     retry_backoff=True,
     retry_backoff_max=my_config.get("celery", {}).get("task", {}).get("retry_backoff_max", 300),
@@ -126,6 +128,22 @@ def process_sprite_task(self, data):
         if is_tracked:
             task_manager.update_task_status(task_id, "failed", error=str(e), failed_at=datetime.now().isoformat())
         # self.update_state(state='FAILURE', meta={'error': str(e)})
+        if self.request.retries == max_retries:
+            headers = {"trace_id": trace_id, "task_id": task_id}
+            video_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
+            biz_id = 0
+            try:
+                sprite_request: SpriteImageRequest = SpriteImageRequest.model_validate(task_data)  # v2 的标准做法
+                biz_id = sprite_request.biz_id
+            except Exception as _:
+                pass
+            failure_data = {"biz_id": biz_id, "code": 100009, "message": f"failure due to {e}"}
+            video_mq_producer.send(
+                result_queue,
+                message=failure_data,
+                headers=headers
+            )
+            log.info(f"失败结果{failure_data}推送到{result_queue}队列")
         raise
 
     finally:
@@ -153,7 +171,7 @@ def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str = 
         raise ValueError(f"任务缺少 video_path: task_id={task_id}")
 
     resp: SpriteImageResponse = asyncio.run(sprite_service(sprite_request))
-    resp.trace_id = trace_id
+
     log.info(f"生成雪碧图成功: task_id={task_id}, result={resp}")
     
     # 结果数据
@@ -163,7 +181,7 @@ def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str = 
     need_callback = my_config["need_callback"]
     if need_callback:
         asyncio.run(post(callback, result_data, retry = 4, task_id=f"{project_id}"))
-    result_queue = f"{ENV}_" + my_config["result_queue"]["sprite"]
+
     log.info(f"{sprite_request.biz_id} 任务完成: {result_data}")
 
     headers = {"trace_id": trace_id, "task_id": task_id}
