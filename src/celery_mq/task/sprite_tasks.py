@@ -171,7 +171,7 @@ def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str = 
         raise ValueError(f"任务缺少 video_path: task_id={task_id}")
 
     resp: SpriteImageResponse = asyncio.run(sprite_service(sprite_request))
-    resp.trace_id = trace_id
+
     log.info(f"生成雪碧图成功: task_id={task_id}, result={resp}")
     
     # 结果数据

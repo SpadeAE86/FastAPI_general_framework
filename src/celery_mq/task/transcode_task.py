@@ -173,7 +173,7 @@ def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_i
     if need_callback:
         asyncio.run(post(callback, result_data, retry = 4, task_id=f"{project_id}"))
     log.info(f"{transcode_request.biz_id} 任务完成: {result_data}")
-    resp.trace_id = trace_id
+
     headers = {"trace_id": trace_id, "task_id": task_id}
     transcode_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
     transcode_mq_producer.send(result_queue, message=result_data, headers = headers)

@@ -208,7 +208,6 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str = "", 
     log.info(f"env: {my_config['env']}")
 
     resp: MixedVideoResponse = asyncio.run(mixed_video_service(mixed_config))     #业务逻辑
-    resp.trace_id = trace_id
     
     # 结果数据
     result_data = resp.model_dump()
