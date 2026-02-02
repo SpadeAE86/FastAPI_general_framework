@@ -247,7 +247,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     if mute_origin or not has_audio:
         log.info(f"video {video} does not have audio stream")
         muted_audio = ["-f", "lavfi", "-i", 'anullsrc=channel_layout=stereo:sample_rate=44100']
-    audio_filter = ""
+
 
     # transform = [
     #     f"scale=-1:{height}:flags=bicubic" if video_width / video_height > width / height else f"scale={width}:-1:flags=bicubic",
@@ -257,7 +257,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         f"scale={width}:{height}:force_original_aspect_ratio=decrease:flags=lanczos",
         f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:black"
     ]
-
+    audio_filter_str = ""
     # 调色滤镜
     if extra_filter:
         transform.append(f"{extra_filter}")
@@ -265,9 +265,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     if speed != 1.0:
         transform.append(f"setpts={1.0 / speed}*(PTS-STARTPTS)")
         if not mute_origin:
-            audio_filter = ["-af", build_atempo_filter(speed)]
+            audio_filter_str = build_atempo_filter(speed)
     else:
-        if ai_mode and cap_config and cap_config.caption_list[vindex]:
+        if cap_config and cap_config.caption_list[vindex]:
             video_duration = min(max_len, duration) - start_time
             audio_info = cap_config.caption_list[vindex]
             audio_duration = audio_info.end - audio_info.start
@@ -278,7 +278,12 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
 
                 transform.append(f"setpts={1.0 / speed}*(PTS-STARTPTS)")
                 if not mute_origin:
-                    audio_filter = ["-af", build_atempo_filter(speed)]
+                    audio_filter_str = build_atempo_filter(speed)
+
+    audio_filter_flag = []
+    if not audio_filter_str and not mute_origin:
+        audio_filter_flag = ["-af", audio_filter_str]
+
     # 镜像滤镜
     if mirror:
         transform.append(f"hflip")
@@ -348,10 +353,11 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     end_a = "0:a" if not mute_origin and has_audio else f"{len(subtitle_list)+1}:a"
     weights = []
     audio_input = []
-
+    audio_filter = ""
     if audio_config:
         mix_input = [f"[main_audio]"]
-        audio_filter += f"[{end_a}]volume=3[main_audio];"
+        speed_audio_str = f",{audio_filter_str}"
+        audio_filter += f"[{end_a}]volume=3{speed_audio_str}[main_audio];"
         end_a = "[merged]"
         cur = len(subtitle_png_input) + 1
         for idx, a in enumerate(audio_path_list):
@@ -420,7 +426,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         "-threads", "2",
         *preset_option,
         "-filter_complex", video_filter,
-        *audio_filter,
+        *audio_filter_flag,
         *pix_fmt_option,
         '-y',
         '-fflags', '+genpts',
