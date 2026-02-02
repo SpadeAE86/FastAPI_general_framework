@@ -333,7 +333,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
                 vf_text += f",format=nv12[cap_v]"
             else:
                 vf_text += f"{cur_stream};"
-        log.info(f"{vindex} video get caption {subtitle_list}, output to {output_name}")
+        # log.info(f"{vindex} video get caption {subtitle_list}, output to {output_name}")
 
     # 组装字幕滤镜链并添加到video_filter滤镜
     if vf_text:

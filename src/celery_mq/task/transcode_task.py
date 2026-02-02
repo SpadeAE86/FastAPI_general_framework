@@ -22,13 +22,13 @@ from core.celery_conponent.heartbeat import _heartbeat_loop
 from celery_mq.celery_app import celery_app
 
 log = logging.getLogger(__name__)
-
-
+result_queue = f"{ENV}_" + my_config["result_queue"]["transcode"]
+max_retries = 0
 @celery_app.task(
     queue=f"{ENV}_" + my_config.get("task_type", {}).get("transcode", "transcode_queue"),
     bind=True,
     autoretry_for=(Exception,),
-    retry_kwargs={'max_retries': 0, 'countdown': 10},
+    retry_kwargs={'max_retries': max_retries, 'countdown': 10},
     retry_backoff=True,
     retry_jitter=True
 )
@@ -118,9 +118,23 @@ def process_transcode_task(self, data):
         log.error(error_msg, exc_info=True)
         if is_tracked:
             task_manager.update_task_status(task_id, "failed", error=str(e), failed_at=datetime.now().isoformat())
-
-
         # self.update_state(state='FAILURE', meta={'error': str(e)})
+        if self.request.retries == max_retries:
+            headers = {"trace_id": trace_id, "task_id": task_id}
+            video_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
+            biz_id = 0
+            try:
+                transcode_request: TranscodeVideoRequest = TranscodeVideoRequest.model_validate(task_data)  # v2 的标准做法
+                biz_id = transcode_request.biz_id
+            except Exception as _:
+                pass
+            failure_data = {"biz_id": biz_id, "code": 100009, "message": f"failure due to {e}"}
+            video_mq_producer.send(
+                result_queue,
+                message=failure_data,
+                headers=headers
+            )
+            log.info(f"失败结果{failure_data}推送到{result_queue}队列")
         raise
 
     finally:
@@ -158,7 +172,6 @@ def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_i
 
     if need_callback:
         asyncio.run(post(callback, result_data, retry = 4, task_id=f"{project_id}"))
-    result_queue = f"{ENV}_" + my_config["result_queue"]["transcode"]
     log.info(f"{transcode_request.biz_id} 任务完成: {result_data}")
     resp.trace_id = trace_id
     headers = {"trace_id": trace_id, "task_id": task_id}
