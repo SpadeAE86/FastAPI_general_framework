@@ -403,5 +403,7 @@ def extent_audio(audio_file, pad_dur=2):
 if __name__ == "__main__":
     result = get_video_info(r"C:\Users\25065\Downloads\test4.mp4")
     print(result.get_info())
-    result = get_video_info(r"C:\Users\25065\Downloads\1769682436686_H.264_2160x3840_AAC_5600.mp4")
+    result = get_video_info(r"C:\Users\25065\Downloads\test4_H.264_1440x2560_AAC_4900.mp4")
+    print(result.get_info())
+    result = get_video_info(r"C:\Users\25065\Downloads\test4_H.264_360x640_AAC_400.mp4")
     print(result.get_info())

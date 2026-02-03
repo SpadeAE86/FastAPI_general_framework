@@ -126,7 +126,7 @@ async def transcode_video_service_v2(
 
 async def my_test_transcode_video_service_v2():
     req = TranscodeVideoRequest(
-        obs_video_path="aigc/aigc_prod/1447/1999061725840629762/0/video/1765448404442.mp4",
+        obs_video_path="ai_picture/mark/demo/video/test4.mp4",
         biz_id=123,
     )
 

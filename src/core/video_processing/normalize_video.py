@@ -391,6 +391,16 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     if audio_filter:
         video_filter_list.append(audio_filter)
 
+    # === 新增配置：统一时基 ===
+    # 15360 是一个通用的时基 (90000也是常用的，但15360对mp4很友好)
+    # 这确保所有切片的时间“刻度”完全一致，concat copy 时不会错乱
+    timebase_option = ["-video_track_timescale", "15360"]
+
+    # === 新增配置：强制常量帧率 (CFR) ===
+    # -vsync 1 (或者新版ffmpeg用 -fps_mode cfr) 强制补帧或丢帧以严格匹配 -r
+    # 防止 nvenc 输出 VFR
+    cfr_option = ["-vsync", "1"]
+
     #后置滤镜上传到gpu
     post_filter = []
     if my_config["device"] == "gpu":
@@ -425,6 +435,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         *muted_audio,
         *audio_input_option,
         '-ss', str(float(start_time/speed)), '-to', str(min(max_len, duration)/speed),
+        *cfr_option,  # <--- 插入统一常量帧率
         '-r', str(fps),
         *gpu_encoder,
         "-threads", "2",
@@ -432,6 +443,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         "-filter_complex", video_filter,
         *audio_filter_flag,
         *pix_fmt_option,
+        *timebase_option,  # <--- 插入统一时基参数
         '-y',
         '-fflags', '+genpts',
         '-map', end_v, '-map', end_a,

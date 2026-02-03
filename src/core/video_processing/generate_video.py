@@ -75,7 +75,7 @@ def generate_video(video_path_list, len_list, project_id="test",
                          '-f', 'concat',
                          '-safe', '0',
                          '-i', temp_video_filelist_path,
-                         "-vsync", "passthrough",
+                         # "-vsync", "passthrough",   #<--- 删除这一行
                          *audio_input,
                          *complex_option,
                          *video_map,
