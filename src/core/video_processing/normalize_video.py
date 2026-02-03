@@ -281,7 +281,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
                     audio_filter_str = build_atempo_filter(speed)
 
     audio_filter_flag = []
-    if not audio_filter_str or not mute_origin:
+    if audio_filter_str and not mute_origin:
         audio_filter_flag = ["-af", audio_filter_str]
 
     # 镜像滤镜
