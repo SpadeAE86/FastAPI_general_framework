@@ -266,15 +266,6 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         transform.append(f"setpts={1.0 / speed}*(PTS-STARTPTS)")
         if not mute_origin:
             audio_filter_str = build_atempo_filter(speed)
-    else:
-        if cap_config and cap_config.caption_list[vindex]:
-            video_duration = min(max_len, duration) - start_time
-            audio_info = cap_config.caption_list[vindex]
-            audio_duration = audio_info.end - audio_info.start
-            speed =  video_duration / audio_duration
-            log.info(f"video_duration: {video_duration}, audio_duration: {audio_duration}")
-            if not mute_origin:
-                audio_filter_str = build_atempo_filter(speed)
 
     audio_filter_flag = []
     if audio_filter_str and not mute_origin:

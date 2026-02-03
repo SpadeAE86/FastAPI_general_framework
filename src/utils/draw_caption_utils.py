@@ -338,7 +338,6 @@ def create_subtitle_png(
 
     content_x = anchor_x - content_img.width // 2
     content_y = anchor_y - content_img.height // 2
-    print(f"anchor_x: {anchor_x}")
     dst_left = max(content_x, 0)
     dst_top = max(content_y, 0)
     dst_right = min(content_x + content_img.width, png_width)
