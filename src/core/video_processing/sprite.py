@@ -7,6 +7,7 @@ from typing import List
 from utils.general_utils import get_video_info, VideoInfo
 from utils.log_utils import logger as log
 
+
 @dataclass
 class SpriteGenerateResult:
     sprite_paths: List[str]
@@ -74,6 +75,8 @@ def generate_sprite(video_path: str, output_dir: str, fps: int = 6, rows: int = 
         subprocess.run(cmd, check=True)
 
     log.info(f"生成 {len(sprite_paths)} 张雪碧图: {sprite_paths}")
+
+
     return SpriteGenerateResult(
         sprite_paths=sprite_paths,
         video_width=width,
