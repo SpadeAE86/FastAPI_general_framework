@@ -85,8 +85,6 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
             socket_timeout=3,
             max_connections=10,
         )
-        log.info(f"redis client is not initialized, create new connection {redis_client}")
-        log.info(f"redis client is not initialized, create new connection {redis_client}")
         
         # 使用 Lua 脚本保证 GET 和 EXPIRE 的原子性，避免竞争条件
         # 如果 Key 存在，则刷新且返回；否则返回 nil
