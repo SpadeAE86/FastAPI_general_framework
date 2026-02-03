@@ -49,9 +49,9 @@ def generate_sprite(video_path: str, output_dir: str, fps: int = 6, rows: int = 
 
     sprite_paths = []
     if width <= height:
-        scale_expr = "360:-1"  # 竖视频 / 方视频 → 短边=宽
+        scale_expr = "120:-1"  # 竖视频 / 方视频 → 短边=宽
     else:
-        scale_expr = "-1:360"  # 横视频 → 短边=高
+        scale_expr = "-1:120"  # 横视频 → 短边=高
     for i in range(sprite_count):
         start_time = i * frames_per_sprite / fps  # 每张 40 秒
         sprite_name = f"sprite_{i + 1}.webp"
@@ -64,7 +64,7 @@ def generate_sprite(video_path: str, output_dir: str, fps: int = 6, rows: int = 
             "ffmpeg",
             "-ss", str(start_time),
             "-i", video_path,
-            "-vf", f"fps={fps},scale={scale_expr},tile={cols}x{rows}",
+            "-vf", f"fps={fps},scale={scale_expr}:flags=lanczos,tile={cols}x{rows}",
             "-vframes", "1",
             "-y",
             sprite_path
