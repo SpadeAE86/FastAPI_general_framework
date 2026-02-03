@@ -64,7 +64,7 @@ def generate_sprite(video_path: str, output_dir: str, fps: int = 6, rows: int = 
             "ffmpeg",
             "-ss", str(start_time),
             "-i", video_path,
-            "-vf", f"fps={fps},scale={scale_expr}:flags=lanczos,tile={cols}x{rows}",
+            "-vf", f"fps={fps},scale={scale_expr},tile={cols}x{rows}",
             "-vframes", "1",
             "-y",
             sprite_path
