@@ -80,6 +80,12 @@ def thread_pool_normalize(
         sticker_list : list[str], optional
             贴纸资源路径列表。
 
+        audio_path_list : list[str], optional
+            口播文件路径列表
+
+        audio_config : list[object], optional
+            口播配置列表
+
         Returns
         -------
         list[NormalizeResult]
