@@ -337,7 +337,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
 
     # 音频滤镜
     end_a = "0:a" if not mute_origin and has_audio else f"{len(subtitle_list)+1}:a"
-    weights = []
+    weights = ["1.0"]
     audio_input = []
     audio_filter = ""
     if audio_config:
@@ -345,7 +345,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         speed_audio_str = f",{audio_filter_str}" if audio_filter_str else ""
         audio_filter += f"[{end_a}]volume=3{speed_audio_str}[main_audio];"
         end_a = "[merged]"
-        cur = len(subtitle_png_input) + 1
+        cur = len(subtitle_list)
+        if not mute_origin:
+            cur += 1
         video_limit_duration = (min(max_len, duration) - start_time) / speed
         for idx, a in enumerate(audio_path_list):
             output = f"bgm{idx}"
@@ -369,7 +371,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
             cur += 1
         # todo: 根据官方提供的例子 ffmpeg -i VOCALS -i MUSIC -filter_complex amix=inputs=2:duration=longest:dropout_transition=0:weights="1 0.25":normalize=0 OUTPUT
         weight_str = " ".join(weights)
-        audio_filter += f'{"".join(mix_input)}amix=inputs={len(audio_path_list) + 1}:duration=longest:weights="{weight_str}":normalize=0{end_a}'
+        audio_filter += f'{"".join(mix_input)}amix=inputs={len(mix_input)}:duration=longest:weights="{weight_str}":normalize=0{end_a}'
     # 组装音频滤镜并添加到video_filter_list
     audio_input_option = []
     for p in audio_input:
