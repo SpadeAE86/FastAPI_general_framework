@@ -19,6 +19,8 @@ def thread_pool_normalize(
     pix_fmt="yuv420p",
     cap_helper=None,
     sticker_list=None,
+    audio_path_list=None,
+    audio_config=None,
 ):
     """
         使用线程池并行执行多个视频素材的标准化处理，

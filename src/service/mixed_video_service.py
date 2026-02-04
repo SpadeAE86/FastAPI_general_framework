@@ -5,6 +5,7 @@ from core.video_processing.generate_video import generate_video
 from core.video_processing.normalize_thread_pool import thread_pool_normalize
 from core.video_processing.normalize_video import NormalizeResult
 from core.transition_video import transition_normalized
+from models.pydantic_models.request import audio_config
 from models.pydantic_models.response.mixed_video_response import MixedVideoResponse
 from utils.general_utils import delete_folder, VideoInfo
 from core.video_processing.caption import CapHelper
@@ -104,7 +105,8 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         normalize_thread_pool_results = thread_pool_normalize(width, height, fps, video_list,
                                                                len_list, mixed_config, video_info_list ,project_id,
                                                                pix_fmt=pix_fmt, cap_helper=cap_helper,
-                                                               sticker_list=sticker_list)
+                                                               sticker_list=sticker_list, audio_path_list=audio_list,
+                                                              audio_config=audio_config)
 
         normalized_results: list[NormalizeResult] = normalize_thread_pool_results
         log.info(
