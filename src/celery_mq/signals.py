@@ -41,7 +41,8 @@ def redis_evict_listener():
         real_key = key[:-7]
 
         # 再次检查前缀，确保是我们的业务 Key
-        if not real_key.startswith(VIDEO_CACHE_BASE_PREFIX):
+        # 改为精准匹配当前实例的前缀，防止抢其他 Worker/服务器 的 Key，导致误删 Redis Key 却删不掉文件
+        if not real_key.startswith(VIDEO_CACHE_PREFIX):
             continue
 
         local_path = None
@@ -57,7 +58,7 @@ def redis_evict_listener():
                 # 清理掉 Real Key
                 r.delete(real_key)
             else:
-                log.info(f"[RedisEvict] Key {real_key} already deleted by another worker (race condition)")
+                log.warning(f"[RedisEvict] Real key {real_key} -> {local_path} not found or already deleted (shadow: {key})")
 
         except Exception as e:
             log.exception(f"[RedisEvict] Failed to clean up {local_path}: {e}")

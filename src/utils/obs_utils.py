@@ -91,6 +91,7 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
         lua_script = """
         if redis.call("EXISTS", KEYS[1]) == 1 then
             redis.call("EXPIRE", KEYS[1], ARGV[1])
+            redis.call("EXPIRE", KEYS[1] .. ":shadow", ARGV[1])
             return redis.call("GET", KEYS[1])
         else
             return nil
@@ -103,6 +104,7 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
             cached_path = await redis_client.get(cache_key)
             if cached_path:
                 await redis_client.expire(cache_key, ttl)
+                await redis_client.expire(f"{cache_key}:shadow", ttl)
 
         if cached_path:
             log.info(f"[redis cache] path {path} exist, reuse download: {cached_path}")
