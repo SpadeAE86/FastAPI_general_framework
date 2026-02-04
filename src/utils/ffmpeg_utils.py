@@ -21,13 +21,11 @@ def check_audio_stream_simple(file_path):
         ]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=10)
         # 如果输出不为空，则有音频流
-        log.info(f"{file_path} has {bool(result.stdout.strip())} audio")
         return bool(result.stdout.strip())
     except subprocess.TimeoutExpired:
         log.error(f"Timeout checking audio stream for {file_path}")
         return False
     except subprocess.CalledProcessError:
-        log.info(f"{file_path} has no audio")
         return False
 
 def build_atempo_filter(speed_ratio):

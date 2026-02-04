@@ -357,7 +357,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
             if audio_config[idx].offset - processed_so_far > video_limit_duration:
                 log.info(f"{idx} video with offset {audio_config[idx].offset} - {processed_so_far} is longer then video end time {video_limit_duration}, break earlier")
                 break
-            if audio_config[idx].offset - processed_so_far < 0:
+            if audio_config[idx].offset + dur - processed_so_far < 0:
                 continue
             audio_input.append(a)
             if audio_config[idx].end >= 0:
