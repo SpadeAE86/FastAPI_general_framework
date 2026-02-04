@@ -362,7 +362,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
             audio_input.append(a)
             if audio_config[idx].end >= 0:
                 crop_offset_str += f"atrim=start={audio_config[idx].start}:end={audio_config[idx].end},"
-            crop_offset_str += f"adelay={(audio_config[idx].offset - processed_so_far) * 1000}|{(audio_config[idx].offset - processed_so_far) * 1000},"
+            crop_offset_str += f"adelay={(audio_config[idx].offset + dur - processed_so_far) * 1000}|{(audio_config[idx].offset + dur - processed_so_far) * 1000},"
             volume = audio_config[idx].volume * 2
             weight = audio_config[idx].weight
             audio_filter += f"[{1 + cur}:a]{crop_offset_str}apad=whole_dur={max_len},volume={volume}[{output}];"
