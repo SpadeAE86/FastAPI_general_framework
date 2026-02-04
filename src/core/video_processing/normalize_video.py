@@ -346,7 +346,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         audio_filter += f"[{end_a}]volume=3{speed_audio_str}[main_audio];"
         end_a = "[merged]"
         cur = len(subtitle_list)
-        if not mute_origin:
+        if mute_origin:
             cur += 1
         video_limit_duration = (min(max_len, duration) - start_time) / speed
         for idx, a in enumerate(audio_path_list):
