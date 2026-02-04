@@ -1,0 +1,750 @@
+{
+    "biz_id": 938,
+    "user_id": 5451,
+    "obs_video_path_list": [
+        "aigc/aigc_test/444/transcode_2018232005632655364/1770018981502_H.264_640x360_AAC_400.mp4",
+        "aigc/aigc_test/444/transcode_2018232005636849666/1770018981504_H.264_640x360_AAC_400.mp4",
+        "aigc/aigc_test/444/transcode_2018232005645238274/1770018981513_H.264_1440x1080_AAC_2100.mp4",
+        "aigc/aigc_test/444/transcode_2018232005645238276/1770018981515_H.264_1080x1920_AAC_2100.mp4",
+        "aigc/aigc_test/444/transcode_2018232005636849666/1770018981504_H.264_1920x1080_AAC_2100.mp4",
+        "aigc/aigc_test/444/transcode_2018232005632655362/1770018981500_H.264_1920x1080_AAC_2100.mp4",
+        "aigc/aigc_test/444/transcode_2018232005632655364/1770018981502_H.264_1920x1080_AAC_2100.mp4",
+        "aigc/aigc_test/444/transcode_2018232005636849667/1770018981505_H.264_1920x1080_AAC_2100.mp4",
+        "aigc/aigc_test/444/transcode_2018232005632655362/1770018981500_H.264_640x360_AAC_400.mp4",
+        "aigc/aigc_test/444/transcode_2018232005641043970/1770018981507_H.264_1080x1920_AAC_2100.mp4",
+        "aigc/aigc_test/444/transcode_2018232005641043975/1770018981512_H.264_640x360_AAC_400.mp4",
+        "aigc/aigc_test/444/transcode_2018232005636849667/1770018981505_H.264_1920x1080_AAC_2100.mp4",
+        "aigc/aigc_test/444/transcode_2018232005645238278/1770018981517_H.264_1080x1920_AAC_2100.mp4",
+        "aigc/aigc_test/444/transcode_2018232005645238275/1770018981514_H.264_1920x1080_AAC_2100.mp4",
+        "aigc/aigc_test/444/transcode_2018232005645238276/1770018981515_H.264_1080x1920_AAC_2100.mp4",
+        "aigc/aigc_test/452/transcode_2018241921240408065/1770021345539_H.264_360x640_AAC_400.mp4",
+        "aigc/aigc_test/452/transcode_2018241921240408066/1770021345540_H.264_360x640_AAC_400.mp4",
+        "aigc/aigc_test/444/transcode_2018232005636849667/1770018981505_H.264_1920x1080_AAC_2100.mp4",
+        "aigc/aigc_test/444/transcode_2018232005641043973/1770018981510_H.264_640x360_AAC_400.mp4",
+        "aigc/aigc_test/452/transcode_2018241921244602370/1770021345541_H.264_360x640_AAC_400.mp4",
+        "aigc/aigc_test/444/transcode_2018232005645238274/1770018981513_H.264_1440x1080_AAC_2100.mp4"
+    ],
+    "fps": 30,
+    "crop_config": [
+        {
+            "start": 0.0,
+            "end": 10.8,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 8.03,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 11.83,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 11.67,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 13.47,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 9.8,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 9.17,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 9.57,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 10.27,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 6.27,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 9.77,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 9.83,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 7.63,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 11.53,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 12.7,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 13.7,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 6.97,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 9.77,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 5.73,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 11.27,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        },
+        {
+            "start": 0.0,
+            "end": 3.13,
+            "translate_x": 0.0,
+            "translate_y": 0.0,
+            "rotation": 0.0,
+            "scale": 1.0,
+            "mirror": false,
+            "speed": 1.0,
+            "cap_cnt": 1
+        }
+    ],
+    "cap_config": {
+        "caption_list": [
+            {
+                "start": 0.0,
+                "end": 1.7,
+                "cap": "为什么熊出没年年有熊",
+                "rotation": 0.0,
+                "absolute_x": 0.0,
+                "absolute_y": 0.2,
+                "outline_width": 0.0,
+                "scale": 1.0,
+                "font_size": 48,
+                "font_type": "Songti SC Regular",
+                "color": "#FFFFFF",
+                "outline_color": "transparent",
+                "background_color": "#842AD3",
+                "background_type": 1,
+                "line_spacing": 0,
+                "letter_spacing": 0,
+                "word_config": []
+            }
+        ],
+        "font_size": 30,
+        "font_type": "Songti SC Regular",
+        "cap_color": "#ffffff",
+        "cap_outline_color": "#000000",
+        "cap_background_color": "#000000ff",
+        "cap_absolute_x": 0,
+        "cap_absolute_y": 0.25,
+        "cap_background_type": 0,
+        "cap_line_spacing": 10,
+        "cap_letter_indent": 2
+    },
+    "local_mode": false,
+    "mute_config": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+    ],
+    "transition_config": [],
+    "obs_audio_path_list": [
+        "aigc/aigc_feature/alivoice_1770021097011/alitts0_alivoice_1770021097011.wav"
+    ],
+    "audio_config": [
+        {
+            "start": 0.0,
+            "end": 1.7,
+            "offset": 0.0,
+            "volume": 1,
+            "weight": 1
+        }
+    ],
+    "filter_config": [
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ]
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ]
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ],
+            "filter_template": "vintage_taste"
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ],
+            "filter_template": "vintage_taste"
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ],
+            "filter_template": "vintage_taste"
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ],
+            "filter_template": "vintage_taste"
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ],
+            "filter_template": "vintage_taste"
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ],
+            "filter_template": "vintage_taste"
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ]
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ],
+            "filter_template": "vintage_taste"
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ]
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ],
+            "filter_template": "vintage_taste"
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ],
+            "filter_template": "vintage_taste"
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ],
+            "filter_template": "vintage_taste"
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ],
+            "filter_template": "vintage_taste"
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ]
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ]
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ],
+            "filter_template": "vintage_taste"
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ]
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ]
+        },
+        {
+            "filter_configs": [
+                {
+                    "type": "tint",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "temperature",
+                    "value": 0.0,
+                    "angle": 0
+                },
+                {
+                    "type": "saturation",
+                    "value": 1.0,
+                    "angle": 0
+                }
+            ],
+            "filter_template": "vintage_taste"
+        }
+    ],
+    "obs_bgm_path_list": [],
+    "bgm_config": [],
+    "retry_count": 0,
+    "sticker_config": [],
+    "obs_sticker_path_list": []
+}

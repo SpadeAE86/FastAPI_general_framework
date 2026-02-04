@@ -17,10 +17,9 @@ def generate_video(video_path_list, len_list, project_id="test",
     temp_video_filelist_path = os.path.abspath(temp_video_filelist_path)
 
     audio_input = []
-    if transition_config:
-        log.info(f"转场时bgm和voice的传参分开")
-        audio_path_list = bgm_path_list
-        audio_config = bgm_config
+
+    audio_path_list = bgm_path_list
+    audio_config = bgm_config
     for a in audio_path_list:
         audio_input += ["-i", a]
 
@@ -67,7 +66,7 @@ def generate_video(video_path_list, len_list, project_id="test",
 
     log.info(f"时长列表: {len_list}")
 
-    video_encoder = ["-c:v", "copy"]
+    video_encoder = ["-c:v", "libx264"]
     threads_option = ["-threads", "1"]
     cover_output = f"./final/{project_id}/cover_test3.jpg"
     cover_cmd = ["-vframes", "1", cover_output]

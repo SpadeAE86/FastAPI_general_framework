@@ -304,7 +304,6 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     subtitle_png_input = []
     subtitle_list = []
     if cap_helper:
-        log.info(f"cap_outline: {cap_config.cap_outline_width}")
         caption_distributor = CaptionDistributor(width, height, cap_config, transition_config, cap_helper, project_id)
         subtitle_list = caption_distributor.gen_subtitle_png(duration=(min(max_len, duration) - start_time) / speed)
 
@@ -429,6 +428,8 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         *preset_option,
         "-filter_complex", video_filter,
         *audio_filter_flag,
+        '-ar', '44100',
+        '-ac', '2',
         *pix_fmt_option,
         *timebase_option,  # <--- 插入统一时基参数
         '-y',

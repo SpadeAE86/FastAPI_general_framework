@@ -72,7 +72,7 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
 
     # 下载文件
     try:
-        ttl = 300  # 5 分钟
+        ttl = 600  # 5 分钟
         cache_key = f"{VIDEO_CACHE_PREFIX}{path}"
 
         redis_client = Redis(

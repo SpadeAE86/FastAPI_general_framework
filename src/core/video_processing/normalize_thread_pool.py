@@ -126,13 +126,13 @@ def thread_pool_normalize(
             fade_out_duration = 0
             fade_in_duration = 0
 
-            if mixed_video_config.transition_config:
-                voice_path_list = mixed_video_config.obs_audio_path_list
-                audio_config = mixed_video_config.audio_config
-                if idx < len(video_list) - 1 and mixed_video_config.transition_config[idx]:
-                    fade_out_duration = mixed_video_config.transition_config[idx].duration
-                if idx > 0 and mixed_video_config.transition_config[idx - 1]:
-                    fade_in_duration = mixed_video_config.transition_config[idx - 1].duration
+
+            voice_path_list = mixed_video_config.obs_audio_path_list
+            audio_config = mixed_video_config.audio_config
+            if idx < len(video_list) - 1 and mixed_video_config.transition_config[idx]:
+                fade_out_duration = mixed_video_config.transition_config[idx].duration
+            if idx > 0 and mixed_video_config.transition_config[idx - 1]:
+                fade_in_duration = mixed_video_config.transition_config[idx - 1].duration
 
             ai_mode = bool(mixed_video_config.callback_url)
 

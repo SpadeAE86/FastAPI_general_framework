@@ -18,7 +18,7 @@ FILTER_TEMPLATES = {
     # 6. 美餐
     "delicious": "hue=h=-10:s=1.3,eq=contrast=1.1:brightness=0.05",
     # 7. 入味
-    "vintage_taste": "curves=preset=vintage,eq=saturation=1.25:gamma=1.15",
+    "vintage_taste": "colorbalance=rs=0.1:gs=0.05:bs=-0.1,eq=gamma=1.1:brightness=0.05",
     # 8. 可口
     "tasty": "eq=contrast=1.2:saturation=1.4:gamma=0.98,colorbalance=rm=0.1:bm=-0.1",
     # 9. 太妃糖
