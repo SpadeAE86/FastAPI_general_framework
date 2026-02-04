@@ -342,7 +342,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     audio_filter = ""
     if audio_config:
         mix_input = [f"[main_audio]"]
-        speed_audio_str = f",{audio_filter_str}"
+        speed_audio_str = f",{audio_filter_str}" if audio_filter_str else ""
         audio_filter += f"[{end_a}]volume=3{speed_audio_str}[main_audio];"
         end_a = "[merged]"
         cur = len(subtitle_png_input) + 1
