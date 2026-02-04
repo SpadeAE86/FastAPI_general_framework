@@ -128,7 +128,7 @@ def thread_pool_normalize(
 
 
             voice_path_list = audio_path_list
-            audio_config = audio_config
+
             if idx < len(video_list) - 1 and mixed_video_config.transition_config and mixed_video_config.transition_config[idx]:
                 fade_out_duration = mixed_video_config.transition_config[idx].duration
             if idx > 0 and mixed_video_config.transition_config and mixed_video_config.transition_config[idx - 1]:

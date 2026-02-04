@@ -106,7 +106,7 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
                                                                len_list, mixed_config, video_info_list ,project_id,
                                                                pix_fmt=pix_fmt, cap_helper=cap_helper,
                                                                sticker_list=sticker_list, audio_path_list=audio_list,
-                                                              audio_config=audio_config)
+                                                              audio_config=mixed_config.audio_config)
 
         normalized_results: list[NormalizeResult] = normalize_thread_pool_results
         log.info(
