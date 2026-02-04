@@ -117,8 +117,6 @@ def thread_pool_normalize(
             start = 0
             end = len_list[idx]
 
-            voice_path_list = []
-            audio_config = []
 
             if mixed_video_config.crop_config:
                 end = mixed_video_config.crop_config[idx].end
@@ -129,8 +127,8 @@ def thread_pool_normalize(
             fade_in_duration = 0
 
 
-            voice_path_list = mixed_video_config.obs_audio_path_list
-            audio_config = mixed_video_config.audio_config
+            voice_path_list = audio_path_list
+            audio_config = audio_config
             if idx < len(video_list) - 1 and mixed_video_config.transition_config and mixed_video_config.transition_config[idx]:
                 fade_out_duration = mixed_video_config.transition_config[idx].duration
             if idx > 0 and mixed_video_config.transition_config and mixed_video_config.transition_config[idx - 1]:
