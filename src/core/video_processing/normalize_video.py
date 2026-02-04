@@ -368,7 +368,6 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
             audio_filter += f"[{1 + cur}:a]{crop_offset_str}apad=whole_dur={max_len},volume={volume}[{output}];"
             mix_input.append(f"[{output}]")
             weights.append(str(weight))
-            processed_so_far += dur
             cur += 1
         # todo: 根据官方提供的例子 ffmpeg -i VOCALS -i MUSIC -filter_complex amix=inputs=2:duration=longest:dropout_transition=0:weights="1 0.25":normalize=0 OUTPUT
         weight_str = " ".join(weights)
