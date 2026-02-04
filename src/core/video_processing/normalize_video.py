@@ -350,9 +350,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
             cur += 1
         video_limit_duration = (min(max_len, duration) - start_time) / speed
         for idx, a in enumerate(audio_path_list):
-            log.info("")
+            log.info(f"{idx} audio with offset {audio_config[idx].offset}, start={audio_config[idx].start}, end={audio_config[idx].end}, process_so_far={processed_so_far}")
             output = f"bgm{idx}"
-            crop_offset_str = f"{idx} audio with offset {audio_config[idx].offset}, start={audio_config[idx].start}, end={audio_config[idx].end}, process_so_far={processed_so_far}"
+            crop_offset_str = ""
             dur = audio_config[idx].end - audio_config[idx].start
             if audio_config[idx].offset - processed_so_far > video_limit_duration:
                 log.info(f"{idx} video with offset {audio_config[idx].offset} - {processed_so_far} is longer then video end time {video_limit_duration}, break earlier")
