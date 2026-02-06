@@ -30,6 +30,7 @@ def get_rabbitmq_broker_url():
         vhost = "%2F"
     scheme = "amqps" if use_ssl else "amqp"
     broker_url = f"{scheme}://{username}:{password}@{host}:{port}/{vhost}"
+    log.info(f"RabbitMQ broker url: {broker_url}, port: {port}")
     return broker_url
 
 
