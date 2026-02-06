@@ -1,11 +1,12 @@
 import os
 import socket
+import ssl
 
 from celery import Celery
 from config.config import my_config, ENV
 from utils.log_utils import logger as log
 
-
+rabbitmq_config = my_config.get("rabbitmq", {}).get(ENV, {})
 def get_rabbitmq_broker_url():
     """
     获取RabbitMQ broker URL
@@ -16,18 +17,19 @@ def get_rabbitmq_broker_url():
     Returns:
         str: RabbitMQ broker连接URL，格式为 amqp://username:password@host:port/vhost
     """
-    rabbitmq_config = my_config.get("rabbitmq", {}).get(ENV, {})
+
     username = rabbitmq_config.get("username", "guest")
     password = rabbitmq_config.get("password", "guest")
     host = rabbitmq_config.get("host", "localhost")
     port = rabbitmq_config.get("port", 5672)
     vhost = rabbitmq_config.get("vhost", "/")
+    use_ssl = rabbitmq_config.get("use_ssl", True)
 
     # 如果vhost是根路径，需要编码为%2F
     if vhost == "/":
         vhost = "%2F"
-
-    broker_url = f"amqp://{username}:{password}@{host}:{port}/{vhost}"
+    scheme = "amqps" if use_ssl else "amqp"
+    broker_url = f"{scheme}://{username}:{password}@{host}:{port}/{vhost}"
     return broker_url
 
 
@@ -67,6 +69,11 @@ celery_app = Celery(
     backend=backend_url,
     include=["celery_mq.task.normalize_video_tasks"]
 )
+if rabbitmq_config.get("use_ssl", False):
+    celery_app.conf.broker_use_ssl = {
+        "ssl_version": ssl.PROTOCOL_TLS_CLIENT,
+        "cert_reqs": ssl.CERT_NONE,
+    }
 import celery_mq.signals
 # 从配置读取 Celery 参数
 celery_config = my_config.get("celery", {})

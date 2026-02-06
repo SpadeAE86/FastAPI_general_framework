@@ -1,4 +1,5 @@
 import json
+import ssl
 from typing import Optional, Dict, Any
 
 import pika
@@ -12,19 +13,36 @@ class MQProducer:
         host: str,
         port: int,
         username: str,
-        password: str
+        password: str,
+        use_ssl: bool,
     ):
         credentials = pika.PlainCredentials(username, password)
+        # ssl_options = pika.SSLOptions(
+        #     ssl_context,
+        #     server_hostname=host
+        # )
+        ssl_options = None
+        if use_ssl:
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE  # ⚠️ 和你 Celery 现在一致
+
+            ssl_options = pika.SSLOptions(
+                context=ssl_context,
+                server_hostname=host,  # pika 要这个
+            )
         self.params = pika.ConnectionParameters(
             host=host,
             port=port,
             credentials=credentials,
+            ssl_options=ssl_options,  # ⭐ 关键就在这
             heartbeat=60,  # ⭐ 必须
             blocked_connection_timeout=300,  # ⭐ 防止 publish 卡死
             socket_timeout=10,  # ⭐ 防止 send 卡住
             connection_attempts=3,
             retry_delay=5
         )
+
         self.connection: Optional[pika.BlockingConnection] = None
 
 
@@ -79,8 +97,8 @@ def rabbitmq_producer_maker() -> MQProducer:
     password = rabbit_mq_config.get("password", "RootDev123")
     port = rabbit_mq_config.get("port", 5672)
     username = rabbit_mq_config.get("username", "root")
-
-    mq_producer = MQProducer(host, port, username, password)
+    use_ssl = rabbit_mq_config.get("use_ssl", True)
+    mq_producer = MQProducer(host, port, username, password, use_ssl=use_ssl)
     return mq_producer
 
 mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')

@@ -133,18 +133,21 @@ rabbitmq:
     username: root
     password: RootDev123
     vhost: /
+    use_ssl: false
   test:
     host: 123.60.104.114
     port: 5672
     username: root
     password: RootDev123
     vhost: /
+    use_ssl: false
   prod:
     host: 192.168.0.209
     port: 5672
     username: freeu-rabbit
     password: RootDev123
     vhost: /
+    use_ssl: true
 
 huawei_ces:
   local:
