@@ -97,9 +97,9 @@ def rabbitmq_producer_maker() -> MQProducer:
     password = rabbit_mq_config.get("password", "RootDev123")
     port = rabbit_mq_config.get("port", 5672)
     username = rabbit_mq_config.get("username", "root")
-    use_ssl = rabbit_mq_config.get("use_ssl", True)
-    mq_producer = MQProducer(host, port, username, password, use_ssl=use_ssl)
-    return mq_producer
+    use_ssl = rabbit_mq_config.get("use_ssl", False)
+    rabbit_mq_producer = MQProducer(host, port, username, password, use_ssl=use_ssl)
+    return rabbit_mq_producer
 
-mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
+mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123', use_ssl=False)
 
