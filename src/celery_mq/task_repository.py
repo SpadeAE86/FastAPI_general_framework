@@ -12,6 +12,7 @@ from utils.time_utils import (
     get_shanghai_iso_time,
     convert_to_shanghai_iso_time
 )
+from config.config import ENV
 from utils.log_utils import logger as log
 
 
@@ -39,19 +40,19 @@ class TaskRepository(TaskRepositoryProtocol):
     
     def _get_task_key(self, task_id: str) -> str:
         """获取任务键"""
-        return f"task:{task_id}"
+        return f"{ENV}:task:{task_id}"
     
     def _get_task_data_key(self, task_id: str) -> str:
         """获取任务数据键"""
-        return f"task:{task_id}:data"
+        return f"{ENV}:task:{task_id}:data"
     
     def _get_subtasks_key(self, task_id: str) -> str:
         """获取子任务列表键"""
-        return f"task:{task_id}:subtasks"
+        return f"{ENV}:task:{task_id}:subtasks"
     
     def _get_start_time_key(self, task_id: str) -> str:
         """获取任务开始时间键"""
-        return f"task:{task_id}:start_time"
+        return f"{ENV}:task:{task_id}:start_time"
     
     def save_task(self, task_id: str, task_info: Dict[str, Any]) -> None:
         """
@@ -142,7 +143,7 @@ class TaskRepository(TaskRepositoryProtocol):
         subtasks_key = self._get_subtasks_key(task_id)
         subtask_ids = self.redis.lrange(subtasks_key, 0, -1)
         for subtask_id in subtask_ids:
-            subtask_key = f"subtask:{subtask_id}"
+            subtask_key = f"{ENV}:subtask:{subtask_id}"
             self.redis.delete(subtask_key)
         self.redis.delete(subtasks_key)
         
@@ -203,8 +204,9 @@ class TaskRepository(TaskRepositoryProtocol):
         subtask_ids = self.redis.lrange(subtasks_key, 0, -1)
         
         subtasks = []
+        subtasks = []
         for subtask_id in subtask_ids:
-            subtask_key = f"subtask:{subtask_id}"
+            subtask_key = f"{ENV}:subtask:{subtask_id}"
             subtask_info = self.redis.hgetall(subtask_key)
             if subtask_info:
                 # 转换子任务中的时间字段

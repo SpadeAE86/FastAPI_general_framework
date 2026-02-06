@@ -9,6 +9,7 @@ import hashlib
 from typing import Optional, Dict, Any
 import redis
 from celery_mq.protocols import TaskHashServiceProtocol
+from config.config import ENV
 from utils.log_utils import logger as log
 
 
@@ -36,7 +37,7 @@ class TaskHashService(TaskHashServiceProtocol):
     
     def _get_hash_key(self, task_hash: str) -> str:
         """获取哈希映射键"""
-        return f"task_hash:{task_hash}"
+        return f"{ENV}:task_hash:{task_hash}"
     
     def calculate_hash(self, task_data: Dict[str, Any]) -> str:
         """

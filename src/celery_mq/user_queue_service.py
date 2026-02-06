@@ -6,6 +6,7 @@
 """
 from typing import List
 import redis
+from config.config import ENV
 from celery_mq.protocols import UserQueueServiceProtocol
 from utils.log_utils import logger as log
 
@@ -24,8 +25,8 @@ class UserQueueService(UserQueueServiceProtocol):
     QUEUE_TTL: int = 86400 * 7
     
     # Redis 键名
-    ACTIVE_USERS_KEY: str = "active_users"
-    VIP_USERS_KEY: str = "vip_users"
+    ACTIVE_USERS_KEY: str = f"{ENV}:active_users"
+    VIP_USERS_KEY: str = f"{ENV}:vip_users"
     
     def __init__(self, redis_client: redis.Redis):
         """
@@ -38,7 +39,7 @@ class UserQueueService(UserQueueServiceProtocol):
     
     def _get_queue_key(self, user_id: str) -> str:
         """获取用户队列键"""
-        return f"pending:tasks:{user_id}"
+        return f"{ENV}:pending:tasks:{user_id}"
     
     def add_task(self, user_id: str, task_id: str) -> None:
         """
@@ -57,7 +58,7 @@ class UserQueueService(UserQueueServiceProtocol):
         # 标记用户为活跃状态
         self.mark_user_active(user_id)
         
-        log.debug(f"任务添加到用户队列: user_id={user_id}, task_id={task_id}")
+        log.info(f"任务添加到用户队列: user_id={user_id}, task_id={task_id}, redis_queue_key={queue_key}")
     
     def fetch_tasks(self, user_id: str, count: int = 1) -> List[str]:
         """

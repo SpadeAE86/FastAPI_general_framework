@@ -34,7 +34,7 @@ async def create_sprite_task(
         task_id 及任务状态
     """
     try:
-        user_id = "anonymous"
+        user_id = f"{sprite_request.user_id}"
 
         task_data = sprite_request.model_dump(exclude_none=True)
         task_data["task_type"] = "sprite"

@@ -33,7 +33,7 @@ async def create_transcode_task(
         task_id 及任务状态
     """
     try:
-        user_id = "anonymous"
+        user_id = f"{transcode_request.user_id}"
 
         task_data = transcode_request.model_dump(exclude_none=True)
         task_data["task_type"] = "transcode"
