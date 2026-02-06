@@ -165,7 +165,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     # 旋转90度交换视频长宽
     if abs(rot) in [90, 270]:
         video_width, video_height = video_height, video_width
-    print(f"start normalize {video} with :", video_width, video_height, "|target:", width, height)
+    log.info(f"start normalize {video} with :", video_width, video_height, "|target:", width, height)
 
 
     # 创建文件夹
@@ -355,9 +355,11 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
             crop_offset_str = ""
             dur = audio_config[idx].end - audio_config[idx].start
             if audio_config[idx].offset - processed_so_far >= video_limit_duration:
-                log.info(f"{idx} video with offset {audio_config[idx].offset} - {processed_so_far} is longer then video end time {video_limit_duration}, break earlier")
+                log.info(f"{idx} video with offset {audio_config[idx].offset} - {processed_so_far} is longer then video duration {video_limit_duration}, break earlier")
                 break
             if audio_config[idx].offset - processed_so_far < 0:
+                log.info(
+                    f"{idx} video with offset {audio_config[idx].offset} has not reach the start point {processed_so_far}, skip")
                 continue
             audio_input.append(a)
             if audio_config[idx].end >= 0:

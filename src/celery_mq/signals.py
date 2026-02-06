@@ -58,7 +58,7 @@ def redis_evict_listener():
                 # 清理掉 Real Key
                 r.delete(real_key)
             else:
-                log.warning(f"[RedisEvict] Real key {real_key} -> {local_path} not found or already deleted (shadow: {key})")
+                log.warning(f"[RedisEvict] shadow key {key} point to Real key {real_key} -> {local_path} not found or already deleted (shadow: {key})")
 
         except Exception as e:
             log.exception(f"[RedisEvict] Failed to clean up {local_path}: {e}")

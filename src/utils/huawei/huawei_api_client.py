@@ -1,4 +1,5 @@
 # utils/huawei/core/huawei_api_client.py
+import asyncio
 import time
 import hmac
 import hashlib
@@ -6,56 +7,73 @@ import base64
 import aiohttp
 from typing import Optional, Dict, Any
 from urllib.parse import urlparse, quote
+import httpx
+from utils.log_utils import logger as log
+from huaweicloudsdkmpc.v1 import MpcClient
+
 
 class HuaweiApiClient:
-    """
-    华为云 API 基类
-    提供：
-    - AK/SK 管理
-    - 基础签名能力
-    - 异步 HTTP 请求封装
-    供各服务类继承
-    """
-
-    def __init__(self, ak: str, sk: str, region: str, project_id: Optional[str] = None):
+    def __init__(self, ak: str, sk: str, region: str, project_name: str):
         self.ak = ak
         self.sk = sk
         self.region = region
-        self.project_id = project_id
-        self.session = aiohttp.ClientSession()  # 可共享
+        self.project_name = project_name
 
-    async def close(self):
-        """关闭 aiohttp 会话"""
-        await self.session.close()
+        # Token 相关
+        self._token: Optional[str] = None
+        self._token_expire_at: float = 0.0  # unix timestamp
+        # 初始化 asyncio.Lock，用于 token 刷新时保证互斥
+        self._token_lock = asyncio.Lock()
 
-    # -------------------------------
-    # HTTP 请求封装
-    # -------------------------------
-    async def request(
-        self,
-        method: str,
-        url: str,
-        headers: Optional[Dict[str, str]] = None,
-        body: Optional[Any] = None,
-        timeout: int = 30
-    ) -> Dict[str, Any]:
+
+    def _token_expired(self) -> bool:
+        return not self._token or time.time() > self._token_expire_at - 60  # 提前 1 分钟刷新
+
+    async def refresh_token(self) -> str:
         """
-        发送 HTTP 请求
+        使用 AK/SK 获取 IAM Token（httpx 版本）
+        Token 有效期：内部固定 20 小时
         """
-        headers = headers or {}
+        url = f"https://iam.{self.region}.myhuaweicloud.com/v3/auth/tokens"
 
-        async with self.session.request(
-            method=method.upper(),
-            url=url,
-            headers=headers,
-            json=body,
-            timeout=timeout
-        ) as resp:
-            resp_json = await resp.json(content_type=None)
-            if resp.status >= 400:
-                raise RuntimeError(f"[HuaweiApiClient] {resp.status} {resp_json}")
-            return resp_json
+        payload = {
+            "auth": {
+                "identity": {
+                    "methods": ["password"],
+                    "password": {
+                        "user": {
+                            "name": "linnuocheng",
+                            "password": "APTX-4869a",
+                            "domain": {"name": "mpn199"}
+                        }
+                    }
+                },
+                "scope": {
+                    "project": {
+                        "name": self.project_name
+                    }
+                }
+            }
+        }
+        log.info(f"pay load: {payload}")
+        async with httpx.AsyncClient(timeout=30) as client:
+            try:
+                resp = await client.post(url, json=payload)
+                resp.raise_for_status()
+            except httpx.RequestError as e:
+                raise RuntimeError(f"[HuaweiApiClient] token request failed: {e}")
+            except httpx.HTTPStatusError:
+                text = resp.text
+                raise RuntimeError(f"[HuaweiApiClient] get token failed: {resp.status_code} {text}")
 
+        token = resp.headers.get("X-Subject-Token")
+        if not token:
+            raise RuntimeError("[HuaweiApiClient] X-Subject-Token not found in response headers")
+
+        self._token = token
+        self._token_expire_at = time.time() + 20 * 60 * 60  # 20 小时
+
+        return token
     # -------------------------------
     # 时间戳
     # -------------------------------
@@ -107,3 +125,9 @@ class HuaweiApiClient:
 
     async def get_task_status(self, *args, **kwargs):
         raise NotImplementedError
+
+# if __name__ == "__main__":
+#     lient = MpcClient.new_builder() \
+#         .with_credentials(credentials) \
+#         .with_region(MpcRegion.value_of(region)) \
+#         .build()
