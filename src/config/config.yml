@@ -143,7 +143,7 @@ rabbitmq:
     use_ssl: false
   prod:
     host: 192.168.0.209
-    port: 5672
+    port: 5671
     username: freeu-rabbit
     password: RootDev123
     vhost: /
