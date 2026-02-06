@@ -130,7 +130,7 @@ def process_sprite_task(self, data):
         # self.update_state(state='FAILURE', meta={'error': str(e)})
         if self.request.retries == max_retries:
             headers = {"trace_id": trace_id, "task_id": task_id}
-            video_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
+            sprite_mq_producer = rabbitmq_producer_maker()
             biz_id = 0
             try:
                 sprite_request: SpriteImageRequest = SpriteImageRequest.model_validate(task_data)  # v2 的标准做法
@@ -138,7 +138,7 @@ def process_sprite_task(self, data):
             except Exception as _:
                 pass
             failure_data = {"biz_id": biz_id, "code": 100009, "message": f"failure due to {e}"}
-            video_mq_producer.send(
+            sprite_mq_producer.send(
                 result_queue,
                 message=failure_data,
                 headers=headers
@@ -185,7 +185,7 @@ def _process_sprite_internal(sprite_request: SpriteImageRequest, task_id: str = 
     log.info(f"{sprite_request.biz_id} 任务完成: {result_data}")
 
     headers = {"trace_id": trace_id, "task_id": task_id}
-    sprite_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
+    sprite_mq_producer = rabbitmq_producer_maker()
     sprite_mq_producer.send(result_queue, message=result_data, headers = headers)
     log.info(f"成功推送到{result_queue}队列")
     

@@ -12,7 +12,7 @@ from models.pydantic_models.response.transcode_video_response import TranscodeVi
 from service.transcode_video_service import transcode_video_service
 from service.transcode_video_service_v2 import transcode_video_service_v2
 from utils.general_utils import random_with_system_time
-from utils.mq.rabbit_mq_producer import mq_producer, MQProducer
+from utils.mq.rabbit_mq_producer import mq_producer, MQProducer, rabbitmq_producer_maker
 from utils.post_utils import post
 from utils.tencent.cos_uploader import vod_upload_to_cos
 
@@ -121,7 +121,7 @@ def process_transcode_task(self, data):
         # self.update_state(state='FAILURE', meta={'error': str(e)})
         if self.request.retries == max_retries:
             headers = {"trace_id": trace_id, "task_id": task_id}
-            video_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
+            transcode_mq_producer = rabbitmq_producer_maker()
             biz_id = 0
             try:
                 transcode_request: TranscodeVideoRequest = TranscodeVideoRequest.model_validate(task_data)  # v2 的标准做法
@@ -129,7 +129,7 @@ def process_transcode_task(self, data):
             except Exception as _:
                 pass
             failure_data = {"biz_id": biz_id, "code": 100009, "message": f"failure due to {e}"}
-            video_mq_producer.send(
+            transcode_mq_producer.send(
                 result_queue,
                 message=failure_data,
                 headers=headers
@@ -175,12 +175,21 @@ def _process_transcode_internal(transcode_request: TranscodeVideoRequest, task_i
     log.info(f"{transcode_request.biz_id} 任务完成: {result_data}")
 
     headers = {"trace_id": trace_id, "task_id": task_id}
-    transcode_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
+    transcode_mq_producer = rabbitmq_producer_maker()
     transcode_mq_producer.send(result_queue, message=result_data, headers = headers)
     log.info(f"成功推送到{result_queue}队列")
     
     return result_data
 
+if __name__ == "__main__":
+    rabbit_mq_config = my_config.get("rabbit_mq", {}).get(ENV, {})
+    host = rabbit_mq_config.get("host", "123.60.104.114")
+    password = rabbit_mq_config.get("password", "RootDev123")
+    port = rabbit_mq_config.get("port", 5672)
+    username = rabbit_mq_config.get("username", "root")
+
+    video_mq_producer = MQProducer(host, port, username, password)
+    print(host, password, port, username)
 
 
 

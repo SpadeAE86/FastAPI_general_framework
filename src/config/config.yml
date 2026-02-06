@@ -140,10 +140,10 @@ rabbitmq:
     password: RootDev123
     vhost: /
   prod:
-    host: rabbitmq-prod.example.com
+    host: 192.168.0.209
     port: 5672
-    username: user
-    password: pass
+    username: freeu-rabbit
+    password: RootDev123
     vhost: /
 
 huawei_ces:

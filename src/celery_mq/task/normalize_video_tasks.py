@@ -7,7 +7,7 @@ from datetime import datetime
 from celery.signals import worker_shutting_down
 
 from models.pydantic_models.response.base_response import BaseResponse
-from utils.mq.rabbit_mq_producer import mq_producer, MQProducer
+from utils.mq.rabbit_mq_producer import mq_producer, MQProducer, rabbitmq_producer_maker
 from celery_mq.celery_app import celery_app
 from celery_mq.task_manager import task_manager
 from config.config import my_config
@@ -152,7 +152,7 @@ def process_video_task(self, data):
         # self.update_state(state='FAILURE', meta={'error': str(e)})
         if self.request.retries == max_retries:
             headers = {"trace_id": trace_id, "task_id": task_id}
-            video_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
+            video_mq_producer = rabbitmq_producer_maker()
             biz_id = 0
             request_data = None
             try:
@@ -221,7 +221,7 @@ def _process_video_internal(mixed_config: MixedVideoRequest, task_id: str = "", 
     log.info(f"{mixed_config.biz_id} 任务完成: {result_data}")
     resp.biz_id = resp.biz_id
     headers = {"trace_id": trace_id, "task_id": task_id}
-    video_mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
+    video_mq_producer = rabbitmq_producer_maker()
     video_mq_producer.send(result_queue, message=result_data, headers = headers)
     log.info(f"成功推送到{result_queue}队列")
     

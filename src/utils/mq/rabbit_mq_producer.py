@@ -3,6 +3,9 @@ from typing import Optional, Dict, Any
 
 import pika
 
+from config.config import my_config, ENV
+
+
 class MQProducer:
     def __init__(
         self,
@@ -70,4 +73,15 @@ class MQProducer:
             )
         )
 
+def rabbitmq_producer_maker() -> MQProducer:
+    rabbit_mq_config = my_config.get("rabbit_mq", {}).get(ENV, {})
+    host = rabbit_mq_config.get("host", "123.60.104.114")
+    password = rabbit_mq_config.get("password", "RootDev123")
+    port = rabbit_mq_config.get("port", 5672)
+    username = rabbit_mq_config.get("username", "root")
+
+    mq_producer = MQProducer(host, port, username, password)
+    return mq_producer
+
 mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123')
+
