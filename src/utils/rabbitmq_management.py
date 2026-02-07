@@ -82,7 +82,8 @@ class RabbitMQManagementClient:
             response = requests.get(
                 url,
                 auth=self.auth,
-                timeout=5
+                timeout=5,
+                verify=False
             )
             
             if response.status_code == 200:
