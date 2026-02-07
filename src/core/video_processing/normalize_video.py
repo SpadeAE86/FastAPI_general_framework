@@ -165,7 +165,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     # 旋转90度交换视频长宽
     if abs(rot) in [90, 270]:
         video_width, video_height = video_height, video_width
-    log.info(f"start normalize {video} with :", video_width, video_height, "|target:", width, height)
+    log.info(f"start normalize {video} with :, {video_width}, {video_height}, |target:, {width}, {height}")
 
 
     # 创建文件夹
