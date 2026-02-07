@@ -17,7 +17,7 @@ from models.pydantic_models.response.sprite_image_response import SpriteImageRes
 from service.sprite_service import sprite_service
 from utils.ffmpeg_utils import extract_audio
 from utils.general_utils import random_with_system_time
-from utils.mq.rabbit_mq_producer import mq_producer, MQProducer
+from utils.mq.rabbit_mq_producer import mq_producer, MQProducer, rabbitmq_producer_maker
 from utils.post_utils import post
 
 log = logging.getLogger(__name__)
