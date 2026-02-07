@@ -134,6 +134,7 @@ rabbitmq:
     password: RootDev123
     vhost: /
     use_ssl: false
+    management_port: 15672
   test:
     host: 123.60.104.114
     port: 5672
@@ -141,6 +142,7 @@ rabbitmq:
     password: RootDev123
     vhost: /
     use_ssl: false
+    management_port: 15672
   prod:
     host: 192.168.0.209
     port: 5671
@@ -148,6 +150,7 @@ rabbitmq:
     password: RootDev123
     vhost: /
     use_ssl: true
+    management_port: 15671
 
 huawei_ces:
   local:

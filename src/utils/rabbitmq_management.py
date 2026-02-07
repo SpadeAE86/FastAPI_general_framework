@@ -12,29 +12,37 @@ from utils.log_utils import logger as log
 
 class RabbitMQManagementClient:
     """RabbitMQ Management API 客户端"""
-    
+
     def __init__(self):
-        """
-        初始化 RabbitMQ Management API 客户端
-        
-        从配置文件中读取连接信息：
-        - host: RabbitMQ 服务器地址
-        - username: 用户名
-        - password: 密码
-        - vhost: 虚拟主机（默认为 "/"）
-        """
         rabbitmq_config = my_config.get("rabbitmq", {}).get(ENV, {})
+
         self.host = rabbitmq_config.get("host", "localhost")
         self.username = rabbitmq_config.get("username", "guest")
         self.password = rabbitmq_config.get("password", "guest")
         self.vhost = rabbitmq_config.get("vhost", "/")
-        self.management_port = 15672  # Management API 默认端口
-        
-        # 构建基础 URL
-        self.base_url = f"http://{self.host}:{self.management_port}/api"
-        
+
+        # 新增：是否使用 SSL
+        self.use_ssl = rabbitmq_config.get("use_ssl", False)
+
+        # Management API 端口
+        self.management_port = rabbitmq_config.get(
+            "management_port",
+            15671 if self.use_ssl else 15672
+        )
+
+        # 根据 use_ssl 选择 scheme
+        scheme = "https" if self.use_ssl else "http"
+
+        # 构建基础 URL（关键点）
+        self.base_url = f"{scheme}://{self.host}:{self.management_port}/api"
+
         # HTTP Basic Auth
         self.auth = HTTPBasicAuth(self.username, self.password)
+
+        log.info(
+            f"RabbitMQ Management API initialized: "
+            f"base_url={self.base_url}, vhost={self.vhost}, ssl={self.use_ssl}"
+        )
     
     def _encode_vhost(self, vhost: str) -> str:
         """
@@ -135,23 +143,80 @@ class RabbitMQManagementClient:
         queue_info = self.get_queue_info(queue_name)
         return queue_info is not None
 
-if __name__ == "__main__":
-    # 替换为你的 RabbitMQ 管理端信息
-    host = "123.60.104.114"
-    port = 15672
-    username = "guest"
-    password = "guest"
-    vhost = "/"  # 默认 vhost
+def encode_vhost(vhost: str) -> str:
+    if vhost == "/":
+        return "%2F"
+    return quote(vhost, safe="")
 
-    rabbit_api = RabbitMQManagementClient()
+rabbit_mq_config = my_config.get("rabbitmq", {}).get(ENV, {})
 
-    # 测试几个队列
-    test_queues = ["local_video_queue", "nonexistent_queue"]
+def connect_management_api():
+    # ===== 你的 prod 配置 =====
+    host = "1.94.126.253"
 
-    for q in test_queues:
-        print(f"\n==== 测试队列: {q} ====")
-        info = rabbit_api.get_queue_info(q)
-        if info:
-            print(f"队列信息: messages={info.get('messages')}, consumers={info.get('consumers')}")
+    management_port = 15672   # SSL management 默认端口
+    username = "freeu-rabbit"
+    password = "RootDev123"
+    vhost = "/"
+    queue_name = "local_video_queue"
+
+    use_ssl = True
+
+    scheme = "https" if use_ssl else "http"
+
+    encoded_vhost = encode_vhost(vhost)
+
+    url = f"{scheme}://{host}:{management_port}/api/queues/{encoded_vhost}/{queue_name}"
+
+    print("请求 URL:", url)
+
+    try:
+        response = requests.get(
+            url,
+            auth=HTTPBasicAuth(username, password),
+            timeout=5,
+
+            # ⚠️ 内网自签证书通常需要这个
+            verify=False
+        )
+
+        print("status:", response.status_code)
+
+        if response.status_code == 200:
+            data = response.json()
+
+            print("=== 成功 ===")
+            print("messages:", data.get("messages"))
+            print("messages_ready:", data.get("messages_ready"))
+            print("messages_unacknowledged:", data.get("messages_unacknowledged"))
+            print("consumers:", data.get("consumers"))
+
         else:
-            print("未获取到队列信息")
+            print("失败:", response.text)
+
+    except Exception as e:
+        print("异常:", e)
+
+
+if __name__ == "__main__":
+    connect_management_api()
+# if __name__ == "__main__":
+#     # 替换为你的 RabbitMQ 管理端信息
+#     host = "123.60.104.114"
+#     port = 15672
+#     username = "guest"
+#     password = "guest"
+#     vhost = "/"  # 默认 vhost
+#
+#     rabbit_api = RabbitMQManagementClient()
+#
+#     # 测试几个队列
+#     test_queues = ["local_video_queue", "nonexistent_queue"]
+#
+#     for q in test_queues:
+#         print(f"\n==== 测试队列: {q} ====")
+#         info = rabbit_api.get_queue_info(q)
+#         if info:
+#             print(f"队列信息: messages={info.get('messages')}, consumers={info.get('consumers')}")
+#         else:
+#             print("未获取到队列信息")
