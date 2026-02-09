@@ -353,7 +353,6 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
             log.info(f"{idx} audio with offset {audio_config[idx].offset}, start={audio_config[idx].start}, end={audio_config[idx].end}, process_so_far={processed_so_far}")
             output = f"bgm{idx}"
             crop_offset_str = ""
-            dur = audio_config[idx].end - audio_config[idx].start
             if audio_config[idx].offset - processed_so_far >= video_limit_duration:
                 log.info(f"{idx} video with offset {audio_config[idx].offset} - {processed_so_far} is longer then video duration {video_limit_duration}, break earlier")
                 break
