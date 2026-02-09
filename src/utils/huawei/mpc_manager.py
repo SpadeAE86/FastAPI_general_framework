@@ -169,7 +169,7 @@ class HuaweiMPCClient:
             self,
             task_id: int,
             poll_interval: int = 5,
-            timeout: int = 600
+            timeout: int = 1400
     ) -> Optional[List[TranscodeOutput]]:
         """
         轮询转码任务，直到状态为 SUCCEEDED
