@@ -50,6 +50,15 @@ def redis_evict_listener():
             # 获取真实数据，因为 Real Key 的 TTL 比 Shadow Key 长，理论上此时一定还在
             local_path = r.get(real_key)
             if local_path:
+                # 防止竞态条件：检查 real_key 的剩余 TTL
+                # 如果 TTL > 3500 秒，说明 data key 刚刚被刷新过（原始 TTL = 600 + 3600 = 4200 秒）
+                # 这意味着有新的下载刚刚发生，当前过期的 shadow key 是旧的、过时的
+                # 此时不应删除文件，而是让新的 shadow key 在其 TTL 到期时再处理
+                remaining_ttl = r.ttl(real_key)
+                if remaining_ttl > 3500:
+                    log.warning(f"[RedisEvict] SKIP deletion: {local_path} (shadow key {key} expired, but real key {real_key} has high TTL={remaining_ttl}s, indicating a recent refresh)")
+                    continue  # 跳过删除，让最新的 shadow key 负责清理
+                
                 if os.path.exists(local_path):
                     os.remove(local_path)
                     log.info(f"[RedisEvict] removed {local_path} (triggered by {key})")
