@@ -66,7 +66,7 @@ async def transcode_video_service_v2(
     outputs: list[TranscodeOutput] = await client.wait_transcoding_success(
         task_id=int(task_id),
         poll_interval=5,
-        timeout=600
+        timeout=1400
     )
 
     if not outputs or len(outputs) < 2:
