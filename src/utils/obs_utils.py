@@ -88,22 +88,24 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
         
         # 使用 Lua 脚本保证 GET 和 EXPIRE 的原子性，避免竞争条件
         # 如果 Key 存在，则刷新且返回；否则返回 nil
+        # ARGV[1] = data key TTL (ttl + 3600，确保 shadow 过期时 data 还在)
+        # ARGV[2] = shadow key TTL (ttl，实际触发器)
         lua_script = """
         if redis.call("EXISTS", KEYS[1]) == 1 then
             redis.call("EXPIRE", KEYS[1], ARGV[1])
-            redis.call("EXPIRE", KEYS[1] .. ":shadow", ARGV[1])
+            redis.call("EXPIRE", KEYS[1] .. ":shadow", ARGV[2])
             return redis.call("GET", KEYS[1])
         else
             return nil
         end
         """
         try:
-            cached_path = await redis_client.eval(lua_script, 1, cache_key, ttl)
+            cached_path = await redis_client.eval(lua_script, 1, cache_key, ttl + 3600, ttl)
         except Exception as e:
             log.warning(f"Lua script failed: {e}, falling back to non-atomic operation")
             cached_path = await redis_client.get(cache_key)
             if cached_path:
-                await redis_client.expire(cache_key, ttl)
+                await redis_client.expire(cache_key, ttl + 3600)
                 await redis_client.expire(f"{cache_key}:shadow", ttl)
 
         if cached_path:
