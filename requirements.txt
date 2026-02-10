@@ -92,4 +92,5 @@ wheel==0.45.1
 tencentcloud-sdk-python
 cos-python-sdk-v5
 huaweicloudsdkmpc
+diskcache
 #  skywalking
