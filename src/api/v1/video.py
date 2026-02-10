@@ -43,7 +43,7 @@ async def create_video_task(mixed_config: MixedVideoRequest, trace_id = Header(N
         # 获取任务状态
         task_status = _task_manager.get_task_status(task_id)
         
-        log.info(f"任务创建成功: task_id={task_id}, user_id={user_id}")
+        log.info(f"混剪任务创建成功: task_id={task_id}, user_id={user_id}, biz_id={mixed_config.biz_id}")
         
         return {
             "code": 200,
@@ -52,7 +52,8 @@ async def create_video_task(mixed_config: MixedVideoRequest, trace_id = Header(N
                 "task_id": task_id,
                 "status": task_status.get("status") if task_status else "pending",
                 "created_at": task_status.get("created_at") if task_status else None,
-                "trace_id": trace_id
+                "trace_id": trace_id,
+                "biz_id": mixed_config.biz_id,
             }
         }
     except Exception as e:
