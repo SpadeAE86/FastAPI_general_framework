@@ -319,8 +319,8 @@ def create_subtitle_png(
     content_img = img
 
     if scale != 1.0:
-        new_width = int(img.width * scale / 100)
-        new_height = int(img.height * scale / 100)
+        new_width = int(img.width * scale)
+        new_height = int(img.height * scale)
         content_img = img.resize((new_width, new_height), Image.LANCZOS)
 
     if rot != 0:
@@ -411,10 +411,10 @@ if __name__ == "__main__":
         )
     ]
 
-    font_path = "baotuxiaobaiti"
+    font_path = "Songti SC Regular"
     # font_path = f"./fonts/{f2f["baotuxiaobaiti"]}"
     img = create_subtitle_png(
-        "你好🌟世界🫶再见🐬🔒，你好🌟世界🫶再见🐬🔒，你好🌟世界🫶再见🐬🔒\n",
+        "一口沦陷！",
         font_path,
         anchor_x=960,
         anchor_y=900,
@@ -422,11 +422,13 @@ if __name__ == "__main__":
         font_color=(255, 255, 0, 255),
         outline_color=(0, 0, 255, 255),
         outline_width=3,
+        png_width=640,
+        png_height=360,
         background_style=2,  # 改成 1 看每行背景
         background_color=(85, 68, 136, 119),
         background_pad=20,
         save_path="subtitle_final.png",
-        scale = 100,
+        scale = 1,
         rot=0,
-        word_config= word_config
+        word_config= None
     )
