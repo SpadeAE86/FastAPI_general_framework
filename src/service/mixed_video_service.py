@@ -205,14 +205,14 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         log.info(f"upload tasks {time.time() - upload_start} 秒")
 
         # 文件回收
-        # if cap_helper:
-        #     cap_helper.delete_cap_png()
+        if cap_helper:
+            cap_helper.delete_cap_png()
         # 清空中间文件夹和结果文件夹
         if mixed_config.obs_video_path_list:
-            pass
+            # pass
             # asyncio.create_task(delete_folder(os.path.join("./video", project_id)))
-            # asyncio.create_task(delete_folder(os.path.join("./work", project_id)))
-            # asyncio.create_task(delete_folder(os.path.join("./final", project_id)))
+            asyncio.create_task(delete_folder(os.path.join("./work", project_id)))
+            asyncio.create_task(delete_folder(os.path.join("./final", project_id)))
 
         # 计算时长
         if mixed_config.transition_config:

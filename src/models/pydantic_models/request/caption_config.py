@@ -50,7 +50,7 @@ class Cap(BaseModel):
     absolute_x: Optional[float] = None
     absolute_y: Optional[float] = None
     outline_width: Optional[float] = Field(ge=0, default=None)
-    scale: float = Field(default=100, gt=0)
+    scale: float = Field(default=1, gt=0, lt=5)
     font_size: Optional[int] = Field(default=30)
     font_type: Literal[*font_options] = None
     color: Optional[str] = None
