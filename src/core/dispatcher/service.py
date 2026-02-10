@@ -226,6 +226,7 @@ class DispatcherService:
             # 流控检查（task_type 级别）
             if not flow_control.get(task_type, True):
                 log.info(f"任务类型被流控，暂不分发: task_type={task_type}")
+                task_manager.add_task_to_user_queue(0, task_items[0], task_items[1])
                 continue
 
             # 先尝试 batch 发布
