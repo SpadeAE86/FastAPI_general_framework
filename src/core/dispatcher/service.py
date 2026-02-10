@@ -316,7 +316,7 @@ class DispatcherService:
             # ✅ 2. for 里只做「签名构造」
             task_signatures = []
             for task_id, task_data in task_items:
-                log.info(f"批量发布: {task_id}-{task_data}->{task_type},queue={queue_name}")
+                log.info(f"批量发布: {task_id}-{task_data}->{task_type},queue={ENV}_{queue_name}")
                 trace_id = task_data.get("trace_id", "")
                 sig = process_function.s(task_data).set(
                     queue=f"{ENV}_{queue_name}",
