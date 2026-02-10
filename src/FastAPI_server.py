@@ -39,11 +39,6 @@ async def lifespan(app: FastAPI):
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=50)
     loop.set_default_executor(executor)
     log.info("Default thread pool executor set to max_workers=50")
-    memory.inject_fastapi_loop(loop)
-    if my_config["env"] == "local" and os.path.exists("memory.json"):
-        with open("memory.json") as f:
-            data = json.load(f)
-        memory.load_memory(data)
     log.info("memory loaded")
     log.info(f"established {len(db_manager.engines)} connections to mysql database")
     
