@@ -226,7 +226,14 @@ class DispatcherService:
             # 流控检查（task_type 级别）
             if not flow_control.get(task_type, True):
                 log.info(f"任务类型被流控，暂不分发: task_type={task_type}")
-                task_manager.add_task_to_user_queue(0, task_items[0], task_items[1])
+                # 将被流控的任务塞回用户队列
+                for task_id, task_data in task_items:
+                    user_id = task_data.get("user_id", "")
+                    if user_id:
+                        task_manager.add_task_to_user_queue(user_id, task_id, task_data)
+                        log.info(f"流控回退任务到用户队列: task_id={task_id}, user_id={user_id}")
+                    else:
+                        log.warning(f"流控回退失败，task_data 中缺少 user_id: task_id={task_id}")
                 continue
 
             # 先尝试 batch 发布
