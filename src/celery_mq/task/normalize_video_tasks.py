@@ -60,11 +60,10 @@ def process_video_task(self, data):
     """
 
     trace_id: str = self.request.headers.get("trace_id", "")
-    log.info(f"接收到{data}请求, trace_id={trace_id}")
+
 
     # 1. 解析参数
     task_id = self.request.headers.get("task_id", "")
-    task_data = None
     
     if isinstance(data, str):
         # 旧模式兼容
@@ -95,7 +94,7 @@ def process_video_task(self, data):
     # 心跳线程控制
     heartbeat_stop_event = threading.Event()
     heartbeat_thread = None
-
+    log.info(f"接收到{data}请求, trace_id={trace_id}, task_id={task_id}")
     try:
         if is_tracked:
             # 注册进程到Redis
