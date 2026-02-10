@@ -409,13 +409,7 @@ def save_config():
 
     
 
-import uuid
 my_config = load_config()
 ENV = my_config['env']
-VIDEO_CACHE_BASE_PREFIX = f"aigc_video_cache_{ENV}"
-# 生成唯一标识，避免多进程/多实例冲突，同时作为清理前缀的依据
-INSTANCE_ID = str(uuid.uuid4())[:8]
-VIDEO_CACHE_PREFIX = f"{VIDEO_CACHE_BASE_PREFIX}_{INSTANCE_ID}:"
-log.info(f"cache prefix: {VIDEO_CACHE_PREFIX}")
 # 调用外部接口并更新 CosyVoice_voice
 # CosyVoice_voice = fetch_CosyVoice_voice() or CosyVoice_voice  # 如果外部接口失败，则保留原有数据

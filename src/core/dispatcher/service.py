@@ -268,6 +268,9 @@ class DispatcherService:
 
         # 第三步：批量更新任务状态（valid_tasks: Dict[str, List[Tuple[str, dict]]]）
         for task_type, task_items in valid_tasks.items():
+            # 被流控的任务类型不标记为 dispatched
+            if not flow_control.get(task_type, True):
+                continue
             for task_id, _ in task_items:
                 try:
                     task_manager.update_task_status(task_id, "dispatched")

@@ -6,12 +6,11 @@ from typing import List, Optional
 
 from obs import ObsClient
 
-from config.config import ENV, VIDEO_CACHE_PREFIX, my_config
+from config.config import ENV, my_config
 from exceptions.ServiceException import ServiceException
 from utils.log_utils import logger as log
-from utils.memory_utils import memory
+from utils.cache_utils import get_cached_path, set_cached_path
 
-from redis.asyncio import Redis
 # === OBS 配置 ===
 BUCKET_NAME = 'freeuuu'
 OBS_BASE_URL = 'https://freeuuu.obs.cn-east-3.myhuaweicloud.com'
@@ -54,73 +53,28 @@ def sha256_file(filename, chunk_size=512):
 
 async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
     """
-    从 OBS 下载文件并保存在本地指定目录。
+    从 OBS 下载文件并保存在本地指定目录，使用 diskcache 管理本地缓存。
 
-    :param filename: 要下载的文件名（不含路径）
-    :param obs_prefix: OBS 上的前缀路径
-    :param save_dir: 本地保存目录，默认当前目录
+    :param path: OBS 对象路径
+    :param save_dir: 本地保存目录，默认 ./obs_video
     :return: 本地完整文件路径
     """
     filename = os.path.basename(path)
-    # 构造 OBS 中的对象 Key
     local_path = os.path.join(save_dir, filename)
     fn, ext = os.path.splitext(filename)
     if not ext.lower() in [".mp4", ".mov", ".avi", ".wav", ".mp3", ".MP4", ".qt"]:
         raise ServiceException(code=461, message=f"{filename}文件不是合法格式")
-    # 确保保存目录存在
     os.makedirs(save_dir, exist_ok=True)
 
-    # 下载文件
     try:
-        ttl = 600  # 5 分钟
-        cache_key = f"{VIDEO_CACHE_PREFIX}{path}"
-
-        redis_client = Redis(
-            host=my_config["redis"][ENV]["host"],
-            port=my_config["redis"][ENV]["port"],
-            password=my_config["redis"][ENV]["password"],
-            decode_responses=True,
-            db=my_config["redis"][ENV]["database"],
-            socket_connect_timeout=3,
-            socket_timeout=3,
-            max_connections=10,
-        )
-        
-        # 使用 Lua 脚本保证 GET 和 EXPIRE 的原子性，避免竞争条件
-        # 如果 Key 存在，则刷新且返回；否则返回 nil
-        # ARGV[1] = data key TTL (ttl + 3600，确保 shadow 过期时 data 还在)
-        # ARGV[2] = shadow key TTL (ttl，实际触发器)
-        lua_script = """
-        if redis.call("EXISTS", KEYS[1]) == 1 then
-            redis.call("EXPIRE", KEYS[1], ARGV[1])
-            redis.call("EXPIRE", KEYS[1] .. ":shadow", ARGV[2])
-            return redis.call("GET", KEYS[1])
-        else
-            return nil
-        end
-        """
-        try:
-            cached_path = await redis_client.eval(lua_script, 1, cache_key, ttl + 3600, ttl)
-        except Exception as e:
-            log.warning(f"Lua script failed: {e}, falling back to non-atomic operation")
-            cached_path = await redis_client.get(cache_key)
-            if cached_path:
-                await redis_client.expire(cache_key, ttl + 3600)
-                await redis_client.expire(f"{cache_key}:shadow", ttl)
-
+        # 查询 diskcache 缓存（多进程安全，自带 TTL 续期）
+        cached_path = await asyncio.to_thread(get_cached_path, path)
         if cached_path:
-            log.info(f"[redis cache] path {path} exist, reuse download: {cached_path}")
-            log.info("[redis cache] refresh key (atomic)...")
             return cached_path
 
+        # 缓存未命中，从 OBS 下载
         start = time.time()
         log.info(f"{fn}开始下载")
-        if path in memory:
-            local_path = memory[path]
-            log.info(f"path {path} exist, reuse download: {local_path}")  # 使用缓存
-            log.info("refresh key...")
-            memory.touch(path, local_path)
-            return local_path
 
         resp = await asyncio.to_thread(obs_client.getObject, bucketName=BUCKET_NAME, objectKey=path,
                                        downloadPath=local_path)
@@ -131,18 +85,14 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
             log.debug(f"requestId: {resp.requestId}")
             log.info(f"{fn}下载成功")
             log.info(f"{local_path}:{sha256_file(local_path)}")
-            log.info(f"add to memory: {path} {local_path}")
-            memory[path] = local_path  # 创建缓存
-            # 使用 Shadow Key 模式：
-            # 1. 存真实数据，TTL 稍微长一点（比如 +1 小时），确保 Shadow Key 过期时数据还在
-            await redis_client.setex(cache_key, ttl + 3600, local_path)
-            # 2. 存 Shadow Key，TTL 为实际过期时间 (300s)
-            # 值无所谓，设为 1 即可
-            await redis_client.setex(f"{cache_key}:shadow", ttl, "1")
-            log.info(f"[redis cache] add to redis: {cache_key} (data) & {cache_key}:shadow (trigger) -> {local_path}")
+
+            # 写入 diskcache 缓存
+            await asyncio.to_thread(set_cached_path, path, local_path)
             return local_path
         else:
             raise ServiceException(code=460, message=f"obs下载异常，状态码{resp.status}")
+    except ServiceException:
+        raise
     except Exception as e:
         raise ServiceException(code=440, message=f"obs下载异常，请检查{filename}文件是否存在", data=str(e))
 
