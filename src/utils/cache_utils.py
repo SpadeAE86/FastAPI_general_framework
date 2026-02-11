@@ -32,18 +32,9 @@ class OBSFileDisk(Disk):
         # 这里的 directory 实际上是 cache 的数据库目录
         super().__init__(directory, **configs)
 
-    def put(self, key, value):
-        """存储逻辑：value 预期是本地文件的绝对路径"""
-        return super().put(key, value)
-
-    def fetch(self, mode, filename, value, read):
-        """读取逻辑"""
-        return super().fetch(mode, filename, value, read)
-
     def rem(self, value):
         """
-        核心魔术方法：当缓存条目被移除时触发。
-        value 是我们存储在 cache 中的本地文件路径。
+        当条目被删除时自动删除物理文件
         """
         if value and isinstance(value, str) and os.path.exists(value):
             try:
@@ -51,7 +42,7 @@ class OBSFileDisk(Disk):
                 log.info(f"[DiskCache] 物理文件已自动清理: {value}")
             except Exception as e:
                 log.error(f"[DiskCache] 物理文件清理失败: {value}, error: {e}")
-        # 调用父类方法完成元数据清理
+
         super().rem(value)
 
 # --- 初始化全局缓存 ---
