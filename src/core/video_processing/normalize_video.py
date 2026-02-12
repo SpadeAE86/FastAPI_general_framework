@@ -204,6 +204,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         log.info(f"{max_len - start_time}/{duration} >=5, make extra cropping ")  #huristic
         segment_result: SegmentResult = quick_segment(segment, vindex, segment_dir, start_time, max_len)  #快速裁切
         segment = segment_result.segment
+        segment_to_remove.append(segment)
         start_time = segment_result.start_time
         max_len = segment_result.end_time
 

@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api import *
 from utils.log_utils import logger as log
 from utils.obs_utils import *
+
 from config.config import *
 from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor, as_completed
