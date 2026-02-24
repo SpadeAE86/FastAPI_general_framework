@@ -7,7 +7,7 @@ from typing import Optional
 import redis
 from config.config import my_config, ENV
 from utils.log_utils import logger as log
-
+import redis.asyncio as redis
 
 class RedisClientFactory:
     """
@@ -89,3 +89,87 @@ def get_redis_client() -> redis.Redis:
         redis.Redis: Redis 客户端实例
     """
     return RedisClientFactory.get_client()
+
+class AsyncRedisClientFactory:
+    """
+    Redis 异步客户端工厂（单例模式）
+
+    使用工厂模式提供统一的 Redis async 客户端实例，
+    确保整个应用使用同一个连接池。
+
+    """
+
+    _instance: Optional[redis.Redis] = None
+    _initialized: bool = False
+
+    @classmethod
+    async def get_client(cls) -> redis.Redis:
+        """
+        获取 Redis 异步客户端实例
+
+        Returns:
+            redis.Redis: Redis async 客户端实例
+
+        Raises:
+            redis.ConnectionError: 无法连接到 Redis 服务器
+        """
+        if cls._instance is None:
+            cls._instance = await cls._create_client()
+            cls._initialized = True
+        return cls._instance
+
+    @classmethod
+    async def _create_client(cls) -> redis.Redis:
+        """
+        创建 Redis 异步客户端实例
+
+        Returns:
+            redis.Redis: 新创建的 Redis async 客户端实例
+        """
+        redis_config = my_config.get("redis", {}).get(ENV, {})
+
+        client = redis.Redis(
+            host=redis_config.get("host", "127.0.0.1"),
+            port=redis_config.get("port", 6379),
+            db=redis_config.get("database", 0),
+            password=redis_config.get("password"),
+            decode_responses=True
+        )
+
+        # 测试连接
+        try:
+            await client.ping()
+            log.info(
+                f"Redis async 连接成功: "
+                f"{redis_config.get('host', '127.0.0.1')}:"
+                f"{redis_config.get('port', 6379)}"
+            )
+        except redis.ConnectionError as e:
+            log.error(f"Redis async 连接失败: {e}")
+            raise
+
+        return client
+
+    @classmethod
+    async def reset(cls) -> None:
+        """
+        重置客户端实例（主要用于测试 / reload）
+        """
+        if cls._instance is not None:
+            try:
+                await cls._instance.close()
+            except Exception:
+                pass
+
+        cls._instance = None
+        cls._initialized = False
+
+
+async def get_async_redis_client() -> redis.Redis:
+    """
+    获取 Redis 异步客户端的便捷函数
+
+    Returns:
+        redis.Redis: Redis async 客户端实例
+    """
+    return await AsyncRedisClientFactory.get_client()

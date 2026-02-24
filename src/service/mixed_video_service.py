@@ -56,8 +56,13 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         start_1 = time.time()  # 业务开始时间
         log.info(f"download takes {start_1 - download_start} seconds")  # 打印下载时间
         video_list = [os.path.abspath(p) for p in video_list]  # 获取视频全局路径方便后续不同层级的文件引用
+
+        # 创建视频本地路径和源路径的元组列表
+        video_info_and_original_path_list = zip(video_list, mixed_config.obs_video_path_list)
+
         # 获取视频信息
-        get_info_task = [asyncio.to_thread(get_video_info, v, need_rotation=True) for v in video_list]
+
+        get_info_task = [asyncio.to_thread(get_video_info, v, need_rotation=True, original_path=origin_v) for v, origin_v in video_info_and_original_path_list]
         video_info_list: List[VideoInfo] = await asyncio.gather(*get_info_task)
 
         all_video_info = [vinfo.get_info() for vinfo in video_info_list]

@@ -123,13 +123,13 @@ class CaptionDistributor:
         for idx, caption in enumerate(self.cap_config):
             subtitle_config = {}
             if transition_in > 0 and cap_cur == last_idx:
-                caption.end = min(caption.end, caption.end + transition_in / 2)  # 上一段字幕结尾延长到转场中点处
+                caption.end = caption.end + transition_in / 2  # 上一段字幕结尾延长到转场中点处
             if transition_in > 0 and cap_cur == last_idx + 1:
-                caption.start = max(caption.start, caption.start + transition_in / 2)  # 本身第一段字幕开头延后到转场中点处
+                caption.start = caption.start + transition_in / 2  # 本身第一段字幕开头延后到转场中点处
             if transition_out > 0 and cap_cur == last_idx + cap_cnt:
-                caption.end = min(caption.end, caption.end - transition_out / 2)  # 本身最后一段字幕结尾缩短到转场中点处
+                caption.end = caption.end - transition_out / 2  # 本身最后一段字幕结尾缩短到转场中点处
             if transition_out > 0 and cap_cur == last_idx + cap_cnt + 1:
-                caption.start = max(caption.start, caption.start - transition_out / 2)  # 下一段字幕开头提前到转场中点处
+                caption.start = caption.start - transition_out / 2  # 下一段字幕开头提前到转场中点处
             cap_cur += 1
             if caption.end < processed_so_far:
                 continue

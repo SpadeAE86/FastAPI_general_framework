@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os, re, math
 import random
 import shutil
@@ -13,6 +14,7 @@ from utils.log_utils import logger as log
 from exceptions.ServiceException import ServiceException
 from utils.file_utils import generate_temp_filename
 from utils.obs_utils import download_from_obs
+from utils.redis_client import AsyncRedisClientFactory, RedisClientFactory
 
 
 class VideoInfo:
@@ -247,7 +249,13 @@ class VideoInfo:
             self.codec_name,
         )
 
-def get_video_info(video_file, need_rotation = False) -> VideoInfo:
+def get_video_info(video_file, need_rotation = False, original_path="") -> VideoInfo:
+    redis_client = RedisClientFactory.get_client()
+    if original_path:
+        #从redis里查有没有该key的信息
+        info = redis_client.get(original_path)
+        video_info = json.loads(info)
+        return video_info
     command = [
         'ffprobe',
         '-v', 'error',
@@ -276,7 +284,8 @@ def get_video_info(video_file, need_rotation = False) -> VideoInfo:
                                     errors='ignore')
         if match := re.search(r"rotation of ([-+]?\d+\.?\d*) degrees", rot_result.stderr):
             rot = int(float(match.group(1)))
-    return VideoInfo(
+
+    video_info = VideoInfo(
         width=width,
         height=height,
         duration=duration,
@@ -284,6 +293,18 @@ def get_video_info(video_file, need_rotation = False) -> VideoInfo:
         pix_fmt=pix_fmt,
         codec_name=codec_name,
     )
+    redis_client.set(
+        original_path,
+        json.dumps({
+            "width": video_info.width,
+            "height": video_info.height,
+            "duration": video_info.duration,
+            "rotation": video_info.rotation,
+            "pix_format": video_info.pix_format,
+        }),
+        ex=86400
+    )
+    return video_info
 
 def run_ffmpeg_command(command, video_name=""):
     try:
