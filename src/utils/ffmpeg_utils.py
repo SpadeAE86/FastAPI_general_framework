@@ -50,6 +50,8 @@ class SplitClip:
     main: str
     fade_in: Optional[str] = None
     fade_out: Optional[str] = None
+    fade_in_duration: float = 0.0
+    fade_out_duration: float = 0.0
 
 def split_normalize(video, duration, fade_in=0, fade_out=0, transition_reserve_factor = 1.2):
     """
@@ -164,6 +166,8 @@ def split_normalize(video, duration, fade_in=0, fade_out=0, transition_reserve_f
         main=main_path,
         fade_in=fade_in_path,
         fade_out=fade_out_path,
+        fade_in_duration=buffer_in if fade_in else 0.0,
+        fade_out_duration=buffer_out if fade_out else 0.0,
     )
 
 @dataclass

@@ -9,16 +9,16 @@ from models.pydantic_models.request.caption_config import CapConfig
 from utils.ffmpeg_utils import check_audio_stream_simple, build_atempo_filter, split_normalize, SplitClip, \
     quick_segment, SegmentResult
 from utils.general_utils import run_ffmpeg_command, VideoInfo
+from core.video_processing.timeline_converter import TimelineConverter
 
 
 @dataclass
 class NormalizeResult:
     output: str                 # output_name
     duration: float
-    cache_path: str
     transition: SplitClip
 
-def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width, height, fps, cap_config: CapConfig,
+def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width, height, fps, cap_config: CapConfig,
                                    start_time=0, mute_origin=False,
                                    project_id='test', translate_x=0, translate_y=0, rotation=0, scale=1,
                                    mirror=False, speed=1, extra_filter="", processed_so_far=0, pix_fmt="yuv420p",
@@ -51,7 +51,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     video_info : VideoInfo
         视频基础信息对象，包含分辨率、时长、编码格式等元数据。
 
-    max_len : float
+    end_time : float
         当前片段允许的最大时长（秒），通常为片段结束时间。
 
     width : int
@@ -173,40 +173,32 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     subfolder = "/".join([OUTPUT_DIR, project_id])
     os.makedirs(subfolder, exist_ok=True)
 
-    # 给缓存命中的情况留口子
-    output_prefix = os.path.join(subfolder, f"normalized_{start_time}_{max_len}_")
+    output_prefix = os.path.join(subfolder, f"normalized_{start_time}_{end_time}_")
     output_name = output_prefix + str(vindex) + "_" + fname
-    base_name = os.path.join(subfolder, "normalized_" + name)
-    if cache_hit:
-        # 命中缓存，直接用缓存路径
-        output_name = base_name + ".mp4"
-    # 如果出现起始时间比结束时间晚，视为异常，未来可以挪到最外层做校验
+
     if start_time > duration:
         raise ServiceException(code=439, message=f"{video}起始时间{start_time}大于视频时长{duration}")
-    max_len = min(duration, max_len)
+    end_time = min(duration, end_time)  #主动校准结束点，不会超过视频结束时间
 
     muted_audio = []
     translate_x = translate_x * video_width
     translate_y = -translate_y * video_height
 
-    # 缓存文件路径
-    cache_video_key = f'{name}_{start_time}_{max_len}.mp4'
-    cache_video_path = f"./work/{project_id}/nocap_{vindex}_{cache_video_key}"
 
 
     # 通过I帧快速切分文件（由于I帧分布有的时候非常疏松，所以只裁切时长30秒以上并所需片段不到总时长1/5的视频，并且裁切范围）
     segment = video
     segment_to_remove = []
-    if duration>30 and duration / (max_len - start_time) >= 5:
+    if duration>30 and duration / (end_time - start_time) >= 5:
 
         segment_dir = f"{RESOURCE_DIR}/{project_id}/"
         os.makedirs(f"{segment_dir}", exist_ok=True)
-        log.info(f"{max_len - start_time}/{duration} >=5, make extra cropping ")  #huristic
-        segment_result: SegmentResult = quick_segment(segment, vindex, segment_dir, start_time, max_len)  #快速裁切
+        log.info(f"{end_time - start_time}/{duration} >=5, make extra cropping ")  #huristic
+        segment_result: SegmentResult = quick_segment(segment, vindex, segment_dir, start_time, end_time)  #快速裁切
         segment = segment_result.segment
         segment_to_remove.append(segment)
         start_time = segment_result.start_time
-        max_len = segment_result.end_time
+        end_time = segment_result.end_time
 
     end_v= "[0:v]"  #如果没滤镜就直接
 
@@ -300,13 +292,21 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         video_filter_list.append(f"{end_v}{transform_str}[no_cap_v]")
         end_v = "[no_cap_v]"
 
+    # 此时start_time在后续滤镜链中都需要用到提速后的，包括duration时长也会改变
+    start_time = float(start_time/speed)
+    end_time = float(end_time/speed)
+    duration = end_time - start_time
+    converter = TimelineConverter(processed_so_far, duration, start_time)
+
+
+
     # 字幕滤镜
     vf_text = ""
     subtitle_png_input = []
     subtitle_list = []
     if cap_helper:
         caption_distributor = CaptionDistributor(width, height, cap_config, transition_config, cap_helper, project_id)
-        subtitle_list = caption_distributor.gen_subtitle_png(processed_so_far=processed_so_far, duration=(min(max_len, duration) - start_time) / speed)
+        subtitle_list = caption_distributor.gen_subtitle_png(processed_so_far=processed_so_far, duration=duration)
 
         if sticker_config and sticker_list:
             log.info(f"sticker task=-=")
@@ -314,11 +314,11 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         cur_stream = f"{end_v}"
         for idx, subtitle_config in enumerate(subtitle_list):
             p = subtitle_config["path"]
-            start = subtitle_config["start"]
-            end = subtitle_config["end"]
+            cap_start = subtitle_config["start"]
+            cap_end = subtitle_config["end"]
             subtitle_png_input.extend(["-i", p])
             vf_text += f"[{1 + idx}:v]format=rgba,setpts=PTS-STARTPTS[sub{idx}];"
-            vf_text += f"{cur_stream}[sub{idx}]overlay=enable='between(t,{start + float(start_time/speed)},{end + float(start_time/speed) - 0.005})'"
+            vf_text += f"{cur_stream}[sub{idx}]overlay=enable='between(t,{cap_start + start_time},{cap_end + start_time - 0.005})'"
             end_label = f"overlay{idx}"
             cur_stream = f"[{end_label}]"
             if idx == len(subtitle_list) - 1:
@@ -349,25 +349,29 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         cur = len(subtitle_list)
         if mute_origin:
             cur += 1
-        video_limit_duration = (min(max_len, duration) - start_time) / speed
+
         for idx, a in enumerate(audio_path_list):
             log.info(f"{idx} audio with offset {audio_config[idx].offset}, start={audio_config[idx].start}, end={audio_config[idx].end}, process_so_far={processed_so_far}")
             output = f"bgm{idx}"
             crop_offset_str = ""
-            if audio_config[idx].offset - processed_so_far >= video_limit_duration:
-                log.info(f"{idx} video with offset {audio_config[idx].offset} - {processed_so_far} is longer then video duration {video_limit_duration}, break earlier")
-                break
-            if audio_config[idx].offset - processed_so_far < 0:
-                log.info(
-                    f"{idx} video with offset {audio_config[idx].offset} has not reach the start point {processed_so_far}, skip")
+
+            mapped = converter.map_offset_range(
+                audio_config[idx].offset,
+                audio_config[idx].start,
+                audio_config[idx].end,
+            )
+            if mapped is None:
                 continue
+            local_offset, src_start, src_end = mapped
+            local_delay_ms = local_offset * 1000
+
             audio_input.append(a)
-            if audio_config[idx].end >= 0:
-                crop_offset_str += f"atrim=start={audio_config[idx].start}:end={audio_config[idx].end},"
-            crop_offset_str += f"adelay={(audio_config[idx].offset - processed_so_far) * 1000}|{(audio_config[idx].offset - processed_so_far) * 1000},"
+            if src_end >= 0:
+                crop_offset_str += f"atrim=start={src_start}:end={src_end},"
+            crop_offset_str += f"adelay={local_delay_ms}|{local_delay_ms},"
             volume = audio_config[idx].volume * 2
             weight = audio_config[idx].weight
-            audio_filter += f"[{1 + cur}:a]{crop_offset_str}apad=whole_dur={max_len},volume={volume}[{output}];"
+            audio_filter += f"[{1 + cur}:a]{crop_offset_str}apad=whole_dur={end_time},volume={volume}[{output}];"
             mix_input.append(f"[{output}]")
             weights.append(str(weight))
             cur += 1
@@ -424,7 +428,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
         *subtitle_png_input,
         *muted_audio,
         *audio_input_option,
-        '-ss', str(float(start_time/speed)), '-to', str(min(max_len, duration)/speed),
+        '-ss', str(start_time), '-to', str(end_time),
         *cfr_option,  # <--- 插入统一常量帧率
         '-r', str(fps),
         *gpu_encoder,
@@ -448,7 +452,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     log.info(f"{video} 完成处理")
 
     # 转场分割
-    new_length = min(max_len - start_time, duration) / speed
+    new_length = duration
     if fade_in_duration or fade_out_duration:
         transition_clip = split_normalize(
             output_name,
@@ -470,7 +474,6 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, max_len, width,
     return NormalizeResult(
         output=output_name,
         duration=new_length,
-        cache_path=cache_video_path,
         transition=transition_clip,
     )
 

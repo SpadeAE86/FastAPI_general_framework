@@ -123,7 +123,6 @@ def thread_pool_normalize(
             start = 0
             end = len_list[idx]
 
-
             if mixed_video_config.crop_config:
                 end = mixed_video_config.crop_config[idx].end
                 start = mixed_video_config.crop_config[idx].start

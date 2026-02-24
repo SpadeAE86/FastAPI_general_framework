@@ -254,8 +254,10 @@ def get_video_info(video_file, need_rotation = False, original_path="") -> Video
     if original_path:
         #从redis里查有没有该key的信息
         info = redis_client.get(original_path)
-        video_info = json.loads(info)
-        return video_info
+        if info:
+            info_dict = json.loads(info)
+            return VideoInfo(**info_dict)
+    #没找到就重新解析
     command = [
         'ffprobe',
         '-v', 'error',
@@ -293,17 +295,12 @@ def get_video_info(video_file, need_rotation = False, original_path="") -> Video
         pix_fmt=pix_fmt,
         codec_name=codec_name,
     )
-    redis_client.set(
-        original_path,
-        json.dumps({
-            "width": video_info.width,
-            "height": video_info.height,
-            "duration": video_info.duration,
-            "rotation": video_info.rotation,
-            "pix_format": video_info.pix_format,
-        }),
-        ex=86400
-    )
+    if original_path:
+        redis_client.set(
+            original_path,
+            json.dumps(video_info.__dict__),
+            ex=86400
+        )
     return video_info
 
 def run_ffmpeg_command(command, video_name=""):

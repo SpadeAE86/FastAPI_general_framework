@@ -1,3 +1,4 @@
+from models.pydantic_models.request import caption_config
 from utils.log_utils import logger as log
 from utils.general_utils import is_valid_hex_color
 from utils.draw_caption_utils import create_subtitle_png
@@ -120,16 +121,15 @@ class CaptionDistributor:
         font_color = hex_to_bgra_v2(self.color)
         outline_color = hex_to_bgra_v2(self.outline_color)
         background_color = hex_to_bgra_v2(self.background_color)
+
         for idx, caption in enumerate(self.cap_config):
             subtitle_config = {}
-            if transition_in > 0 and cap_cur == last_idx:
-                caption.end = caption.end + transition_in / 2  # 上一段字幕结尾延长到转场中点处
-            if transition_in > 0 and cap_cur == last_idx + 1:
-                caption.start = caption.start + transition_in / 2  # 本身第一段字幕开头延后到转场中点处
-            if transition_out > 0 and cap_cur == last_idx + cap_cnt:
-                caption.end = caption.end - transition_out / 2  # 本身最后一段字幕结尾缩短到转场中点处
-            if transition_out > 0 and cap_cur == last_idx + cap_cnt + 1:
-                caption.start = caption.start - transition_out / 2  # 下一段字幕开头提前到转场中点处
+            # 字幕应完全避开转场区域，不参与过渡效果
+            if transition_in > 0 and cap_cur == 0:
+                caption.start = max(caption.start, transition_in)  # 本身第一段字幕开头延后到转场结束处
+            if transition_out > 0 and (cap_cur == len(self.cap_config) - 1 or self.cap_config[cap_cur+1].start >= processed_so_far + duration):
+                caption.end = min(caption.end, duration - transition_out)  # 本身最后一段字幕结尾提前到转场开始处
+
             cap_cur += 1
             if caption.end < processed_so_far:
                 continue

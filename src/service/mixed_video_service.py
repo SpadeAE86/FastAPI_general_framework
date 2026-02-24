@@ -61,7 +61,6 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         video_info_and_original_path_list = zip(video_list, mixed_config.obs_video_path_list)
 
         # 获取视频信息
-
         get_info_task = [asyncio.to_thread(get_video_info, v, need_rotation=True, original_path=origin_v) for v, origin_v in video_info_and_original_path_list]
         video_info_list: List[VideoInfo] = await asyncio.gather(*get_info_task)
 
@@ -149,9 +148,9 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
                 if not (clip.fade_out and next_clip.fade_in):
                     raise ServiceException(494, "混剪预处理并没有妥善完成")
 
-                # 获取 fade 段时长
-                _, _, dA, _, _, _ = get_video_info(clip.fade_out).get_info()
-                _, _, dB, _, _, _ = get_video_info(next_clip.fade_in).get_info()
+                # 获取 fade 段时长（从 SplitClip 预计算值中获取，无需 ffprobe）
+                dA = clip.fade_out_duration
+                dB = next_clip.fade_in_duration
 
                 log.info(f"v{idx}_fade_out: {dA}")
                 log.info(f"v{idx + 1}_fade_in: {dB}")
