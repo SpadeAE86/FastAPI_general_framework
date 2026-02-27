@@ -1,7 +1,7 @@
 import json
 import ssl
 from typing import Optional, Dict, Any
-
+from utils.log_utils import logger as log
 import pika
 
 from config.config import my_config, ENV
@@ -98,7 +98,7 @@ def rabbitmq_producer_maker() -> MQProducer:
     port = rabbit_mq_config.get("port", 5672)
     username = rabbit_mq_config.get("username", "root")
     use_ssl = rabbit_mq_config.get("use_ssl", False)
-    print(f"{ENV},{host},{port},{username},{password}, use_ssl={use_ssl}")
+    log.info(f"see rabbitmq setting: {ENV},{host},{port},{username},{password}, use_ssl={use_ssl}")
     rabbit_mq_producer = MQProducer(host, port, username, password, use_ssl=use_ssl)
     return rabbit_mq_producer
 
