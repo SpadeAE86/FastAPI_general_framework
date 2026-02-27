@@ -156,6 +156,14 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
                 log.info(f"v{idx + 1}_fade_in: {dB}")
                 log.info(f"v{idx}-{idx + 1} transition: {transition_cfg}")
 
+                transition_captions = []
+                if clip.transition_caption and clip.transition_caption.transition_out_caption_list:
+                    transition_captions.extend(clip.transition_caption.transition_out_caption_list)
+                if next_clip.transition_caption and next_clip.transition_caption.transition_in_caption_list:
+                    transition_captions.extend(next_clip.transition_caption.transition_in_caption_list)
+                
+                reserve_A = clip.fade_out_reserve
+
                 transition_path, _ = transition_normalized(
                     clip.fade_out,
                     dA,
@@ -166,6 +174,8 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
                     idx,
                     idx + 1,
                     project_id,
+                    transition_captions=transition_captions,
+                    reserve_A=reserve_A
                 )
 
                 # 顺序是：当前 main → transition
@@ -181,7 +191,7 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
 
         video_list = list(final_video_list)   # 获取转场后的片段
 
-        # 拼接视频，额外加上声音和bgm
+        # 拼接视频，额外加上bgm
         concat_start = time.time()
         task = asyncio.to_thread(generate_video, video_list, len_list, project_id,
                                  transition_config=mixed_config.transition_config,
@@ -211,8 +221,8 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         # 文件回收
         if cap_helper:
             cap_helper.delete_cap_png()
-        # 清空中间文件夹和结果文件夹
-        if mixed_config.obs_video_path_list:
+        # 清空中间文件夹和结果文件夹，本地环境不清理方便调试
+        if mixed_config.obs_video_path_list and ENV !="local":
             # pass
             # asyncio.create_task(delete_folder(os.path.join("./video", project_id)))
             asyncio.create_task(delete_folder(os.path.join("./work", project_id)))

@@ -2,9 +2,10 @@
 RabbitMQ Management API 工具类
 用于查询 RabbitMQ 队列状态、长度等信息
 """
+import time
 import requests
 from requests.auth import HTTPBasicAuth
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from urllib.parse import quote
 from config.config import my_config, ENV
 from utils.log_utils import logger as log
@@ -39,9 +40,15 @@ class RabbitMQManagementClient:
         # HTTP Basic Auth
         self.auth = HTTPBasicAuth(self.username, self.password)
 
+        # 队列信息本地缓存：key=queue_name, value=(info_dict, expire_timestamp)
+        # 避免每次调度循环都打 Management API，降低轮询压力
+        self._queue_cache: Dict[str, Tuple[Optional[Dict], float]] = {}
+        self._cache_ttl: float = my_config.get("dispatcher", {}).get("queue_cache_ttl", 10.0)
+
         log.info(
             f"RabbitMQ Management API initialized: "
-            f"base_url={self.base_url}, vhost={self.vhost}, ssl={self.use_ssl}"
+            f"base_url={self.base_url}, vhost={self.vhost}, ssl={self.use_ssl}, "
+            f"queue_cache_ttl={self._cache_ttl}s"
         )
     
     def _encode_vhost(self, vhost: str) -> str:
@@ -60,49 +67,57 @@ class RabbitMQManagementClient:
     
     def get_queue_info(self, queue_name: str) -> Optional[Dict[str, Any]]:
         """
-        获取队列详细信息
-        
-        Args:
-            queue_name: 队列名称
-            
-        Returns:
-            队列信息字典，包含以下字段：
-            - messages_ready: 准备好传递的消息数
-            - messages_unacknowledged: 未确认的消息数
-            - messages: 总消息数
-            - consumers: 消费者数量
-            - 等其他队列信息
-            如果获取失败返回 None
+        获取队列详细信息（带本地 TTL 缓存）
+
+        dispatcher 每 1 秒一轮、每轮对每种 task_type 都轮询一次，
+        会产生大量重复 HTTP 请求。这里加了本地 TTL 缓存：
+            - 缓存有效期内（默认 10 秒）：直接返回上次结果，不打网络
+            - 缓存过期后：发一次真实 HTTP 请求，刷新缓存
+
+        TTL 可通过 config.yml dispatcher.queue_cache_ttl 配置（单位：秒）。
         """
+        now = time.monotonic()
+
+        # 命中缓存且未过期 → 直接返回，不打 Management API
+        cached_info, expire_at = self._queue_cache.get(queue_name, (None, 0.0))
+        if now < expire_at:
+            log.debug(f"[队列缓存命中] {queue_name}, 剩余 {expire_at - now:.1f}s")
+            return cached_info
+
+        # 缓存已过期，打一次真实请求
         log.info(f"get info for {queue_name}")
         try:
             encoded_vhost = self._encode_vhost(self.vhost)
             url = f"{self.base_url}/queues/{encoded_vhost}/{queue_name}"
-            log.info(f"url={url}, auth={self.auth}")
+            log.debug(f"url={url}")
             response = requests.get(
                 url,
                 auth=self.auth,
                 timeout=5,
                 verify=False
             )
-            
+
             if response.status_code == 200:
                 queue_info = response.json()
                 log.debug(f"成功获取队列 {queue_name} 信息: {queue_info}")
-                return queue_info
             elif response.status_code == 404:
                 log.warning(f"队列 {queue_name} 不存在")
-                return None
+                queue_info = None
             else:
                 log.error(f"获取队列信息失败，状态码: {response.status_code}, 响应: {response.text}")
-                return None
-                
+                queue_info = None
+
         except requests.exceptions.RequestException as e:
             log.error(f"调用 RabbitMQ Management API 时发生网络错误: {e}")
-            return None
+            queue_info = None  # 网络失败时，返回 None 但不缓存（下次立刻重试）
+            return queue_info
         except Exception as e:
             log.error(f"获取队列信息时发生未知错误: {e}", exc_info=True)
             return None
+
+        # 写入缓存（即使结果是 None，也缓存，避免每秒都去打一个不存在的队列）
+        self._queue_cache[queue_name] = (queue_info, now + self._cache_ttl)
+        return queue_info
     
     def get_queue_length(self, queue_name: str) -> int:
         """

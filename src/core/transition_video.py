@@ -45,7 +45,7 @@ def split_normalize(video, duration, fade_in=0, fade_out=0):
 
 
 def transition_normalized(videoA, len_A, videoB, len_B, transition_type="fade", transition_duration=1, A_idx=0, B_idx=1,
-                          project_id='test'):
+                          project_id='test', transition_captions=None, reserve_A=0.0):
     log.info(f"transition transition started, A_len: {len_A}, B_len: {len_B}, type: {transition_type}")
     filter_str = ""
     audio_filter = ""
@@ -55,7 +55,22 @@ def transition_normalized(videoA, len_A, videoB, len_B, transition_type="fade", 
     s = transition_type
     filter_str += f'[0:v][1:v]xfade=transition={s}:duration={d}:offset={len_A - d}[v01];'
     audio_filter += f"[0:a][1:a]acrossfade=d={d}:c1=exp:c2=exp[a01];"
+    
     vmap_option = ["-map", "[v01]"]
+    overlay_inputs = []
+    
+    if transition_captions:
+        cur_stream = "[v01]"
+        for idx, cap in enumerate(transition_captions):
+            overlay_inputs.extend(["-i", cap.caption_path])
+            start_t = reserve_A + cap.start
+            end_t = reserve_A + cap.end
+            filter_str += f"[{2+idx}:v]format=rgba,setpts=PTS-STARTPTS[sub{idx}];"
+            next_stream = f"[v_out{idx}]"
+            filter_str += f"{cur_stream}[sub{idx}]overlay=enable='between(t,{start_t},{end_t})'{next_stream};"
+            cur_stream = next_stream
+        vmap_option = ["-map", cur_stream]
+
     amap_option = ["-map", "[a01]"]
     vencoder = "h264_nvenc" if my_config['device'] == "gpu" else 'libx264'
     device_option = ['-c:v', vencoder]
@@ -65,6 +80,7 @@ def transition_normalized(videoA, len_A, videoB, len_B, transition_type="fade", 
         'ffmpeg',
         '-i', videoA,
         '-i', videoB,
+        *overlay_inputs,
         '-filter_complex', filter_str,
         *vmap_option,
         *amap_option,

@@ -364,7 +364,7 @@ class WorkerChecker:
                 process_exists = True  # 默认认为存在
                 
                 if is_local:
-                    # 本地worker：使用os.kill检查进程是否存在
+                    # 本地 worker：使用 os.kill 检查进程是否存在
                     process_exists = self.check_process_exists(pid)
                     result["checked_processes"].append({
                         "worker_name": worker_name,
@@ -374,8 +374,7 @@ class WorkerChecker:
                         "process_exists": process_exists
                     })
                 else:
-                    # 远程worker：只依赖Celery inspect API
-                    # 如果Celery显示worker活跃，就认为进程存在
+                    # 远程 worker：只依赖 Celery inspect API
                     process_exists = matched_celery_worker is not None
                     result["checked_processes"].append({
                         "worker_name": worker_name,
@@ -385,7 +384,7 @@ class WorkerChecker:
                         "process_exists": process_exists,
                         "note": "远程worker，依赖Celery inspect API判断"
                     })
-                
+
                 if not process_exists:
                     # 进程不存在，标记为丢失
                     log.warning(f"检测到进程不存在: {worker_name}:{pid} (本地={is_local})")
@@ -398,13 +397,20 @@ class WorkerChecker:
                         "is_local": is_local
                     })
                     continue
-                
+
                 # 检查是否在Celery活跃worker列表中
                 if matched_celery_worker:
                     valid_workers.add(matched_celery_worker)
+                elif is_local:
+                    # 本地 worker 且 os.kill 显示进程活着，就视为有效。
+                    # 原因：-P solo 模式下任务执行期间无法响应 inspect.active() 广播（1秒超时），
+                    # 导致 inspect 误认为 worker 不存在，但实际进程健在。
+                    # 以 os.kill 为最终权威，不把它判为丢失。
+                    log.debug(f"本地worker未响应inspect但进程存活，视为有效（可能正在执行任务）: {worker_name}:{pid}")
+                    valid_workers.add(worker_name)  # 用 worker_name 代替，保证 active_count 正确
                 else:
-                    # Redis中有但Celery中没有，可能是worker已断开连接
-                    log.warning(f"检测到worker不在Celery活跃列表中: {worker_name}:{pid}")
+                    # 远程 worker：Redis 有但 Celery inspect 没有 → 可能已断开
+                    log.warning(f"检测到远程worker不在Celery活跃列表中: {worker_name}:{pid}")
                     missing_workers.append({
                         "worker_name": worker_name,
                         "pid": pid,

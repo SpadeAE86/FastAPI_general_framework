@@ -191,7 +191,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     segment_to_remove = []
     if duration>30 and duration / (end_time - start_time) >= 5:
 
-        segment_dir = f"{RESOURCE_DIR}/{project_id}/"
+        segment_dir = f"{OUTPUT_DIR}/{project_id}/"
         os.makedirs(f"{segment_dir}", exist_ok=True)
         log.info(f"{end_time - start_time}/{duration} >=5, make extra cropping ")  #huristic
         segment_result: SegmentResult = quick_segment(segment, vindex, segment_dir, start_time, end_time)  #快速裁切
@@ -304,9 +304,15 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     vf_text = ""
     subtitle_png_input = []
     subtitle_list = []
+    transition_caption = None
     if cap_helper:
         caption_distributor = CaptionDistributor(width, height, cap_config, transition_config, cap_helper, project_id)
-        subtitle_list = caption_distributor.gen_subtitle_png(processed_so_far=processed_so_far, duration=duration)
+        subtitle_list, transition_caption = caption_distributor.gen_subtitle_png(
+            processed_so_far=processed_so_far,
+            duration=duration,
+            transition_in=fade_in_duration,
+            transition_out=fade_out_duration,
+        )
 
         if sticker_config and sticker_list:
             log.info(f"sticker task=-=")
@@ -460,15 +466,17 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
             fade_in_duration,
             fade_out_duration,
         )
+        transition_clip.transition_caption = transition_caption
     else:
         # 没有 transition：整个视频就是 main
         transition_clip = SplitClip(main=output_name)
 
-    # 把多出来的中间文件进行清理
-    for s in segment_to_remove:
-        if os.path.exists(s):
-            log.info(f"remove {s}")
-            os.remove(s)
+    # 把多出来的中间文件进行清理，本地不清理方便调试
+    if ENV != "local":
+        for s in segment_to_remove:
+            if os.path.exists(s):
+                log.info(f"remove {s}")
+                os.remove(s)
 
     # 组装返回体
     return NormalizeResult(

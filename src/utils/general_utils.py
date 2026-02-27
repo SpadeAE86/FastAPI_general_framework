@@ -14,7 +14,7 @@ from utils.log_utils import logger as log
 from exceptions.ServiceException import ServiceException
 from utils.file_utils import generate_temp_filename
 from utils.obs_utils import download_from_obs
-from utils.redis_client import AsyncRedisClientFactory, RedisClientFactory
+from utils.redis_client import RedisClientFactory
 
 
 class VideoInfo:

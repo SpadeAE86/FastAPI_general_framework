@@ -45,6 +45,8 @@ def build_atempo_filter(speed_ratio):
 
     return ",".join(filters)
 
+from models.pydantic_dataclass.transition_caption import TransitionCaption
+
 @dataclass
 class SplitClip:
     main: str
@@ -52,8 +54,11 @@ class SplitClip:
     fade_out: Optional[str] = None
     fade_in_duration: float = 0.0
     fade_out_duration: float = 0.0
+    fade_in_reserve: float = 0.0
+    fade_out_reserve: float = 0.0
+    transition_caption: Optional[TransitionCaption] = None
 
-def split_normalize(video, duration, fade_in=0, fade_out=0, transition_reserve_factor = 1.2):
+def split_normalize(video, duration, fade_in=0, fade_out=0, transition_reserve_factor = 1.2) -> SplitClip:
     """
         将已标准化的视频片段按转场需求拆分为多个物理子片段，
         用于后续视频拼接与转场处理。
@@ -168,6 +173,8 @@ def split_normalize(video, duration, fade_in=0, fade_out=0, transition_reserve_f
         fade_out=fade_out_path,
         fade_in_duration=buffer_in if fade_in else 0.0,
         fade_out_duration=buffer_out if fade_out else 0.0,
+        fade_in_reserve=(buffer_in - fade_in) if fade_in else 0.0,
+        fade_out_reserve=(buffer_out - fade_out) if fade_out else 0.0,
     )
 
 @dataclass

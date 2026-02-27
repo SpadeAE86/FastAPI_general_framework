@@ -30,6 +30,13 @@ f2f = {
     "TsangerShuYuanT W04": "仓耳舒圆体W04.ttf",
     "QTxiaotu": "千图小兔体.ttf",
     "Noto Color Emoji": "NotoColorEmoji-Regular.ttf",
+    "Alimama ShuHeiTi Bold": "Alimama_ShuHeiTi_Bold.ttf",
+    "Canger XiaoWanZi": "仓耳小丸子.ttf",
+    "TsangerShuYuanT W01": "仓耳舒圆体W01.ttf",
+    "YouShe Title Rounded": "优设标题圆.otf",
+    "HXBNanShen 2.0": "胡晓波男神体2.0.otf",
+    "HXBSaoBao 2.0": "胡晓波骚包体2.0.otf",
+    "Alimama DaoLiTi Regular": "阿里妈妈刀隶体-Regular.ttf",
 }
 
 FONT_DIR = "./fonts"

@@ -8,7 +8,7 @@
 import threading
 
 
-from config.config import my_config
+from config.config import my_config, ENV
 from core.health_monitor.heartbeat_checker import HeartbeatChecker
 from core.health_monitor.metric_reporter import metric_reporter
 from core.health_monitor.monitor import process_health_monitor
@@ -33,6 +33,9 @@ class HealthMonitorService:
         self.max_restart_count = process_health_config.get("max_restart_count", 2)  # 最大重启次数（仅用于记录，不再用于控制重启）
         self.worker_check_interval = process_health_config.get("worker_check_interval", 30)  # Worker检查间隔（秒）
         self.min_healthy_workers = process_health_config.get("min_healthy_workers", 1)  # 最小健康worker数量
+        # 本地开发环境不自动恢复任务，避免 -P solo 导致重复派发
+        # 远端（test/prod）使用多 worker 池，可以安全恢复
+        self.enable_task_recovery = (ENV != "local")
         
         # 初始化检查器和处理器
         self.heartbeat_checker = HeartbeatChecker(self.heartbeat_timeout)
@@ -368,16 +371,26 @@ class HealthMonitorService:
                     cleaned_count = self.worker_checker.cleanup_missing_workers(missing_workers)
                     log.info(f"已清理 {cleaned_count} 个已消失worker的Redis记录")
                     
-                    # 恢复已消失worker正在执行的任务
-                    for missing_worker in missing_workers:
-                        if missing_worker.get("needs_recovery"):
-                            worker_name = missing_worker.get("worker_name")
-                            pid = missing_worker.get("pid")
-                            current_task_id = missing_worker.get("current_task")
-                            
-                            if current_task_id:
-                                self._recover_task_from_lost_process(
-                                    worker_name, pid, current_task_id
+                    # 恢复已消失worker正在执行的任务（可通过 process_health.enable_task_recovery 关闭）
+                    if self.enable_task_recovery:
+                        for missing_worker in missing_workers:
+                            if missing_worker.get("needs_recovery"):
+                                worker_name = missing_worker.get("worker_name")
+                                pid = missing_worker.get("pid")
+                                current_task_id = missing_worker.get("current_task")
+
+                                if current_task_id:
+                                    self._recover_task_from_lost_process(
+                                        worker_name, pid, current_task_id
+                                    )
+                    else:
+                        for missing_worker in missing_workers:
+                            if missing_worker.get("needs_recovery"):
+                                log.warning(
+                                    f"[任务恢复已禁用] worker崩溃但跳过任务恢复: "
+                                    f"worker={missing_worker.get('worker_name')}:{missing_worker.get('pid')}, "
+                                    f"task_id={missing_worker.get('current_task')} "
+                                    f"(可在config.yml中设置 process_health.enable_task_recovery: true 开启)"
                                 )
                 
                 # 检查worker数量是否满足要求
