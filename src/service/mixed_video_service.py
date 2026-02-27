@@ -47,11 +47,20 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         if my_config["direct_download"]:
             output_dir = f"{RESOURCE_DIR}/{project_id}"
             os.makedirs(output_dir, exist_ok=True)
-        video_list = await download_resource(mixed_config.obs_video_path_list, output_dir=output_dir)
-        audio_list = await download_resource(mixed_config.obs_audio_path_list, output_dir=output_dir)
-        bgm_list = await download_resource(mixed_config.obs_bgm_path_list, output_dir=output_dir)
-        sticker_list = await download_resource(mixed_config.obs_sticker_path_list, output_dir=output_dir)
-
+        download_task = []
+        for p in [mixed_config.obs_video_path_list,
+                    mixed_config.obs_audio_path_list,
+                    mixed_config.obs_bgm_path_list,
+                    mixed_config.obs_sticker_path_list]:
+            if p:
+                download_task.append(asyncio.create_task(download_resource(p, output_dir=output_dir)))
+            else:
+                download_task.append(asyncio.create_task(asyncio.sleep(0, result=[])))  # 占位任务，保持结果顺序
+        # video_list = await download_resource(mixed_config.obs_video_path_list, output_dir=output_dir)
+        # audio_list = await download_resource(mixed_config.obs_audio_path_list, output_dir=output_dir)
+        # bgm_list = await download_resource(mixed_config.obs_bgm_path_list, output_dir=output_dir)
+        # sticker_list = await download_resource(mixed_config.obs_sticker_path_list, output_dir=output_dir)
+        video_list, audio_list, bgm_list, sticker_list = await asyncio.gather(*download_task)
 
         start_1 = time.time()  # 业务开始时间
         log.info(f"download takes {start_1 - download_start} seconds")  # 打印下载时间
@@ -70,7 +79,7 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         _, _, _, _, pix_format_list, _ = zip(*all_video_info)
         if all([pf == "yuv422p10le" for pf in pix_format_list]):
             pix_fmt = "yuv422p10le"
-        elif all([pf == "yuv422p10le" for pf in pix_format_list]):
+        elif all([pf == "yuv420p10le" for pf in pix_format_list]):
             pix_fmt = "yuv420p10le"
         else:
             pix_fmt = "yuv420p"
