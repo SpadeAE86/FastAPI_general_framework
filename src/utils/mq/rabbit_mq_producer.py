@@ -92,14 +92,18 @@ class MQProducer:
         )
 
 def rabbitmq_producer_maker() -> MQProducer:
-    rabbit_mq_config = my_config.get("rabbit_mq", {}).get(ENV, {})
+    rabbit_mq_config = my_config.get("rabbitmq", {}).get(ENV, {})
     host = rabbit_mq_config.get("host", "123.60.104.114")
     password = rabbit_mq_config.get("password", "RootDev123")
     port = rabbit_mq_config.get("port", 5672)
     username = rabbit_mq_config.get("username", "root")
     use_ssl = rabbit_mq_config.get("use_ssl", False)
+    print(f"{ENV},{host},{port},{username},{password}, use_ssl={use_ssl}")
     rabbit_mq_producer = MQProducer(host, port, username, password, use_ssl=use_ssl)
     return rabbit_mq_producer
 
 mq_producer = MQProducer('123.60.104.114', 5672, 'root', 'RootDev123', use_ssl=False)
+if __name__ == "__main__":
+    rabbit_mq_producer2 = rabbitmq_producer_maker()
+
 
