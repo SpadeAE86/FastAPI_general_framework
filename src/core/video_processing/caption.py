@@ -58,7 +58,7 @@ class CapHelper:
 
             # Keep track of unscaled font size for text wrapping
             unscaled_font_size = font_size
-            font_size = math.ceil(self.height / 720 * font_size)
+            font_size = math.ceil(min(self.height, self.width) / 720 * font_size)
 
             background_pad = int(20 * self.height / 720)
 
