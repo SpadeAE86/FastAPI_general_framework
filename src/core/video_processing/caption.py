@@ -63,7 +63,7 @@ class CapHelper:
             background_pad = int(20 * self.height / 720)
 
             if outline_width:
-                outline_width = max(1, int(outline_width * self.height / 720))
+                outline_width = max(1, int(outline_width * min(self.height, self.width) / 720))
             else:
                 outline_width = 0
 
