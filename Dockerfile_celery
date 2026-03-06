@@ -20,4 +20,4 @@ WORKDIR /app/src
 ENV PYTHONPATH=/app/src
 
 # Celery worker 启动命令
-CMD ["celery", "-A", "celery_mq.celery_app", "worker", "--hostname=transcode_test@%%h", "--loglevel=INFO", "--queues=test_transcode_queue", "--concurrency=20"]
+CMD ["celery", "-A", "celery_mq.celery_app", "worker", "--hostname=transcode_prod@%%h", "--loglevel=INFO", "--queues=prod_transcode_queue", "--concurrency=20"]
