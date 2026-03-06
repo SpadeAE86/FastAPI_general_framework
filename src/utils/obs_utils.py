@@ -33,7 +33,7 @@ async def upload_to_obs(filename: str, obs_prefix: str = "ai_picture/mark/demo/f
         resp = await asyncio.to_thread(obs_client.putFile, bucketName=BUCKET_NAME, objectKey=obs_key,
                                        file_path=filename)
         if resp.status < 300:
-            return f"{CDN_BASE_URL}/{obs_key}"
+            return f"{OBS_BASE_URL}/{obs_key}"
         else:
             raise ServiceException(code=461, message=f"obs上传异常，状态码{resp.status}")
     except Exception as e:
