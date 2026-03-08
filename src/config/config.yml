@@ -195,6 +195,10 @@ obs_img_prefix:
 pbase: https://freeuuu.obs.cn-east-3.myhuaweicloud.com/
 direct_download: True
 
+# local_disk_mode: 如果为 true，则不走 download_resource 进行 OBS 下载或 VPC 拼接，直接返回原路径给后续使用
+# 此配置的优先级高于 direct_download
+local_disk_mode: false
+
 tencent:
   vod:
     # secret_id / secret_key read from .env

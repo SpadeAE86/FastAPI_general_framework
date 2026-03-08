@@ -393,6 +393,10 @@ async def delete_folder(folder_name: str):
     shutil.rmtree(folder_name, ignore_errors=True)
 
 async def download_resource(path_list, output_dir=None):
+    from config.config import my_config
+    if my_config.get("local_disk_mode", False):
+        return path_list
+
     decode_path_list = [decode_chinese_url(path) for path in path_list]  #把中文unicode转换成中文字符串
     if not output_dir:
         vpc_prefix = vpc + "/"
