@@ -1,0 +1,23 @@
+# 使用自制的 python3.12 + ffmpeg + rocketmq 基础镜像
+FROM swr.cn-east-3.myhuaweicloud.com/freeuuu/python312-ffmpeg:2.1
+
+# 复制代码文件
+COPY . /app
+WORKDIR /app
+
+#从requirements.txt里安装依赖
+RUN pip install --timeout=600 \
+    -r requirements.txt \
+    -i https://mirrors.aliyun.com/pypi/simple/
+
+# 设置系统时区为上海
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+WORKDIR /app/src
+
+# 设置 PYTHONPATH，让 Celery 可以 import 项目
+ENV PYTHONPATH=/app/src
+
+# Celery worker 启动命令
+CMD ["celery", "-A", "celery_mq.celery_app", "worker", "--hostname=transcode_prod@%%h", "--loglevel=INFO", "--queues=prod_transcode_queue", "--concurrency=20"]

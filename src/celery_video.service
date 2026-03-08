@@ -1,0 +1,37 @@
+[Unit]
+Description=Celery Worker for AIGC Video Mix
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/home/AIGC_video_mix_remake
+
+# 修改这里：改为执行你的shell脚本
+ExecStart=sh /home/AIGC_video_mix_remake/start_celery_worker.sh
+
+ExecStop=/bin/sh -c 'cd /home/AIGC_video_mix_remake/src && /root/miniconda3/envs/test_gpu/bin/python -m celery -A celery_mq.celery_app control shutdown'
+# 可选：设置超时时间，防止脚本启动过慢被误判为失败
+TimeoutStartSec=30
+
+# 崩溃自动重启
+Restart=always
+RestartSec=10s
+
+# 日志配置
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=celery-worker
+
+# (可选) 设置环境变量
+# Environment="CUDA_VISIBLE_DEVICES=0"
+# 可选：添加conda环境变量
+# Environment="PATH=/root/miniconda3/envs/test_gpu/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# (可选) 日志重定向，方便调试
+# StandardOutput=append:/var/log/celery_video_prod.log
+# StandardError=append:/var/log/celery_video_error_prod.log
+
+[Install]
+WantedBy=multi-user.target
