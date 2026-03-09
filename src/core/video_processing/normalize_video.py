@@ -406,6 +406,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     if my_config["device"] == "gpu":
         post_filter.extend(
             [
+            "setpts=PTS-STARTPTS",  # [FIX-CONCAT-STUTTER] 强制将送入硬件编码器的时间戳归零，消除 nvenc 首帧 skip frame 卡顿
             "hwupload=derive_device=cuda"
             ]
         )
@@ -430,6 +431,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         *gpu_cuda_device_init,
         *gpu_activate_flag,
         '-noautorotate',
+        '-fflags', '+genpts',
         '-i', segment,
         *subtitle_png_input,
         *muted_audio,
@@ -447,7 +449,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         *pix_fmt_option,
         *timebase_option,  # <--- 插入统一时基参数
         '-y',
-        '-fflags', '+genpts',
+        '-avoid_negative_ts', 'make_zero',
         '-map', end_v, '-map', end_a,
         '-shortest',
         output_name

@@ -74,11 +74,14 @@ def generate_video(video_path_list, len_list, project_id="test",
     threads_option = ["-threads", "1"]
     cover_output = f"./final/{project_id}/cover_test3.jpg"
     cover_cmd = ["-vframes", "1", cover_output]
+    # [FIX-CONCAT-STUTTER] 移除 -vsync vfr 和 -fflags +genpts
+    # 原因：使用 MKV 中间格式后，每个片段的 PTS 已正确从 0 开始，
+    #       不再需要这些 workaround 参数。-vsync vfr 会导致最终视频
+    #       r_frame_rate=120 而非预期的 30fps。
     ffmpeg_concat_cmd = ['ffmpeg',
                          '-f', 'concat',
                          '-safe', '0',
                          '-i', temp_video_filelist_path,
-                         # "-vsync", "passthrough",   #<--- 删除这一行
                          *audio_input,
                          *complex_option,
                          *audio_simple_filter,
@@ -90,8 +93,6 @@ def generate_video(video_path_list, len_list, project_id="test",
                          '-to', str(float(end)),
                          '-preset', 'fast',
                          '-movflags', '+faststart',
-                         '-fflags',
-                         '+genpts',
                          '-y',
                          merge_video,
                          *cover_cmd
