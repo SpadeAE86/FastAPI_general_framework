@@ -40,7 +40,7 @@ def conservative_bpp(duration: float, width: int, height: int) -> float:
     return adjusted_bpp
 
 @memory_evaluate_router.post("/memory_cost")
-async def evaluate_memory(evaluate_memory_request: EvaluateMemoryRequest) -> EvaluateMemoryResponse:
+async def evaluate_memory(evaluate_memory_request: EvaluateMemoryRequest):
     duration = evaluate_memory_request.duration
     width = evaluate_memory_request.resolution_x
     height = evaluate_memory_request.resolution_y
@@ -51,9 +51,10 @@ async def evaluate_memory(evaluate_memory_request: EvaluateMemoryRequest) -> Eva
     memory_bytes = width * height * bits_per_pixel * fps * duration / 8
     memory_mb = memory_bytes / (1024 ** 2)
 
-    return EvaluateMemoryResponse(
-        code=0,
-        message="ok",
-        biz_id=0,
-        memory_mb=round(memory_mb, 2)
-    )
+    return {
+            "code": 200,
+            "message": "success",
+            "data": {
+                "memory_mb": memory_mb
+            }
+        }
