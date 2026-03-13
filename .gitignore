@@ -210,6 +210,7 @@ tests/
 src/test
 src/fonts
 src/fonts.zip
+cache/
 设计.md
 
 # 缓存文件夹+资产文件夹
