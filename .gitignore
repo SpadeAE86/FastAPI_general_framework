@@ -208,7 +208,8 @@ marimo/_lsp/
 __marimo__/
 tests/
 src/test
-
+src/fonts
+src/fonts.zip
 设计.md
 
 # 缓存文件夹+资产文件夹

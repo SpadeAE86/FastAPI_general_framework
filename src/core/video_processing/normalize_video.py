@@ -397,9 +397,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     timebase_option = ["-video_track_timescale", "15360"]
 
     # === 新增配置：强制常量帧率 (CFR) ===
-    # -vsync 1 (或者新版ffmpeg用 -fps_mode cfr) 强制补帧或丢帧以严格匹配 -r
-    # 防止 nvenc 输出 VFR
-    cfr_option = ["-vsync", "1"]
+    # 使用较新的 -fps_mode cfr 替代旧的 -vsync 1
+    # 强制补帧或丢帧以严格匹配 -r，防止 nvenc 输出 VFR 导致帧率元数据错误
+    cfr_option = ["-fps_mode", "cfr"]
 
     #后置滤镜上传到gpu
     post_filter = []

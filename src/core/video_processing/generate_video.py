@@ -85,6 +85,7 @@ def generate_video(video_path_list, len_list, project_id="test",
                          *audio_input,
                          *complex_option,
                          *audio_simple_filter,
+                         '-r', '30',  # [FIX] 强制输出 30fps 元数据，解决 60fps 假元数据导致的解析失败
                          *video_map,
                          *audio_map,
                          *video_encoder,
