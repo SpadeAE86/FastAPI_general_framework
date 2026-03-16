@@ -142,27 +142,42 @@ class UserQueueServiceProtocol(ABC):
     """
     
     @abstractmethod
-    def add_task(self, user_id: str, task_id: str) -> None:
+    def add_task(self, user_id: str, task_id: str, task_type: str = "mix") -> None:
         """
-        将任务添加到用户队列
+        将任务添加到用户特定类型的队列
         
         Args:
             user_id: 用户ID
             task_id: 任务ID
+            task_type: 任务类型
         """
         ...
     
     @abstractmethod
-    def fetch_tasks(self, user_id: str, count: int = 1) -> List[str]:
+    def fetch_tasks(self, user_id: str, count: int = 1, task_type: str = "mix") -> List[str]:
         """
-        从用户队列获取任务
+        从用户指定类型的队列获取任务
         
         Args:
             user_id: 用户ID
             count: 获取数量
+            task_type: 任务类型
             
         Returns:
             任务ID列表
+        """
+        ...
+    
+    @abstractmethod
+    def get_user_active_types(self, user_id: str) -> List[str]:
+        """
+        获取用户当前有任务排队的所有类型
+        
+        Args:
+            user_id: 用户ID
+            
+        Returns:
+            任务类型列表
         """
         ...
     
@@ -302,7 +317,35 @@ class TaskManagerProtocol(ABC):
         Args:
             user_id: 用户ID
             task_id: 任务ID
-            task_data: 任务数据
+            task_data: 任务数据（由此提取 task_type）
+        """
+        ...
+    
+    @abstractmethod
+    def fetch_tasks_from_user_queue(self, user_id: str, count: int = 1, task_type: str = "mix") -> List[str]:
+        """
+        从用户队列获取任务
+        
+        Args:
+            user_id: 用户ID
+            count: 获取数量
+            task_type: 任务类型
+            
+        Returns:
+            任务ID列表
+        """
+        ...
+
+    @abstractmethod
+    def get_user_active_task_types(self, user_id: str) -> List[str]:
+        """
+        获取用户活跃的任务类型
+        
+        Args:
+            user_id: 用户ID
+            
+        Returns:
+            活跃任务类型列表
         """
         ...
 

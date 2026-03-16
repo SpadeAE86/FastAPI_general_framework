@@ -135,17 +135,11 @@ class DispatcherService:
             log.error(f"发布任务到RabbitMQ失败: task_id={task_id}, error={e}")
             raise
     
-    def weighted_round_robin(self) -> List[str]:
+    def weighted_round_robin(self, flow_control: Dict[str, bool]) -> List[str]:
         """
         加权轮询算法：VIP用户优先，普通用户轮询
         
-        实现加权轮询调度策略：
-        1. 首先处理所有VIP用户，每个VIP用户取出配置数量的任务（默认3个）
-        2. 然后处理普通用户，每个普通用户取出1个任务
-        3. 确保VIP用户的任务优先被分发
-        
-        Returns:
-            List[str]: 待分发的任务ID列表，按优先级排序
+        改进：现在会遍历用户的所有 active_task_types，并跳过已被流控的类型。
         """
         tasks_to_dispatch = []
         
@@ -158,27 +152,52 @@ class DispatcherService:
         vip_users = set(task_manager.get_vip_users())
         normal_users = [uid for uid in active_users if uid not in vip_users]
         
-        # VIP用户优先处理，每人取出N个任务
+        # VIP用户优先处理
         for user_id in vip_users:
             if user_id in active_users:
-                user_tasks = task_manager.fetch_tasks_from_user_queue(
+                user_tasks = self._fetch_user_tasks_fairly(
                     user_id, 
-                    count=self.vip_task_count
+                    count=self.vip_task_count,
+                    flow_control=flow_control
                 )
                 tasks_to_dispatch.extend(user_tasks)
-                log.info(f"VIP用户 {user_id} 取出 {len(user_tasks)} 个任务")
         
-        # 普通用户轮询，每人取出1个任务
+        # 普通用户轮询
         for user_id in normal_users:
-            user_tasks = task_manager.fetch_tasks_from_user_queue(
+            user_tasks = self._fetch_user_tasks_fairly(
                 user_id,
-                count=self.normal_task_count
+                count=self.normal_task_count,
+                flow_control=flow_control
             )
-            if user_tasks:
-                tasks_to_dispatch.extend(user_tasks)
-                log.info(f"普通用户 {user_id} 取出 {len(user_tasks)} 个任务")
+            tasks_to_dispatch.extend(user_tasks)
         
         return tasks_to_dispatch
+
+    def _fetch_user_tasks_fairly(self, user_id: str, count: int, flow_control: Dict[str, bool]) -> List[str]:
+        """公平地从用户多个活跃且未被流控的任务类型中提取任务"""
+        active_types = task_manager.get_user_active_task_types(user_id)
+        # 过滤掉已被流控的类型
+        eligible_types = [t for t in active_types if flow_control.get(t, True)]
+        
+        if not eligible_types:
+            return []
+            
+        tasks = []
+        # 将用户的配额平均分配到可用类型中
+        # 简单的公平策略：每个可用类型尝试取 count 个，或者按比例分配
+        # 这里为了简单高效，直接在配额内尝试从可用类型里拉取
+        for task_type in eligible_types:
+            if len(tasks) >= count:
+                break
+            # 尝试拉取剩余配额
+            fetched = task_manager.fetch_tasks_from_user_queue(
+                user_id, 
+                count=(count - len(tasks)),
+                task_type=task_type
+            )
+            tasks.extend(fetched)
+            
+        return tasks
     
     def fetch_and_dispatch(self):
         """
@@ -195,7 +214,7 @@ class DispatcherService:
         flow_control = self.check_flow_control()
         
         # 加权轮询获取任务
-        tasks_to_dispatch = self.weighted_round_robin()
+        tasks_to_dispatch = self.weighted_round_robin(flow_control)
         
         if not tasks_to_dispatch:
             return
@@ -223,17 +242,12 @@ class DispatcherService:
         # 第二步：按 task_type 批量发布任务到 RabbitMQ
         for task_type, task_items in valid_tasks.items():
 
-            # 流控检查（task_type 级别）
+            # 流控检查已经在 weighted_round_robin 中物理层面跳过了
+            # 此处保留基本判断仅作兜底（如果配置在调度间隙发生变化）
             if not flow_control.get(task_type, True):
-                log.info(f"任务类型被流控，暂不分发: task_type={task_type}")
-                # 将被流控的任务塞回用户队列
+                log.warning(f"任务类型在验证期间触发流控，将回退: task_type={task_type}")
                 for task_id, task_data in task_items:
-                    user_id = task_data.get("user_id", "")
-                    if user_id:
-                        task_manager.add_task_to_user_queue(user_id, task_id, task_data)
-                        log.info(f"流控回退任务到用户队列: task_id={task_id}, user_id={user_id}")
-                    else:
-                        log.warning(f"流控回退失败，task_data 中缺少 user_id: task_id={task_id}")
+                    task_manager.add_task_to_user_queue(task_data.get("user_id"), task_id, task_data)
                 continue
 
             # 先尝试 batch 发布

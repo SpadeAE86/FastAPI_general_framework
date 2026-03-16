@@ -234,7 +234,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
 
 
 
-    pix_fmt_option = ["-pix_fmt", pix_fmt] if "10le" in pix_format or codec == "mjpeg" else []
+    pix_fmt_option = ["-pix_fmt", pix_fmt]
     has_audio = check_audio_stream_simple(video)
     # 音频静音
     if mute_origin or not has_audio:

@@ -186,7 +186,8 @@ class TaskManager(TaskManagerProtocol):
         
         # 从用户队列中移除任务
         if user_id:
-            self._queue_service.remove_task(user_id, task_id)
+            task_type = task_info.get("task_type", "mix")
+            self._queue_service.remove_task(user_id, task_id, task_type)
         
         # 删除任务本身
         return self._repository.delete_task(task_id)
@@ -270,22 +271,28 @@ class TaskManager(TaskManagerProtocol):
         Args:
             user_id: 用户ID
             task_id: 任务ID
-            task_data: 任务数据（保留参数以保持向后兼容）
+            task_data: 任务数据（由此提取 task_type）
         """
-        self._queue_service.add_task(user_id, task_id)
+        task_type = task_data.get("task_type", "mix")
+        self._queue_service.add_task(user_id, task_id, task_type)
     
-    def fetch_tasks_from_user_queue(self, user_id: str, count: int = 1) -> List[str]:
+    def fetch_tasks_from_user_queue(self, user_id: str, count: int = 1, task_type: str = "mix") -> List[str]:
         """
         从用户队列中取出指定数量的任务
         
         Args:
             user_id: 用户ID
             count: 要取出的任务数量
+            task_type: 任务类型
             
         Returns:
             任务ID列表
         """
-        return self._queue_service.fetch_tasks(user_id, count)
+        return self._queue_service.fetch_tasks(user_id, count, task_type)
+
+    def get_user_active_task_types(self, user_id: str) -> List[str]:
+        """获取用户当前活跃的任务类型"""
+        return self._queue_service.get_user_active_types(user_id)
     
     def mark_user_active(self, user_id: str) -> None:
         """
