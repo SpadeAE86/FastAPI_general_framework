@@ -234,7 +234,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
 
 
 
-    pix_fmt_option = []
+    # pix_fmt_option = ["-pix_fmt", "nv12"]
     has_audio = check_audio_stream_simple(video)
     # 音频静音
     if mute_origin or not has_audio:
@@ -407,6 +407,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         post_filter.extend(
             [
             "setpts=PTS-STARTPTS",  # [FIX-CONCAT-STUTTER] 强制将送入硬件编码器的时间戳归零，消除 nvenc 首帧 skip frame 卡顿
+            "format=nv12",
             "hwupload=derive_device=cuda"
             ]
         )
@@ -446,7 +447,6 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         *audio_filter_flag,
         '-ar', '44100',
         '-ac', '2',
-        *pix_fmt_option,
         *timebase_option,  # <--- 插入统一时基参数
         '-y',
         '-avoid_negative_ts', 'make_zero',
