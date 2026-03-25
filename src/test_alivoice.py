@@ -9,11 +9,11 @@ from models.pydantic_models.request.alivoice_request import Alivoice_VO
 
 async def test_run():
     config = Alivoice_VO(
+        biz_id=8888,
         txt_str=["你好啊，这是一个测试语音", "这里是第二句话，来测试一下拼接"],
         voice_character="female", 
         audio_speed_level=500,
-        volume=50,
-        voice_id="test_voice_123"
+        volume=50
     )
 
     try:

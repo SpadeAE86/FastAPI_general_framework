@@ -9,7 +9,8 @@ from typing import List
 
 from config.config import my_config, audio_speech_rate, alivoice_options, male_voice, female_voice, emotion_voice, ENV
 from exceptions.ServiceException import ServiceException
-from models.pydantic_models.request.alivoice_request import Alivoice_VO, AliVoiceResponse
+from models.pydantic_models.request.alivoice_request import Alivoice_VO
+from models.pydantic_models.response.alivoice_response import AliVoiceResponse
 from nls.token import getToken
 from utils.alivoice_utils import AliTTS
 from utils.ffmpeg_utils import mute_audio, concatenate_wavs, get_audio_info
@@ -25,6 +26,7 @@ alivoice_semaphore = Semaphore(200)
 
 async def process_alivoice_task(voice_config: Alivoice_VO) -> AliVoiceResponse:
     async with alivoice_semaphore:
+        voice_id = str(voice_config.biz_id) if voice_config.biz_id else "unknown_biz"
         log.info(f"Processing alivoice task: {json.dumps(voice_config.model_dump(exclude_none=True), indent=2, ensure_ascii=False)}")
         
         token = getToken(my_config['audio']['Ali']['access_key_id'],
@@ -104,7 +106,7 @@ async def process_alivoice_task(voice_config: Alivoice_VO) -> AliVoiceResponse:
             audio_output_list = [res for res in muted_results if res]
             log.info(f"完成静音: {audio_output_list}")
             
-        log.info(f"{voice_config.voice_id} finished, takes {time.time() - start_1} seconds")
+        log.info(f"{voice_id} finished, takes {time.time() - start_1} seconds")
         full_audio = ""
         # filtering empty strings before concatenation
         valid_audios = [a for a in audio_output_list if a]
@@ -144,7 +146,7 @@ async def process_alivoice_task(voice_config: Alivoice_VO) -> AliVoiceResponse:
                         "user_id": f"{my_config['error_at']}",
                     })
                 try:
-                    await post(my_config["feishu_robot"], robot_req, task_id=voice_config.voice_id)
+                    await post(my_config["feishu_robot"], robot_req, task_id=voice_id)
                 except Exception as post_err:
                     log.error(f"飞书通知失败: {post_err}")
             raise e
@@ -162,8 +164,9 @@ async def process_alivoice_task(voice_config: Alivoice_VO) -> AliVoiceResponse:
             log.info(f"Delayed Delete: {final_path}")
             asyncio.create_task(delayed_delete(final_path, delay=50))
 
-        log.info(f"{voice_config.voice_id}上传完成, 目前经过 {time.time()-start_1} seconds")
+        log.info(f"{voice_id}上传完成, 目前经过 {time.time()-start_1} seconds")
         response = AliVoiceResponse(
+            biz_id=voice_config.biz_id or 0,
             obs_audio_list=list(obs_audio_list), 
             durations=durations,
             volume=int(voice_config.volume), 

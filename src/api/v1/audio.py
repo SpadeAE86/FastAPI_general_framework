@@ -21,8 +21,8 @@ async def create_alivoice_task(voice_config: Alivoice_VO, trace_id: str = Header
         包含task_id和状态的响应
     """
     try:
-        # TODO: 从当前请求上下文获取user_id
-        user_id = "default_user"
+        # 从 BaseRequest 模型继承的字段中读取 user_id (通常由网关或拦截器注入)，并作为分发队列的参数
+        user_id = str(voice_config.user_id) if voice_config.user_id else "default_user"
         
         task_data = voice_config.model_dump(exclude_none=True)
         task_data["task_type"] = "voice"
@@ -39,7 +39,7 @@ async def create_alivoice_task(voice_config: Alivoice_VO, trace_id: str = Header
             "data": {
                 "task_id": task_id,
                 "status": task_status.get("status") if task_status else "pending",
-                "voice_id": voice_config.voice_id
+                "voice_id": str(voice_config.biz_id) if voice_config.biz_id else "0"
             }
         }
     except Exception as e:
