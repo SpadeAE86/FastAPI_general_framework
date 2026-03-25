@@ -109,6 +109,7 @@ def process_alivoice_queue(self, data):
         self.update_state(state='PROGRESS', meta={'progress': 0, 'message': '开始处理音频任务'})
 
         voice_config = Alivoice_VO.model_validate(task_data)
+        log.info(f"音频处理请求体: {json.dumps(voice_config.model_dump(exclude_none=True), indent=2, ensure_ascii=False)}")
         
         # Async execution block
         response = asyncio.run(process_alivoice_task(voice_config))
@@ -131,7 +132,11 @@ def process_alivoice_queue(self, data):
         return result_data
 
     except Exception as e:
-        error_msg = f"音频任务处理失败: task_id={task_id}, error={str(e)}"
+        current_retry = getattr(self.request, 'retries', 0)
+        error_msg = f"音频任务处理失败 (重试次数: {current_retry}/{max_retries}): task_id={task_id}, error={str(e)}"
+        if current_retry > 0:
+            log.warning(f"[重试告警] 任务 task_id={task_id} 正在进行第 {current_retry} 次重试...")
+            
         log.error(error_msg, exc_info=True)
         if is_tracked:
             task_manager.update_task_status(task_id, "failed", error=str(e), failed_at=datetime.now().isoformat())
