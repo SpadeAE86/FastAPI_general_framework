@@ -55,32 +55,47 @@ async def process_alivoice_task(voice_config: Alivoice_VO) -> AliVoiceResponse:
             return result
 
         try:
-            for idx, t in enumerate(voice_config.txt_str):
-                output = "/".join([output_prefix, f"alitts{idx}_{project_id}.wav"]) if t else ""
-                log.info(f"{idx}, {output}")
-                os.makedirs(output_prefix, exist_ok=True)
-                name = "thread" + str(idx)
-                audio_output_list.append(output)
+            batch_size = 5
+            stagger_delay = 1.0
+            
+            for i in range(0, len(voice_config.txt_str), batch_size):
+                batch_tasks = []
+                batch_texts = voice_config.txt_str[i:i+batch_size]
+                
+                for offset, t in enumerate(batch_texts):
+                    idx = i + offset
+                    output = "/".join([output_prefix, f"alitts{idx}_{project_id}.wav"]) if t else ""
+                    log.info(f"{idx}, {output}")
+                    os.makedirs(output_prefix, exist_ok=True)
+                    name = "thread" + str(idx)
+                    audio_output_list.append(output)
 
-                if not t:
-                    tasks.append(sleep_and_yield(""))
-                else:
-                    if voice_config.voice_character in alivoice_options:
-                        voice_service = AliTTS(name, output, alivoice_options[voice_config.voice_character],
-                                               voice_config.audio_speed_level, voice_config.volume, TOKEN=token)
-                        if voice_config.voice_character in emotion_voice.keys():
-                            category = voice_config.emotion
-                            intensity = voice_config.intensity
-                            t = f'<speak><emotion category="{category}" intensity="{intensity}">{t}</emotion></speak>'
-                            log.info(f"{t}")
-                        tasks.append(voice_service.restful_request(t))
+                    if not t:
+                        batch_tasks.append(sleep_and_yield(""))
                     else:
-                        log.info(f"{voice_config.voice_character} not supported")
-                        raise ServiceException(code=450, message="不支持的语音")
+                        if voice_config.voice_character in alivoice_options:
+                            voice_service = AliTTS(name, output, alivoice_options[voice_config.voice_character],
+                                                   voice_config.audio_speed_level, voice_config.volume, TOKEN=token)
+                            if voice_config.voice_character in emotion_voice.keys():
+                                category = voice_config.emotion
+                                intensity = voice_config.intensity
+                                t = f'<speak><emotion category="{category}" intensity="{intensity}">{t}</emotion></speak>'
+                                log.info(f"{t}")
+                            batch_tasks.append(voice_service.restful_request(t))
+                        else:
+                            log.info(f"{voice_config.voice_character} not supported")
+                            raise ServiceException(code=450, message="不支持的语音")
+                            
+                # 执行本批次任务
+                await asyncio.gather(*batch_tasks)
+                
+                # 若未处理完毕，则休眠错开时间
+                if i + batch_size < len(voice_config.txt_str):
+                    log.info(f"批次处理完成，等待 {stagger_delay}s 继续下一批...")
+                    await asyncio.sleep(stagger_delay)
+
         except Exception as e:
             raise ServiceException(code=450, message=f"初始化语音服务失败: {e}", data=str(e))
-
-        await asyncio.gather(*tasks)
         
         if voice_config.volume == 0:
             mute_tasks = [mute_audio(audio, project_id) for audio in audio_output_list if audio]
