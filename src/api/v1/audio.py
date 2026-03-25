@@ -39,7 +39,7 @@ async def create_alivoice_task(voice_config: Alivoice_VO, trace_id: str = Header
             "data": {
                 "task_id": task_id,
                 "status": task_status.get("status") if task_status else "pending",
-                "voice_id": str(voice_config.biz_id) if voice_config.biz_id else "0"
+                "biz_id": str(voice_config.biz_id) if voice_config.biz_id else "0"
             }
         }
     except Exception as e:
