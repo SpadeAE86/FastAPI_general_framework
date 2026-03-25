@@ -1,7 +1,9 @@
+import asyncio
+import json
 import os, subprocess
 import time
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 
 from config.config import FINAL_DIR
 from exceptions.ServiceException import ServiceException
@@ -292,6 +294,57 @@ def quick_segment(video, vindex, output_dir, start_time, end_time) -> SegmentRes
                          start_time=start_time,
                          end_time=end_time)
 
+def get_audio_info(audio_path_list: List[str]):
+    """
+    使用 ffprobe 获取多个音频文件的时长（秒）
+
+    参数:
+        file_paths (list): 音频文件路径列表
+
+    返回:
+        dict: 包含文件名和对应时长的字典，例如 {'file1.wav': 3.14, 'file2.wav': 2.5}
+        如果出错会返回None并打印错误信息
+    """
+    durations = []
+
+    for file_path in audio_path_list:
+        if not file_path:
+            durations.append(0)
+            continue
+        try:
+            # 构建ffprobe命令获取JSON格式的媒体信息
+            command = [
+                'ffprobe',
+                '-v', 'error',
+                '-show_entries', 'format=duration',
+                '-of', 'json',
+                file_path
+            ]
+
+            # 执行命令
+            result = subprocess.run(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True
+            )
+
+            # 解析JSON输出
+            info = json.loads(result.stdout.decode('utf-8'))
+            duration = float(info['format']['duration'])
+            durations.append(round(duration, 2))
+
+        except subprocess.CalledProcessError as e:
+            print(f"Error getting duration for {file_path}: {e.stderr.decode('utf-8')}")
+            durations.append(0)
+            continue
+        except (KeyError, json.JSONDecodeError) as e:
+            print(f"Error parsing ffprobe output for {file_path}: {str(e)}")
+            durations.append(0)
+            continue
+
+    return durations
+
 def extract_audio(video_file: str, project_id: str = "test") -> str:
     """
     从视频中提取音频（wav），如果没有音频流则返回空字符串
@@ -345,3 +398,72 @@ def extract_audio(video_file: str, project_id: str = "test") -> str:
 
     return output_audio
 
+def concatenate_wavs(input_files: List[str], project_id: str = "test", need_pause=True) -> str:
+    """
+    将多个WAV音频文件拼接成一个完整的WAV文件
+
+    参数:
+        input_files: list[str] - 要拼接的WAV文件路径列表
+        projectid: str - 子目录路径
+
+    返回:
+        bool - 是否成功
+    """
+
+    output_file_prefix = "/".join([FINAL_DIR, project_id])
+    os.makedirs(output_file_prefix, exist_ok=True)
+    source_txt_path = f'file_list_{project_id}.txt'
+    output_file = f"{output_file_prefix}/full_{project_id}.wav"
+    log.info(f"exported to {output_file}")
+    if not input_files:
+        return ""
+
+    # 创建一个包含所有输入文件的文本文件
+    with open(source_txt_path, 'w') as f:
+        for idx, file in enumerate(input_files):
+            if not file:
+                continue
+            f.write(f"file '{file}'\n")
+            if need_pause and idx != len(input_files) - 1:
+                f.write(f"file 'silence1.wav'\n")
+
+    try:
+        command = [
+            'ffmpeg',
+            '-f', 'concat',  # 使用concat协议
+            '-safe', '0',  # 允许任意文件路径
+            '-i', source_txt_path,  # 输入文件列表
+            '-c', 'copy',  # 直接流拷贝，不重新编码
+            output_file
+        ]
+
+        result = subprocess.run(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True
+        )
+
+        return output_file
+    except subprocess.CalledProcessError as e:
+        print(f"Error concatenating WAV files: {e.stderr.decode('utf-8')}")
+        return ""
+    finally:
+        # 清理临时文件
+        if os.path.exists(source_txt_path):
+            os.remove(source_txt_path)
+
+
+async def mute_audio(audio: str, project_id: str = "test") -> str:
+    if not audio:
+        return ""
+    output_file = os.path.join(FINAL_DIR, project_id, f"muted_{os.path.basename(audio)}")
+    command = [
+        'ffmpeg',
+        '-i', audio,
+        '-af', 'volume=0',  # 音量设为0（完全静音）
+        '-y',  # 覆盖输出文件
+        output_file
+    ]
+    await asyncio.to_thread(run_ffmpeg_command, command, video_name=audio)
+    return output_file

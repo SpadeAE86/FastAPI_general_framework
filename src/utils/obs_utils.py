@@ -21,6 +21,14 @@ obs_client = ObsClient(
     secret_access_key='NhQExxv9PUYsvmvGnVReizRksaiHcJdQ6vMMw19d',
     server='obs.cn-east-3.myhuaweicloud.com'
 )
+obs_audio_prefix = f"aigc/aigc_{my_config['env']}/"
+async def upload_audio(audio_path, project_id="test"):
+    print(f"开始上传音频{audio_path}")
+    if not audio_path:
+        return ""
+    obs_audio_path = await upload_to_obs(audio_path, obs_audio_prefix, project_id)
+    obs_audio_path = obs_audio_path.replace("\\", "/")
+    return obs_audio_path
 
 
 async def upload_to_obs(filename: str, obs_prefix: str = "ai_picture/mark/demo/frames_test/", project_id=None) -> str:

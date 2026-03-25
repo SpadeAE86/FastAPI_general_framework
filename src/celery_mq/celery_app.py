@@ -68,7 +68,7 @@ celery_app = Celery(
     "app",
     broker=broker_url,
     backend=backend_url,
-    include=["celery_mq.task.normalize_video_tasks"]
+    include=["celery_mq.task.normalize_video_tasks", "celery_mq.task.alivoice_tasks"]
 )
 if rabbitmq_config.get("use_ssl", False):
     celery_app.conf.broker_use_ssl = {

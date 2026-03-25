@@ -264,11 +264,13 @@ task_type:
   mix: video_queue
   sprite: sprite_queue
   transcode: transcode_queue
+  voice: voice_queue
 
 result_queue:
   mix: video_result_queue
   sprite: sprite_result_queue
   transcode: transcode_result_queue
+  voice: voice_result_queue
 
 # Celery 和消息队列配置
 celery:

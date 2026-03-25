@@ -82,39 +82,16 @@ def insert_newlines(text, max_length=12, split_index_list = None):
         processed_lines.append('\n'.join(new_line))
     return '\n'.join(processed_lines)
 
-# def insert_newlines_base_on_word_config(text, word_config_list, available_width, font_size = 30):
-#     lines = text.split('\n')  # 先按已有换行符分割
-#     processed_lines = []
-#     cur_word_config_index = 0
-#     start = word_config_list[0].start
-#     end = word_config_list[0].end
-#     idx = 0
-#     for line in lines:
-#
-#         current_width = 0
-#         segment = ""
-#         for ch in line:
-#             tmp_font_size = font_size
-#             if idx < start:
-#                 pass
-#             elif idx < end:
-#                 tmp_font_size = word_config_list[cur_word_config_index].font_size
-#             else:
-#                 cur_word_config_index += 1
-#                 start = word_config_list[cur_word_config_index].start
-#                 end = word_config_list[cur_word_config_index].end
-#             if current_width + tmp_font_size <= 330:
-#                 segment += ch
-#                 current_width += tmp_font_size
-#                 processed_lines.append(segment)
-#             else:
-#                 current_width = tmp_font_size
-#                 processed_lines.append(segment)
-#                 segment = ch
-#             idx += 1
-#         idx += 1 #给被分割吞掉的原本的\n
-#     result = "\n".join(processed_lines)
-#     return result
+async def delayed_delete(path: str, delay: float = 50.0):
+    await asyncio.sleep(delay)
+    if os.path.exists(path):
+        try:
+            shutil.rmtree(path, ignore_errors=True)
+            log.info(f"Delayed delete finished: {path}")
+        except Exception as e:
+            log.error(f"Failed to delete {path}: {e}")
+    else:
+        log.info(f"Path already gone: {path}")
 
 def get_images_with_prefix(img_dir, img_file_prefix):
     # 确保提供的是绝对路径
