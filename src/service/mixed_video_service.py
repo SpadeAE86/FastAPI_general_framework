@@ -226,7 +226,7 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
                                                             upload_to_obs(cover_img, obs_prefix=upload_video_path, project_id=project_id))
         log.info(f"successfully uploaded to obs available by {obs_video_url}")
         log.info(f"upload tasks {time.time() - upload_start} 秒")
-        log.info(f"[normalized threadpool]{biz_id} 目前处理到100%")
+        log.info(f"[normalized threadpool]{mixed_config.biz_id} 目前处理到100%")
         # 文件回收
         if cap_helper:
             cap_helper.delete_cap_png()

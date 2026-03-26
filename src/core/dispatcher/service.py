@@ -31,6 +31,9 @@ class DispatcherService:
         # 初始化 RabbitMQ Management API 客户端（缓存实例避免重复创建）
         self.rabbitmq_client = RabbitMQManagementClient()
         
+        # 启动时主动声明优先队列，确保它以 x-max-priority: 10 存在，避免流控警告
+        self._ensure_priority_queues_declared()
+        
         # 注册信号处理
         signal.signal(signal.SIGTERM, self._signal_handler)
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -48,6 +51,30 @@ class DispatcherService:
         log.info(f"收到信号 {signum}，准备关闭调度服务...")
         self.stop()
         sys.exit(0)
+
+    def _ensure_priority_queues_declared(self):
+        """
+        Dispatcher 启动时主动向 RabbitMQ 声明优先队列。
+        确保 video_priority_queue 以 x-max-priority: 10 的参数存在，
+        避免流控检查时反复报"队列不存在"警告。
+        """
+        try:
+            from celery_mq.celery_app import celery_app
+            from kombu import Queue, Exchange
+
+            queue_name = f"{ENV}_video_priority_queue"
+            exchange = Exchange("tasks", type="direct")
+            queue = Queue(
+                queue_name,
+                exchange,
+                routing_key="default",
+                queue_arguments={"x-max-priority": 10},
+            )
+            with celery_app.connection_for_write() as conn:
+                queue.declare(channel=conn.default_channel)
+            log.info(f"[Dispatcher] 优先队列已声明: {queue_name}")
+        except Exception as e:
+            log.warning(f"[Dispatcher] 声明优先队列失败（非严重，任务发送时会自动重试声明）: {e}")
 
     def check_flow_control(self) -> Dict[str, bool]:
         """
