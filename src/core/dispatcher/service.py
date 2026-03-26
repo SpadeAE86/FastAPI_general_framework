@@ -123,12 +123,26 @@ class DispatcherService:
             from celery_mq.task import process_functions
             process_function = process_functions[task_type]
             trace_id = task_data.get("trace_id", "")
-            result = process_function.apply_async(
-                args=[task_data],
-                queue=f"{ENV}_{queue_name}",
-                delivery_mode=2,
-                headers={"task_id": task_id, "trace_id": trace_id}
-            )
+            
+            kwargs = {
+                "args": [task_data],
+                "queue": f"{ENV}_{queue_name}",
+                "delivery_mode": 2,
+                "headers": {"task_id": task_id, "trace_id": trace_id}
+            }
+            
+            user_id = task_data.get("user_id", "unknown")
+            if task_type == "mix":
+                priority = self._calculate_priority(user_id)
+                kwargs["priority"] = priority
+                
+                try:
+                    queue_len = self.rabbitmq_client.get_queue_length(f"{ENV}_{queue_name}")
+                except Exception:
+                    queue_len = "未知"
+                log.info(f"👉 [排队调度] 用户 {user_id} 提交 {task_type} 任务 {task_id}，分配优先级: {priority} (0-10)。当前队列总排队数约: {queue_len} 个")
+                
+            result = process_function.apply_async(**kwargs)
             
             log.info(f"任务已发布到RabbitMQ: task_queue: {ENV}_{queue_name}, task_id={task_id}, celery_task_id={result.id}")
         except Exception as e:
@@ -338,19 +352,34 @@ class DispatcherService:
             from celery_mq.task import process_functions
             process_function = process_functions[task_type]
 
+            # 获取一次队列长度用于展示（避免for里频繁请求API）
+            try:
+                queue_len = self.rabbitmq_client.get_queue_length(f"{ENV}_{queue_name}")
+            except Exception:
+                queue_len = "未知"
+
             # ✅ 2. for 里只做「签名构造」
             task_signatures = []
             for task_id, task_data in task_items:
-                log.info(f"批量发布: {task_id}-{task_data}->{task_type},queue={ENV}_{queue_name}")
+                user_id = task_data.get("user_id", "unknown")
                 trace_id = task_data.get("trace_id", "")
-                sig = process_function.s(task_data).set(
-                    queue=f"{ENV}_{queue_name}",
-                    delivery_mode=2,  # 持久化
-                    headers={
+                
+                sig_kwargs = {
+                    "queue": f"{ENV}_{queue_name}",
+                    "delivery_mode": 2,  # 持久化
+                    "headers": {
                         "task_id": task_id,
                         "trace_id": trace_id,
-                    },
-                )
+                    }
+                }
+                if task_type == "mix":
+                    priority = self._calculate_priority(user_id)
+                    sig_kwargs["priority"] = priority
+                    log.info(f"👉 [排队调度] 用户 {user_id} 提交 {task_type} 任务 {task_id}，分配优先级: {priority} (0-10)。当前队列总排队数约: {queue_len} 个")
+                else:
+                    log.info(f"批量发布: {task_id}-{task_data}->{task_type},queue={ENV}_{queue_name}")
+                    
+                sig = process_function.s(task_data).set(**sig_kwargs)
                 task_signatures.append(sig)
 
             # ✅ 3. batch 一次性提交
@@ -418,6 +447,28 @@ class DispatcherService:
         log.info("停止调度服务...")
         self.running = False
         log.info("调度服务已停止")
+        
+    def _calculate_priority(self, user_id: str) -> int:
+        """
+        计算用户当前任务优先级
+        规则: 初始优先级 10, 本分钟内用户每发送2个任务, 优先级降1, 最低为0.
+        """
+        try:
+            if user_id in (None, "", "unknown"):
+                return 5
+            
+            current_minute = int(time.time() / 60)
+            redis_key = f"rate_limit:user:{user_id}:minute:{current_minute}"
+            
+            count = task_manager.redis_client.incr(redis_key)
+            if count == 1:
+                task_manager.redis_client.expire(redis_key, 120)
+                
+            priority = max(0, 10 - (count // 2))
+            return priority
+        except Exception as e:
+            log.error(f"Calculate priority failed for user {user_id}: {e}")
+            return 5
 
 
 if __name__ == "__main__":

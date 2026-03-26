@@ -44,7 +44,7 @@ timeout /t 3 >nul
 
 REM 3. 启动 Celery Worker
 echo [3/3] 启动 Celery Worker...
-start "Celery Worker" cmd /k "call %CONDA_ACTIVATE% %CONDA_ENV% && cd /d %SRC_DIR% && python -m celery -A celery_mq.celery_app worker -P solo --hostname=celery_local@%%h --loglevel=INFO --queues=local_video_queue --concurrency=1"
+start "Celery Worker" cmd /k "call %CONDA_ACTIVATE% %CONDA_ENV% && cd /d %SRC_DIR% && python -m celery -A celery_mq.celery_app worker -P solo --hostname=celery_local@%%h --loglevel=INFO --queues=local_video_priority_queue --concurrency=1"
 
 echo.
 echo ==============================

@@ -3,6 +3,7 @@ import socket
 import ssl
 
 from celery import Celery
+from kombu import Queue, Exchange
 from config.config import my_config, ENV
 from utils.log_utils import logger as log
 
@@ -98,6 +99,9 @@ celery_app.conf.update(
     worker_prefetch_multiplier=worker_config.get("prefetch_multiplier", 1),  # 每个worker只预取1个任务
     worker_max_tasks_per_child=worker_config.get("max_tasks_per_child", 50),  # 每个worker进程最多处理50个任务后重启，避免内存泄漏
     worker_disable_rate_limits=True,  # 禁用速率限制
+    task_queues=(
+        Queue(f"{ENV}_video_priority_queue", Exchange(queue_config.get("exchange", "tasks"), type=queue_config.get("exchange_type", "direct")), routing_key=queue_config.get("routing_key", "default"), queue_arguments={'x-max-priority': 10}),
+    ),
     task_serializer='json',
     accept_content=['json'],
     result_serializer='json',

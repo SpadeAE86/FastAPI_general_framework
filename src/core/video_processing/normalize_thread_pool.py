@@ -184,6 +184,11 @@ def thread_pool_normalize(
 
             time_so_far += len_list[idx]
 
+        # 📊 [可选功能: 进度条状态管理]
+        total_duration = sum(len_list) if sum(len_list) > 0 else 1.0
+        processed_duration = 0.0
+        biz_id = mixed_video_config.biz_id
+
         # ✅ 按完成顺序回收，但结果按 idx 放回
         completed_count = 0
         for future in concurrent.futures.as_completed(futures):
@@ -197,6 +202,23 @@ def thread_pool_normalize(
                     f"{video_list[fidx]} 已完成，进度 "
                     f"{completed_count}/{len(video_list)}"
                 )
+                
+                # --- [可选功能: 更新进度到 Redis] ---
+                processed_duration += len_list[fidx]
+                if biz_id:
+                    try:
+                        from celery_mq.task_manager import task_manager
+                        from config.config import ENV
+                        redis_key = f"{ENV}:{biz_id}_progress"
+                        # 留出 1% 给最终合并环节，所以最高记到 0.99
+                        current_progress = min(processed_duration / total_duration, 0.99)
+                        log.info(f"[normalized threadpool]{biz_id} 目前处理到 {current_progress}({processed_duration}/{total_duration})")
+                        # 写进 Redis，设置过期时间为一天(86400秒)防内存泄漏
+                        task_manager.redis_client.set(redis_key, str(current_progress), ex=86400)
+                    except Exception as progress_err:
+                        log.warning(f"更新进度到Redis失败: {progress_err}")
+                # ----------------------------------
+                
             except Exception as e:
                 fidx = future_to_idx.get(future, -1)
                 video_path = video_list[fidx] if fidx >= 0 else "unknown"
