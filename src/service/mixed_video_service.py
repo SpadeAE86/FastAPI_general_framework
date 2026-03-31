@@ -243,6 +243,10 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
         else:
             duration = sum(len_list)
 
+        # 计算处理时间
+        end_time_dt = datetime.now()
+        cost_time = (end_time_dt - current_time).total_seconds()
+
         # 构造返回体
         resp = MixedVideoResponse(
             message = f"{num} video being processed",
@@ -251,6 +255,9 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
             duration= round(duration, 2),
             request_data = mixed_config.request_data,
             video_size = file_size,
-            biz_id = mixed_config.biz_id
+            biz_id = mixed_config.biz_id,
+            start_time = current_time.strftime("%Y-%m-%d %H:%M:%S"),
+            end_time = end_time_dt.strftime("%Y-%m-%d %H:%M:%S"),
+            cost_time = round(cost_time, 2)
         )
         return resp
