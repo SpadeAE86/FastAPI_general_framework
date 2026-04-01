@@ -411,5 +411,39 @@ def save_config():
 
 my_config = load_config()
 ENV = my_config['env']
-# 调用外部接口并更新 CosyVoice_voice
-# CosyVoice_voice = fetch_CosyVoice_voice() or CosyVoice_voice  # 如果外部接口失败，则保留原有数据
+MY_CONFIG = my_config # For colleague's code compatibility
+
+# --- 项目根目录 ---
+from pathlib import Path
+def get_project_root() -> Path:
+    current_path = Path(__file__).resolve()
+    while current_path.parent != current_path:
+        if (current_path / 'src').exists():
+            return current_path
+        current_path = current_path.parent
+    raise FileNotFoundError
+
+PROJECT_ROOT: Path = get_project_root()
+
+# --- logs 目录 ---
+LOGS_DIR: Path = PROJECT_ROOT / 'logs'
+
+# --- src 目录 ---
+SRC_DIR: Path = PROJECT_ROOT / 'src'
+
+# --- static 目录 ---
+STATIC_DIR: Path = PROJECT_ROOT / 'static'
+
+# --- temp 目录 ---
+TEMP_DIR: Path = PROJECT_ROOT / 'temp'
+os.makedirs(TEMP_DIR, exist_ok=True)
+
+# --- ffmpeg 目录 ---
+FFMPEG_DIR: Path = STATIC_DIR / 'ffmpeg'
+os.environ["PATH"] = str(FFMPEG_DIR) + os.pathsep + os.environ["PATH"]
+
+# --- fonts 目录 ---
+FONTS_DIR: Path = STATIC_DIR / 'fonts'
+os.environ["PATH"] = str(FONTS_DIR) + os.pathsep + os.environ["PATH"]
+
+CONFIG_FILE: Path = Path(config_file)

@@ -1,0 +1,42 @@
+##########
+# * yaml 不识别 python 表达式 10 * 1024 ** 3，需要直接写数值
+##########
+
+# 整体环境控制：local、test、prod
+env: local
+
+# 日志 配置
+log:
+  local:
+    level: TRACE # 控制台日志级别
+  test:
+    level: TRACE # 控制台日志级别
+  prod:
+    level: INFO # 控制台日志级别
+
+# cache 配置
+cache:
+  local:
+    cache_dir: Z:/cache # 内存盘，IO极快
+    cache_max_size: 10_737_418_240  # 10GB # yaml 不识别乘法 10 * 1024 ** 3，需要直接写数值
+    cache_ttl: 86_400  # 24小时 # 24 * 3600
+  test:
+    cache_dir: /dev/shm # 内存文件系统
+    cache_max_size: 10_737_418_240  # 10GB # 10 * 1024 ** 3
+    cache_ttl: 86_400  # 24小时 # 24 * 3600
+  prod:
+    cache_dir: /tmp/cache # 内存文件系统
+    cache_max_size: 10_737_418_240  # 10GB # 10 * 1024 ** 3
+    cache_ttl: 86_400  # 24小时 # 24 * 3600
+
+# ffmpeg 使用配置
+hw:
+  local:
+    decoder: cuda # 解码器
+    encoder: cuda # 编码器
+  test:
+    decoder: cuda # 解码器
+    encoder: cuda # 编码器
+  prod:
+    decoder: cuda # 解码器
+    encoder: cuda # 编码器

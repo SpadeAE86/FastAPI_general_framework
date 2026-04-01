@@ -6,9 +6,21 @@ import random
 import re
 import string
 import subprocess
+from pathlib import Path
 
 import yaml
 from PIL.Image import Image
+
+def get_project_root() -> Path:
+    """
+    获取项目根目录（向上查找 src）
+    """
+    current_path = Path(__file__).resolve()
+    while current_path.parent != current_path:
+        if (current_path / 'src').exists():
+            return current_path
+        current_path = current_path.parent
+    raise FileNotFoundError
 
 
 def random_line(afile):

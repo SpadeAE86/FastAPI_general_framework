@@ -333,3 +333,36 @@ http:
     timeout: 10.0  # GET请求超时（秒）
     retry_sleep: 10  # 重试等待时间（秒）
 
+# --- Added from simplify_ffmpeg_logic ---
+log:
+  local:
+    level: TRACE # 控制台日志级别
+  test:
+    level: TRACE # 控制台日志级别
+  prod:
+    level: INFO # 控制台日志级别
+
+cache_config:
+  local:
+    cache_dir: C:/cache # 内存盘，IO极快
+    cache_max_size: 10737418240  # 10GB
+    cache_ttl: 86400  # 24小时
+  test:
+    cache_dir: /dev/shm # 内存文件系统
+    cache_max_size: 10737418240
+    cache_ttl: 86400
+  prod:
+    cache_dir: /tmp/cache # 内存文件系统
+    cache_max_size: 10737418240
+    cache_ttl: 86400
+
+hw:
+  local:
+    decoder: cuda # 解码器
+    encoder: cuda # 编码器
+  test:
+    decoder: cuda # 解码器
+    encoder: cuda # 编码器
+  prod:
+    decoder: cuda # 解码器
+    encoder: cuda # 编码器

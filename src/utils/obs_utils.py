@@ -9,7 +9,7 @@ from obs import ObsClient
 from config.config import ENV, my_config
 from exceptions.ServiceException import ServiceException
 from utils.log_utils import logger as log
-from utils.cache_utils import get_cached_path, set_cached_path
+from utils.cache_utils import get_from_cache, set_to_cache
 
 # === OBS 配置 ===
 BUCKET_NAME = 'freeuuu'
@@ -22,6 +22,7 @@ obs_client = ObsClient(
     server='obs.cn-east-3.myhuaweicloud.com'
 )
 obs_audio_prefix = f"aigc/aigc_{my_config['env']}/"
+
 async def upload_audio(audio_path, project_id="test"):
     print(f"开始上传音频{audio_path}")
     if not audio_path:
@@ -29,7 +30,6 @@ async def upload_audio(audio_path, project_id="test"):
     obs_audio_path = await upload_to_obs(audio_path, obs_audio_prefix, project_id)
     obs_audio_path = obs_audio_path.replace("\\", "/")
     return obs_audio_path
-
 
 async def upload_to_obs(filename: str, obs_prefix: str = "ai_picture/mark/demo/frames_test/", project_id=None) -> str:
     if project_id is not None:
@@ -47,7 +47,6 @@ async def upload_to_obs(filename: str, obs_prefix: str = "ai_picture/mark/demo/f
     except Exception as e:
         raise ServiceException(code=457, message=f"obs上传异常，请检查{filename}文件是否存在", data=str(e))
 
-
 def sha256_file(filename, chunk_size=512):
     m = hashlib.sha256()
     f = open(filename, 'rb')
@@ -57,7 +56,6 @@ def sha256_file(filename, chunk_size=512):
             break
         m.update(b)
     return m.hexdigest()
-
 
 async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
     """
@@ -76,9 +74,9 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
 
     try:
         # 查询 diskcache 缓存（多进程安全，自带 TTL 续期）
-        cached_path = await asyncio.to_thread(get_cached_path, path)
+        cached_path = await asyncio.to_thread(get_from_cache, path, True)
         if cached_path:
-            return cached_path
+            return str(cached_path)
 
         # 缓存未命中，从 OBS 下载
         start = time.time()
@@ -95,8 +93,15 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
             log.info(f"{local_path}:{sha256_file(local_path)}")
 
             # 写入 diskcache 缓存
-            await asyncio.to_thread(set_cached_path, path, local_path)
-            return local_path
+            def write_cache_and_clean():
+                with open(local_path, 'rb') as f:
+                    set_to_cache(path, f)
+                # We optionally leave local_path or delete it. Since save_dir is used by default, we keep it or rely on cache path.
+                # Returning the cached path ensures downstream uses the new diskcache file format.
+                return get_from_cache(path, as_path=True)
+            
+            final_cached_path = await asyncio.to_thread(write_cache_and_clean)
+            return str(final_cached_path) if final_cached_path else local_path
         else:
             raise ServiceException(code=460, message=f"obs下载异常，状态码{resp.status}")
     except ServiceException:
@@ -126,37 +131,21 @@ async def batch_upload_to_obs(
 def obs_key_exists(obs_path: str) -> bool:
     """
     判断 OBS 对象是否存在
-
-    Args:
-        obs_path: obs 路径，如 obs://bucket/key 或 bucket/key
-    Returns:
-        True: 存在
-        False: 不存在
     """
-
-
     try:
         key = obs_path
-
         resp = obs_client.headObject(BUCKET_NAME, key)
-
-        # ✅ 核心判断点
         return resp.status < 300
-
     except Exception as e:
-
         log.exception(f"OBS 路径{obs_path}不存在 异常: {e}")
         return False
-
-
 
 if __name__ == "__main__":
     # 手动测试用
     test_paths = [
-        "aigc/aigc_local/1998/1998743094727520258/0/video/1765372463420.mp4",      # 换成一个你确定存在的 key
-        "aigc/aigc_local/1998/1997943094727520258/0/video/1765372463421.mp4",  # 换成一个你确定不存在的 key
+        "aigc/aigc_local/1998/1998743094727520258/0/video/1765372463420.mp4",
+        "aigc/aigc_local/1998/1997943094727520258/0/video/1765372463421.mp4",
     ]
-
     for path in test_paths:
         exists = obs_key_exists(path)
         print(f"[TEST] obs_path={path}, exists={exists}")
