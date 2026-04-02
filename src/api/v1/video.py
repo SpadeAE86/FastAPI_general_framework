@@ -6,6 +6,7 @@
 """
 from fastapi import APIRouter, HTTPException, Path, Header
 from celery_mq.protocols import TaskManagerProtocol
+from models.pydantic_models.request.frontend_timeline_request import FrontendTimelineRequest
 from models.pydantic_models.request.mixed_video_request import MixedVideoRequest
 from celery_mq.task_manager import task_manager
 from utils.log_utils import logger as log
@@ -156,3 +157,22 @@ async def delete_task(task_id: str = Path(..., description="任务ID")) -> Dict[
         log.error(f"删除任务失败: task_id={task_id}, error={e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"删除任务失败: {str(e)}")
 
+@video_router.post("/frontend-timeline", response_model=Dict[str, Any])
+async def get_frontend_timeline(request: FrontendTimelineRequest) -> Dict[str, Any]:
+    """
+    生成前端时间线JSON配置
+    """
+    try:
+        timeline_res = build_frontend_timeline(
+            req=request.mixed_request,
+            fps_list=request.fps_list,
+            sprites_list=request.sprites_list
+        )
+        return {
+            "code": 200,
+            "message": "生成成功",
+            "data": timeline_res.model_dump(exclude_none=True)
+        }
+    except Exception as e:
+        log.error(f"生成前端Timeline失败: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"生成前端Timeline失败: {str(e)}")

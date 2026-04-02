@@ -132,12 +132,39 @@ class TextClipData(BaseModel):
     position: TextPositionData = Field(default_factory=TextPositionData)
     voiceover: Optional[VoiceOverData] = Field(default=None)
 
+class AudioTrackData(BaseModel):
+    id: str
+    name: str
+    order: int
+    visible: bool = Field(default=True)
+    locked: bool = Field(default=False)
+
+class AudioSourceData(BaseModel):
+    name: str
+    url: str
+    frames: Optional[int] = Field(default=None)
+
+class AudioEffectData(BaseModel):
+    speed: float = Field(default=1.0)
+    volume: int = Field(default=100)
+    fadeIn: int = Field(default=0)
+    fadeOut: int = Field(default=0)
+
+class AudioClipData(BaseModel):
+    id: str
+    trackId: str
+    sceneId: Optional[str] = Field(default=None)
+    time: TimeData
+    source: AudioSourceData
+    effect: AudioEffectData = Field(default_factory=AudioEffectData)
+
 class TimelineData(BaseModel):
     scenes: List[SceneData] = Field(default_factory=list)
     videoClips: List[VideoClipData] = Field(default_factory=list)
     textTracks: List[TextTrackData] = Field(default_factory=list)
     textClips: List[TextClipData] = Field(default_factory=list)
-    # 你后续可以在这里补充 audioClips、audioTracks、stickers 等轨道
+    audioTracks: List[AudioTrackData] = Field(default_factory=list)
+    audioClips: List[AudioClipData] = Field(default_factory=list)
 
 class FrontendTimelineResponse(BaseResponse):
     """

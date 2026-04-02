@@ -1,33 +1,49 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import uuid
 
 from models.pydantic_models.request.mixed_video_request import MixedVideoRequest
 from models.pydantic_models.response.frontend_timeline_response import (
     FrontendTimelineResponse, MetaData, SettingsData, ExportSettings,
     TimelineData, SceneData, VideoClipData, TextTrackData, TextClipData,
-    TimeData, SourceData, EffectData, ExtraData, TextContentData
+    TimeData, SourceData, EffectData, ExtraData, TextContentData,
+    SpritesData, VoiceOverData, AudioTrackData, AudioClipData, AudioSourceData, AudioEffectData
 )
 
-def build_frontend_timeline(req: MixedVideoRequest, project_id: str = "", project_name: str = "AI生成混剪") -> FrontendTimelineResponse:
-    """
-    将后端的 MixedVideoRequest 转换为前端可视化的 Timeline JSON。
-    前提：前端在发起请求时，需要在 req.request_data 里或者额外字段里传入被选中的视频的物料元数据(帧数、雪碧图等)。
-    如果缺这些数据，这里将使用简单的推导或默认值兜底。
-    """
+def build_frontend_timeline(
+    req: MixedVideoRequest, 
+    fps_list: Optional[List[int]] = None,
+    sprites_list: Optional[List[SpritesData]] = None,
+    project_id: str = "", 
+    project_name: str = "AI生成混剪"
+) -> FrontendTimelineResponse:
     if not project_id:
         project_id = str(uuid.uuid4().int >> 64)
 
     fps = req.fps
     
+    try:
+        from config.config import get_settings
+        pbase = get_settings().pbase
+        if not pbase.endswith('/'):
+            pbase += '/'
+    except Exception:
+        pbase = "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/"
+        
+    def _add_domain(path: str) -> str:
+        if not path:
+            return path
+        if path.startswith("http"):
+            return path
+        return f"{pbase}{path}"
+
     # 1. 基础设置与外层包裹
     settings = SettingsData(
-        width=1920, # 默认值，可以根据 req.resolution 去映射字典
+        width=1920,
         height=1080,
         fps=fps,
         backgroundColor="#000000"
     )
     
-    # 尝试从 resolution 里匹配真正的宽高（如果后端有枚举解析逻辑最好）
     if req.resolution and req.ratio_type:
         from models.pydantic_models.request.mixed_video_request import ratio_option
         if req.resolution in ratio_option and req.ratio_type in ratio_option[req.resolution]:
@@ -44,66 +60,74 @@ def build_frontend_timeline(req: MixedVideoRequest, project_id: str = "", projec
 
     timeline_data = TimelineData()
 
-    # 创建一条统一的视频轨（其实在前端 JSON 里，video 不用显式声明 track，直接放在 videoClips 即可）
-    # 创建一条唯一的文字轨
     text_track_id = str(uuid.uuid4())
     timeline_data.textTracks.append( TextTrackData(
         id=text_track_id, name="AI_Subtitle_Track", order=1
     ))
-
-    # 2. 遍历片段生成 Scene, VideoClip, TextClip
-    # 因为用户说：每个分镜里就只剩一条视频clip和文本clip
-    num_clips = len(req.obs_video_path_list)
     
-    # 获取外部传入的元数据 (如果是存在 request_data 里面)
-    # 假设 request_data 是个字典，里面有 `video_metas: [{frames, sprites, materialId}, ...]`
-    # 这里做个安全兜底，假装没传的话就用推导
-    raw_metas = getattr(req, "request_data", {}) or {}
-    video_metas = raw_metas.get("video_metas", [])
+    audio_track_id = str(uuid.uuid4())
+    timeline_data.audioTracks.append( AudioTrackData(
+        id=audio_track_id, name="BGM_Track", order=1
+    ))
 
+    num_clips = len(req.obs_video_path_list) if req.obs_video_path_list else 0
     current_offset_frames = 0
+
+    scene_starts_in_seconds = []
 
     for i in range(num_clips):
         scene_id = str(uuid.uuid4())
         
-        # --- 算时间 ---
-        # 视频裁剪 config
         crop = req.crop_config[i] if req.crop_config and i < len(req.crop_config) else None
         
+        current_fps = fps_list[i] if fps_list and i < len(fps_list) else fps
+        
         if crop:
-            in_point_frames = int(crop.start * fps)
-            out_point_frames = int(crop.end * fps)
+            in_point_frames = int(crop.start * current_fps)
+            out_point_frames = int(crop.end * current_fps)
         else:
             in_point_frames = 0
-            # 没传裁剪的话给个默认3秒
-            out_point_frames = int(3.0 * fps)
+            out_point_frames = int(3.0 * current_fps)
             
         length_frames = out_point_frames - in_point_frames
 
-        # --- Scene ---
         scene = SceneData(
             id=scene_id,
             order=i + 1,
             name=f"分镜{i+1}",
             duration=length_frames,
-            fps=fps,
+            fps=current_fps,
             width=settings.width,
             height=settings.height
         )
         timeline_data.scenes.append(scene)
 
-        # --- 获取外部元数据（提取帧数字典） ---
-        meta_dict = video_metas[i] if i < len(video_metas) else {}
-        real_duration = meta_dict.get("frames", length_frames * 2) # 没有就瞎猜比裁剪长一倍
-        material_id = meta_dict.get("materialId", str(uuid.uuid4()))
-        sprites = meta_dict.get("sprites", None)
+        # 记录分镜开始的秒数，便于后续字幕分配
+        duration_in_seconds = length_frames / current_fps if current_fps else 0
+        scene_starts_in_seconds.append({
+            "id": scene_id,
+            "start": current_offset_frames,
+            "duration": duration_in_seconds,
+            "fps": current_fps
+        })
+        current_offset_frames += duration_in_seconds
 
-        # --- VideoClip ---
+        sprites = sprites_list[i] if sprites_list and i < len(sprites_list) else None
+        if sprites and sprites.sheets:
+            for sheet in sprites.sheets:
+                sheet.url = _add_domain(sheet.url)
+
+        real_duration = length_frames * 2 # 兜底值
+        if sprites and sprites.sheets and len(sprites.sheets) > 0:
+            real_duration = sum(s.frameCount for s in sprites.sheets)
+            
+        material_id = str(uuid.uuid4())
+
         video_clip = VideoClipData(
             id=str(uuid.uuid4()),
             sceneId=scene_id,
             time=TimeData(
-                offset=0, # 注意：由于每个Clip独占一个Scene，所以在Scene内部它的offset通常为0！
+                offset=0,
                 length=length_frames,
                 inPoint=in_point_frames,
                 outPoint=out_point_frames,
@@ -112,10 +136,10 @@ def build_frontend_timeline(req: MixedVideoRequest, project_id: str = "", projec
             ),
             source=SourceData(
                 name=material_id,
-                url=req.obs_video_path_list[i],
+                url=_add_domain(req.obs_video_path_list[i]),
                 cover=None,
                 frames=real_duration,
-                width=settings.width,  # 这里最好填原视频的宽
+                width=settings.width,
                 height=settings.height,
                 materialId=material_id,
                 sprites=sprites
@@ -126,50 +150,87 @@ def build_frontend_timeline(req: MixedVideoRequest, project_id: str = "", projec
         )
         timeline_data.videoClips.append(video_clip)
 
-        # 往前累加全局 Timeline 游标（给外部计算总长度参考用的，虽然 scene 内部 offset 为 0）
-        current_offset_frames += length_frames
-
-    # --- 3. TextClips 字幕 ---
     if req.cap_config and req.cap_config.caption_list:
-        # 字幕是全局覆盖在整个 Timeline 上的，通常不严格挂载在 Scene 内（或者挂在一个特殊的 Global Scene 里）
-        # 如果你们前端格式要求 TextClip 必须有个属主 sceneId，那我们就把所有字幕按时间切到对应的 Scene 进去
-        
+        audio_paths = req.obs_audio_path_list or []
         for cap_idx, cap in enumerate(req.cap_config.caption_list):
-            cap_in_frames = int(cap.start * fps)
-            cap_out_frames = int(cap.end * fps)
-            cap_len_frames = cap_out_frames - cap_in_frames
             
-            # 为了严谨，需要根据 cap_in_frames 处于哪个 Scene，把字幕绑定过去
-            # 这里简单起见，把它挂靠到第一个 Scene 或通过累计时间算它落在哪个 Scene
-            # 这是一个典型的 NLE 倒推逻辑：
-            accumulated = 0
-            target_scene_id = timeline_data.scenes[0].id
-            scene_local_offset = cap_in_frames
+            # 定位字幕属于哪个分镜
+            target_scene_id = timeline_data.scenes[0].id if timeline_data.scenes else str(uuid.uuid4())
+            target_fps = fps
+            scene_local_offset_seconds = cap.start
             
-            for s in timeline_data.scenes:
-                if accumulated <= cap_in_frames < (accumulated + s.duration):
-                    target_scene_id = s.id
-                    scene_local_offset = cap_in_frames - accumulated
+            accumulated_seconds = 0
+            for s_info in scene_starts_in_seconds:
+                if accumulated_seconds <= cap.start < (accumulated_seconds + s_info["duration"]):
+                    target_scene_id = s_info["id"]
+                    target_fps = s_info["fps"]
+                    scene_local_offset_seconds = cap.start - accumulated_seconds
                     break
-                accumulated += s.duration
+                accumulated_seconds += s_info["duration"]
+
+            cap_in_frames = int(scene_local_offset_seconds * target_fps)
+            cap_len_frames = int((cap.end - cap.start) * target_fps)
+
+            voiceover = None
+            if cap_idx < len(audio_paths):
+                voiceover = VoiceOverData(
+                    voiceId="小仙(亲切女声)",
+                    speed=1.0,
+                    volume=100,
+                    audioUrl=_add_domain(audio_paths[cap_idx])
+                )
 
             text_clip = TextClipData(
                 id=str(uuid.uuid4()),
                 trackId=text_track_id,
                 sceneId=target_scene_id,
                 time={
-                    "offset": scene_local_offset,
+                    "offset": cap_in_frames,
                     "length": cap_len_frames
                 },
-                content=TextContentData(text=cap.cap)
+                content=TextContentData(text=cap.cap),
+                voiceover=voiceover
             )
-            # 字体样式
             text_clip.style.fontColor.r = 255
             text_clip.style.fontSize = cap.font_size if cap.font_size else req.cap_config.font_size
             
-            # 还可以填 voiceover 语音
-            
             timeline_data.textClips.append(text_clip)
+
+    if req.bgm_config and req.obs_bgm_path_list:
+        for idx, bgm in enumerate(req.bgm_config):
+            if idx < len(req.obs_bgm_path_list):
+                bgm_url = _add_domain(req.obs_bgm_path_list[idx])
+                
+                # BGM 是全局的，不依赖于某个特定 scene
+                # 将时间 (秒) 转换为全局的帧数
+                in_point_frames = int(bgm.start * fps)
+                out_point_frames = int(bgm.end * fps)
+                length_frames = out_point_frames - in_point_frames
+                offset_frames = int(bgm.offset * fps) if hasattr(bgm, 'offset') else 0
+                
+                audio_clip = AudioClipData(
+                    id=str(uuid.uuid4()),
+                    trackId=audio_track_id,
+                    sceneId=None,
+                    time=TimeData(
+                        offset=offset_frames,
+                        length=length_frames,
+                        inPoint=in_point_frames,
+                        outPoint=out_point_frames,
+                        layer=0,
+                        realDuration=length_frames * 2
+                    ),
+                    source=AudioSourceData(
+                        name=f"bgm_{idx}",
+                        url=bgm_url,
+                        frames=length_frames * 2
+                    ),
+                    effect=AudioEffectData(
+                        volume=int(bgm.volume * 100) if hasattr(bgm, 'volume') else 100,
+                        speed=1.0
+                    )
+                )
+                timeline_data.audioClips.append(audio_clip)
 
     return FrontendTimelineResponse(
         meta=meta,
