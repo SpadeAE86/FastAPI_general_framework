@@ -23,5 +23,9 @@ dependencies = [
     "celery[redis]",
     "loguru",
     "pymediainfo",
-    "diskcache"
+    "diskcache",
+    "yarl>=1.23.0",
+    "av>=17.0.0",
+    "func-to-web>=0.9.13",
+    "pymysql"
 ]

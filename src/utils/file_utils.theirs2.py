@@ -1,4 +1,3 @@
-
 #
 
 import os
@@ -16,11 +15,12 @@ from PIL.Image import Image
 VIDEO_SUFFIX = '.mp4'
 # 全局使用的音频
 AUDIO_SUFFIX = '.wav'
-AUDIO_ACODEC = 'pcm_s16le'  # 编码器：使用 pcm_s16le。# pcm... # s16... # le...
-AUDIO_AR = 44100  # 采样率：44100Hz (44.1kHz)。
-AUDIO_AC = 2  # 声道数：2 (Stereo 立体声)。
+AUDIO_ACODEC = 'pcm_s16le'  # 编码器：使用 pcm_s16le。# pcm: 脉冲编码调制（无损原始数据）。 # s16: 16位有符号整数（每个采样点占用 2 字节，动态范围约 96dB）。# le: 小端字节序（Little Endian，Windows/Linux 系统的标准存储方式）。
+AUDIO_AR = 44100  # 采样率：44100Hz (44.1kHz)。# 这是 CD 标准采样率。根据奈奎斯特采样定理，它可以完美还原最高 22.05kHz 的频率（涵盖人耳听觉极限）。
+AUDIO_AC = 2  # 声道数：2 (Stereo 立体声)。# 1 代表单声道 (Mono)，2 代表左右双声道。
 # 全局使用的图片
 IMAGE_SUFFIX = '.webp'
+
 
 def get_project_root() -> Path:
     """
@@ -174,6 +174,7 @@ def read_file_with_extra_enter(file):
         # 使用join()将行重新组合成字符串
         cleaned_content = '\n'.join(lines)
         return cleaned_content
+
 
 def read_file_start_with_secondline(file):
     # 使用with语句打开文件，确保文件在使用后会被正确关闭

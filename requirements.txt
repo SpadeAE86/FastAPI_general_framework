@@ -99,3 +99,7 @@ alibabacloud-nls-python-sdk
 psutil
 loguru
 pymediainfo
+yarl
+av
+func-to-web
+pymysql

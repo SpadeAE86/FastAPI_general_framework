@@ -20,6 +20,7 @@ from config.config import FINAL_DIR, MY_CONFIG, ENV, TEMP_DIR
 from exceptions.ServiceException import ServiceException
 from utils.general_utils import run_ffmpeg_command, get_video_info
 from utils.log_utils import logger, time_it, LOG_LEVEL
+from utils.file_utils import VIDEO_SUFFIX, AUDIO_SUFFIX, AUDIO_ACODEC, AUDIO_AR, AUDIO_AC, IMAGE_SUFFIX
 from models.pydantic_dataclass.transition_caption import TransitionCaption
 
 log = logger
@@ -48,7 +49,7 @@ def get_hw_capabilities():
         def run_command(cmd, timeout=5):
             res = subprocess.run(cmd, capture_output=True, timeout=timeout)
             return res.returncode, res.stdout, res.stderr
-            
+
     _, hwaccels, _ = run_command(['ffmpeg', '-hwaccels'], timeout=5)
     _, decoders, _ = run_command(['ffmpeg', '-decoders'], timeout=5)
     _, encoders, _ = run_command(['ffmpeg', '-encoders'], timeout=5)
@@ -86,240 +87,236 @@ def get_hw_config(decoder_pref: str = None, encoder_pref: str = None) -> dict:
 
 
 @time_it
-def has_audio_stream(video: Union[Path, io.BufferedIOBase, bytes], use_mediainfo: bool = True) -> bool:
-    if use_mediainfo:
-        if isinstance(video, bytes):
-            input_data = io.BytesIO(video)
-        else:
-            input_data = video
+def has_audio_stream(video: Union[Path, URL, io.BufferedIOBase, bytes]) -> bool:
+    if isinstance(video, (Path, URL)):
+        input_data = str(video)
+    elif isinstance(video, (Path, io.BufferedIOBase)):
+        input_data = video
+    else:
+        # MediaInfo 不收 bytes，必须包一层 BytesIO
+        input_data = io.BytesIO(video)
 
-        media_info = MediaInfo.parse(input_data)
-        for track in media_info.tracks:
-            if track.track_type == 'Audio':
-                return True
-        return False
+    media_info = MediaInfo.parse(input_data)
+    for track in media_info.tracks:
+        if track.track_type == 'Audio':
+            return True
 
-    logger.warning('以下 ffprobe 模式 已弃用，请改用 mediainfo 模式。原因：慢')
     return False
 
 
 @time_it
-def extract_audio_from_video(
-        video: Path,
-        as_path: bool = False,
-        audio: Path = None,
-        as_gen: bool = False
-) -> Union[Path, bytes, Generator[bytes, None, None], None]:
-    if as_path:
-        as_gen = False
+def extract_audio_from_video(video: Union[Path, URL],
+                             bytes_with_header: bool = True,
+                             as_path: bool = False,
+                             audio: Path = None) -> Union[bytes, Path, None]:
+    """
+    从视频中提取音频 (WAV PCM 44100Hz 16bit Stereo)
+    * ffmpeg 取出音频数据（bytes）不含头信息
+    todo 废弃生成器输出模式，不增加复杂性，但如遇大型音频流会导致内存暴涨
+    :param video: 输入视频（Path、URL）
+    :param bytes_with_header: 为 True 时返回 bytes 开头带音频头信息
+    :param as_path: 为 True 时返回 Path 对象
+    :param audio: 只有当 as_path=True 时有效，指定输出路径；若未提供则生成临时文件（wav格式，后缀必须.wav）
+    :return: 文件路径（Path）、音频数据（bytes），失败返回 None
+    """
 
-    is_temp_file = False
+    # ffmpeg input
     input_source = str(video)
     input_args = {
-        'vn': None,
-        'sn': None,
-        'dn': None,
-        'fflags': '+fastseek+nobuffer'
+        'vn': None,  # 禁用视频流
+        'sn': None,  # 禁用字幕流
+        'dn': None,  # 禁用数据流
+        'fflags': '+fastseek+nobuffer'  # fastseek: 快速定位；nobuffer: 减少内存读写缓冲延迟
     }
 
+    # ffmpeg output
     if as_path:
-        output_format = 'wav'
+        # 指定输出音频 Path
+        output_format = AUDIO_SUFFIX[1:]
         if audio:
-            assert audio.suffix == f'.{output_format}'
+            # 检查后缀，使用用户指定的路径，确保父目录存在
+            assert audio.suffix == AUDIO_SUFFIX
             output_dest = str(audio)
             Path(output_dest).parent.mkdir(parents=True, exist_ok=True)
         else:
-            fd, output_dest = tempfile.mkstemp(suffix=f'.{output_format}', dir=TEMP_DIR)
+            # 创建临时文件，关闭文件句柄，只留路径字符串
+            fd, output_dest = tempfile.mkstemp(suffix=AUDIO_SUFFIX, dir=TEMP_DIR)
             os.close(fd)
-            is_temp_file = True
     else:
-        output_format = 's16le'
+        # 指定输出 wav 音频 bytes # 纯音频流使用 s16le 流
+        output_format = AUDIO_SUFFIX[1:] if bytes_with_header else 's16le'
         output_dest = 'pipe:'
-        
     output_args = {
-        'loglevel': 'error' if _IS_QUIET else 'info',
-        'format': output_format,
-        'acodec': 'pcm_s16le',
-        'ar': '44100',
-        'ac': 2,
-        'threads': 1,
-        'map_metadata': -1,
+        'loglevel': 'error' if _IS_QUIET else 'info',  # 防止堵塞 stderr 管道
+        'format': output_format,  # 封装格式
+        'acodec': AUDIO_ACODEC,  # 编码器
+        'ar': AUDIO_AR,  # 采样率
+        'ac': AUDIO_AC,  # 声道数
+        'threads': 1,  # 减少上下文切换开销
+        'map_metadata': -1,  # 丢弃元数据（封面图、歌词等），进一步加快速度
     }
 
+    # ffmpeg run
     try:
-        process = (
-            ffmpeg
-            .input(input_source, **input_args)
-            .output(output_dest, **output_args)
-            .run_async(
-                pipe_stdout=not as_path,
-                quiet=_IS_QUIET,
-                overwrite_output=True,
-            )
+        stream = ffmpeg.input(input_source, **input_args).output(output_dest, **output_args)
+        out, err = ffmpeg.run(
+            stream,
+            capture_stdout=not as_path,  # 相当于原来的 pipe_stdout
+            capture_stderr=True,  # 相当于原来的 pipe_stderr
+            quiet=_IS_QUIET,
+            overwrite_output=True
         )
 
-        if as_gen:
-            def _generator():
-                try:
-                    while True:
-                        chunk = process.stdout.read(CHUNK_SIZE)
-                        if not chunk:
-                            if process.poll() is not None and process.returncode != 0:
-                                logger.error(f'提取进程异常退出，Code: {process.returncode}')
-                            break
-                        yield chunk
-                    process.wait()
-                finally:
-                    if process.stdout: process.stdout.close()
-                    if process.stderr: process.stderr.close()
-                    if process.poll() is None: process.kill()
-
-            logger.success(f'音频提取成功 -> generator')
-            return _generator()
-
         if as_path:
-            process.wait()
+            assert Path(output_dest).exists()
             logger.success(f'音频提取成功 -> {output_dest}')
             return Path(output_dest)
 
-        out, _ = process.communicate()
         logger.success(f'音频提取成功 -> bytes')
         return out
 
     except ffmpeg.Error as e:
-        logger.error(f'FFmpeg 提取失败: {e}')
-        if is_temp_file and output_dest and os.path.exists(output_dest):
-            os.remove(output_dest)
-        return None
-    except Exception as e:
-        logger.exception(f'提取音频发生非预期异常: {e}')
-        if is_temp_file and output_dest and os.path.exists(output_dest):
+        # ffmpeg.run 报错时，错误信息在 e.stderr 中
+        logger.error(f'FFmpeg 提取失败: {(e.stderr or b'').decode() or e}')
+        if as_path and not audio and Path(output_dest).exists():
             os.remove(output_dest)
         return None
 
+    except Exception as e:
+        logger.exception(f'非预期异常: {e}')
+        if as_path and not audio and Path(output_dest).exists():
+            os.remove(output_dest)
+        return None
+
+
 @time_it
-def save_data_to_audio(data: Union[bytes, Iterable[bytes]], audio: Path):
+def save_data_to_audio(data: bytes, audio: Path) -> bool:
+    """
+    将 bytes 数据保存为 WAV。
+    1. 如果包含 WAV 头，直接写入文件。
+    2. 如果是 Raw PCM，使用 wave 库封装头信息后写入。
+    * 改为 wave 封装，比 ffmpeg 子进程消耗少
+    """
+
     if not data:
         logger.warning('音频数据为空，跳过保存')
         return False
 
-    process = None
     try:
-        process = (
-            ffmpeg
-            .input('pipe:', **{'format': 's16le', 'ar': '44100', 'ac': 2})
-            .output(str(audio), **{
-                'loglevel': 'error' if _IS_QUIET else 'info',
-                'acodec': 'copy',
-                'threads': 1,
-            })
-            .overwrite_output()
-            .run_async(
-                pipe_stdin=True,
-                quiet=_IS_QUIET,
-                overwrite_output=True,
-            )
-        )
+        # 确保父目录存在
+        audio.parent.mkdir(parents=True, exist_ok=True)
 
-        if isinstance(data, (bytes, bytearray)):
-            data_iter = (data[i: i + CHUNK_SIZE] for i in range(0, len(data), CHUNK_SIZE))
-        else:
-            data_iter = data
-
-        for chunk in data_iter:
-            if chunk:
-                process.stdin.write(chunk)
-
-        process.stdin.close()
-        process.wait()
-
-        if process.returncode == 0:
-            logger.success(f'音频已成功流式保存至: {audio}')
+        # 1. 检查是否已经包含 WAV 文件头 (RIFF...WAVE)
+        # WAV 文件头前 4 字节是 RIFF，第 8-12 字节是 WAVE
+        if (data[0:4] == b'RIFF') and (data[8:12] == b'WAVE'):
+            # 方案 A: 已经是完整 WAV，直接二进制写入
+            audio.write_bytes(data)
+            logger.success(f'检测到 WAV 头，直接保存至: {audio}')
             return True
-        else:
-            logger.error(f'FFmpeg 封装失败，退出码: {process.returncode}')
-            return False
+
+        # 方案 B: Raw PCM 数据，使用 wave 库封装
+        # 这种方式比启动 FFmpeg 进程快得多
+        with wave.open(str(audio), 'wb') as wf:
+            wf.setnchannels(AUDIO_AC)  # 声道数 (2)
+            wf.setsampwidth(2)  # 16-bit 为 2 bytes # todo 通过 AUDIO_ACODEC 处理得到
+            wf.setframerate(AUDIO_AR)  # 采样率 (44100)
+            wf.writeframes(data)
+
+        logger.success(f'Raw PCM 已封装并保存至: {audio}')
+        return True
 
     except Exception as e:
-        logger.exception(f'音频保存文件时发生非预期异常: {e}')
+        logger.exception(f'保存音频文件失败')
         return False
-    finally:
-        if process and process.poll() is None:
-            process.kill()
 
 
 @time_it
-def extract_video_info(video: Union[Path, io.BufferedIOBase, bytes], use_mediainfo: bool = True) -> Union[dict, None]:
-    if use_mediainfo:
-        if isinstance(video, bytes):
-            input_data = io.BytesIO(video)
+def extract_video_info(video: Union[Path, URL, io.BufferedIOBase, bytes]) -> dict:
+    """
+    提取视频流信息
+    默认提取第一条视频流的
+    todo 由于 mpc 出来的并不能确保 pix_fmt=yuv420p ，所以在最终合并时需要强制统一像素格式：使用 .filter('format', 'yuv420p')。
+    :param video:
+    :return:
+    """
+
+    if isinstance(video, (Path, URL)):
+        input_data = str(video)
+    elif isinstance(video, (Path, io.BufferedIOBase)):
+        input_data = video
+    else:
+        # MediaInfo 不收 bytes，必须包一层 BytesIO
+        input_data = io.BytesIO(video)
+
+    media_info = MediaInfo.parse(input_data)
+
+    video_track = next((t for t in media_info.tracks if t.track_type == 'Video'), None)
+    if not video_track:
+        raise Exception(f'找不到视频流')
+
+    general_track = next((t for t in media_info.tracks if t.track_type == 'General'), None)
+
+    def _normalize_rotation(rotation_value) -> float:
+        """
+        旋转角度统一成 ffprobe 样式
+        """
+        if rotation_value == 0:
+            ffmpeg_style_rotation = 0
         else:
-            input_data = video
+            # 逻辑：MediaInfo 90 -> FFmpeg -90; MediaInfo 270 -> FFmpeg -270 (或 90)
+            # 为了完全对齐 ffprobe 的输出习惯：
+            # 我们先取负，然后归一化到 (-360, 360) 之间
+            ffmpeg_style_rotation = -rotation_value
 
-        try:
-            media_info = MediaInfo.parse(input_data)
-        except Exception as e:
-            logger.error(f'MediaInfo 解析失败: {e}')
-            return None
+            # 如果你希望严格像 ffprobe 那样显示 -90 而不是 270：
+            if ffmpeg_style_rotation <= -360:
+                ffmpeg_style_rotation %= 360
+        return ffmpeg_style_rotation
 
-        video_track = next((t for t in media_info.tracks if t.track_type == 'Video'), None)
-        if not video_track:
-            logger.error(f'找不到视频流')
-            return None
+    def _map_to_ffmpeg_pix_fmt(track) -> str:
+        """
+        像素格式映射
+        :param track:
+        :return:
+        """
+        chroma = getattr(track, 'chroma_subsampling', '4:2:0').replace(':', '')
+        depth = int(getattr(track, 'bit_depth', 8))
 
-        general_track = next((t for t in media_info.tracks if t.track_type == 'General'), None)
-
-        def _normalize_rotation(rotation_value) -> float:
-            if rotation_value == 0:
-                ffmpeg_style_rotation = 0
-            else:
-                ffmpeg_style_rotation = -rotation_value
-                if ffmpeg_style_rotation <= -360:
-                    ffmpeg_style_rotation %= 360
-            return ffmpeg_style_rotation
-
-        def _map_to_ffmpeg_pix_fmt(track) -> str:
-            chroma = getattr(track, 'chroma_subsampling', '4:2:0').replace(':', '')
-            depth = int(getattr(track, 'bit_depth', 8))
-            if depth == 8: return f'yuv{chroma}p'
-            elif depth == 10: return f'yuv{chroma}p10le'
-            elif depth == 12: return f'yuv{chroma}p12le'
+        # 常见的像素格式组合
+        if depth == 8:
             return f'yuv{chroma}p'
+        elif depth == 10:
+            # iPhone HDR 视频通常映射为 yuv420p10le
+            return f'yuv{chroma}p10le'
+        elif depth == 12:
+            return f'yuv{chroma}p12le'
 
-        def _map_to_ffmpeg_codec(track_format) -> str:
-            codec_map = {
-                'AVC': 'h264', 'HEVC': 'hevc', 'MPEG-4 Visual': 'mpeg4',
-                'MPEG Video': 'mpeg2video', 'ProRes': 'prores'
-            }
-            return codec_map.get(track_format, str(track_format).lower())
+        return f'yuv{chroma}p'
 
-        return {
-            'width': int(video_track.width or 0),
-            'height': int(video_track.height or 0),
-            'duration': float(general_track.duration or 0) / 1000.0,
-            'rotation': _normalize_rotation(float(getattr(video_track, 'rotation', 0))),
-            'pix_fmt': _map_to_ffmpeg_pix_fmt(video_track),
-            'codec_name': _map_to_ffmpeg_codec(video_track.format),
+    # 1. 编码名称映射 (FFmpeg 兼容)
+    def _map_to_ffmpeg_codec(track_format) -> str:
+        """
+        编码名称映射
+        :param track_format:
+        :return:
+        """
+        codec_map = {
+            'AVC': 'h264',
+            'HEVC': 'hevc',
+            'MPEG-4 Visual': 'mpeg4',
+            'MPEG Video': 'mpeg2video',
+            'ProRes': 'prores'
         }
+        return codec_map.get(track_format, str(track_format).lower())
 
-    logger.warning('以下 ffprobe 模式 已弃用，请改用 mediainfo 模式。原因：慢')
-    full_info = ffmpeg.probe(str(video))
-
-    def _extract_from_probe(full_info: dict) -> Union[dict, None]:
-        video_stream = next((s for s in full_info.get('streams', []) if s.get('codec_type') == 'video'), {})
-        if not video_stream: return None
-        format_info = full_info.get('format', {})
-        width = int(video_stream.get('width', 0))
-        height = int(video_stream.get('height', 0))
-        duration = float(format_info.get('duration', 0))
-        rotation = float(([_['rotation'] for _ in video_stream.get('side_data_list', []) if 'rotation' in _] or [0])[0])
-        pix_fmt = video_stream.get('pix_fmt', '')
-        codec_name = video_stream.get('codec_name', '')
-        return {
-            "width": width, "height": height, "duration": duration,
-            "rotation": rotation, "pix_fmt": pix_fmt, "codec_name": codec_name,
-        }
-    return _extract_from_probe(full_info)
+    return {
+        'width': int(video_track.width or 0),
+        'height': int(video_track.height or 0),
+        'duration': float(general_track.duration or 0) / 1000.0,
+        'rotation': int(_normalize_rotation(float(getattr(video_track, 'rotation', 0)))),
+        'pix_fmt': str(_map_to_ffmpeg_pix_fmt(video_track)),
+        'codec_name': str(_map_to_ffmpeg_codec(video_track.format)),
+    }
 
 
 @time_it
@@ -340,6 +337,71 @@ def check_audio_stream_simple(file_path):
         return False
     except subprocess.CalledProcessError:
         return False
+
+
+def build_atempo_filter(speed_ratio):
+    if speed_ratio >= 0.5:
+        return f"atempo={speed_ratio}"
+    filters = []
+    ratio = speed_ratio
+    while ratio < 0.5:
+        filters.append("atempo=0.5")
+        ratio /= 0.5
+    if ratio > 0:
+        filters.append(f"atempo={ratio}")
+    return ",".join(filters)
+
+
+@dataclass
+class SplitClip:
+    main: str
+    fade_in: Optional[str] = None
+    fade_out: Optional[str] = None
+    fade_in_duration: float = 0.0
+    fade_out_duration: float = 0.0
+    fade_in_reserve: float = 0.0
+    fade_out_reserve: float = 0.0
+    transition_caption: Optional[TransitionCaption] = None
+
+
+@time_it
+def split_normalize(video, duration, fade_in=0, fade_out=0, transition_reserve_factor=1.2) -> SplitClip:
+    dir = os.path.dirname(video)
+    vname = os.path.basename(video)
+    log.info(
+        f"{vname} split normalize, "
+        f"fade_in={fade_in}, fade_out={fade_out}, "
+        f"buffer_factor={transition_reserve_factor}"
+    )
+
+    fade_in_path = os.path.join(dir, f"fade_in_{vname}") if fade_in else None
+    main_path = os.path.join(dir, f"middle_{vname}")
+    fade_out_path = os.path.join(dir, f"fade_out_{vname}") if fade_out else None
+
+    buffer_in = fade_in * transition_reserve_factor
+    buffer_out = fade_out * transition_reserve_factor
+
+    ffmpeg_cmd = ["ffmpeg", "-i", video]
+
+    if fade_in:
+        ffmpeg_cmd += ["-ss", "0", "-to", str(buffer_in), fade_in_path]
+    ffmpeg_cmd += ["-ss", str(buffer_in), "-to", str(duration - buffer_out), main_path]
+    if fade_out:
+        ffmpeg_cmd += ["-ss", str(duration - buffer_out), "-to", str(duration), fade_out_path]
+
+    ffmpeg_cmd.append("-y")
+    run_ffmpeg_command(ffmpeg_cmd, video_name=vname)
+
+    return SplitClip(
+        main=main_path,
+        fade_in=fade_in_path,
+        fade_out=fade_out_path,
+        fade_in_duration=buffer_in if fade_in else 0.0,
+        fade_out_duration=buffer_out if fade_out else 0.0,
+        fade_in_reserve=(buffer_in - fade_in) if fade_in else 0.0,
+        fade_out_reserve=(buffer_out - fade_out) if fade_out else 0.0,
+    )
+
 
 @time_it
 def extract_i_frame_timestamps(video: Union[Path, URL]) -> List[float]:
@@ -371,7 +433,7 @@ def extract_i_frame_timestamps(video: Union[Path, URL]) -> List[float]:
 
     except ffmpeg.Error as e:
         # ffmpeg.run 报错时，错误信息在 e.stderr 中
-        logger.error(f'FFmpeg 提取失败: {(e.stderr or b"").decode() or e}')
+        logger.error(f'FFmpeg 提取失败: {(e.stderr or b'').decode() or e}')
         return []
 
     except Exception as e:
@@ -397,6 +459,14 @@ def quick_segment(video: Union[Path, URL],
     """
     快速裁切，为了让指定时间段内的 GOP 完整，往左右各扩到 I 帧位置，如左右没有 I 帧的情况，则使用端点
     示例： 用户指定 start_time 为第3s，往左查找第一个I帧是第2.5s，然后在 physical_start 第2.5s开始裁切，响应中的 start_time 指用户指定的时间点，相对与切出来的 segment 而言是第0.5s
+    :param video:
+    :param vindex:
+    :param output_dir:
+    :param start_time: 用户指定的时间点在 segment 中的位置
+    :param end_time: 用户指定的时间点在 segment 中的位置
+    :param i_frame_ts:
+    :param video_info:
+    :return: SegmentResult
     """
     if i_frame_ts is None:
         i_frame_ts = extract_i_frame_timestamps(video)
@@ -447,126 +517,14 @@ def quick_segment(video: Union[Path, URL],
         )
 
     except ffmpeg.Error as e:
-        logger.error(f'FFmpeg 切片失败: {(e.stderr or b"").decode() or e}')
+        # ffmpeg.run 报错时，错误信息在 e.stderr 中
+        logger.error(f'FFmpeg 切片失败: {(e.stderr or b'').decode() or e}')
         raise
 
     except Exception as e:
         logger.exception(f'非预期异常: {e}')
         raise
 
-def build_atempo_filter(speed_ratio):
-    if speed_ratio >= 0.5:
-        return f"atempo={speed_ratio}"
-    filters = []
-    ratio = speed_ratio
-    while ratio < 0.5:
-        filters.append("atempo=0.5")
-        ratio /= 0.5
-    if ratio > 0:
-        filters.append(f"atempo={ratio}")
-    return ",".join(filters)
-
-@dataclass
-class SplitClip:
-    main: str
-    fade_in: Optional[str] = None
-    fade_out: Optional[str] = None
-    fade_in_duration: float = 0.0
-    fade_out_duration: float = 0.0
-    fade_in_reserve: float = 0.0
-    fade_out_reserve: float = 0.0
-    transition_caption: Optional[TransitionCaption] = None
-
-@time_it
-def split_normalize(video, duration, fade_in=0, fade_out=0, transition_reserve_factor=1.2) -> SplitClip:
-    dir = os.path.dirname(video)
-    vname = os.path.basename(video)
-    log.info(
-        f"{vname} split normalize, "
-        f"fade_in={fade_in}, fade_out={fade_out}, "
-        f"buffer_factor={transition_reserve_factor}"
-    )
-
-    fade_in_path = os.path.join(dir, f"fade_in_{vname}") if fade_in else None
-    main_path = os.path.join(dir, f"middle_{vname}")
-    fade_out_path = os.path.join(dir, f"fade_out_{vname}") if fade_out else None
-
-    buffer_in = fade_in * transition_reserve_factor
-    buffer_out = fade_out * transition_reserve_factor
-
-    ffmpeg_cmd = ["ffmpeg", "-i", video]
-
-    if fade_in:
-        ffmpeg_cmd += ["-ss", "0", "-to", str(buffer_in), fade_in_path]
-    ffmpeg_cmd += ["-ss", str(buffer_in), "-to", str(duration - buffer_out), main_path]
-    if fade_out:
-        ffmpeg_cmd += ["-ss", str(duration - buffer_out), "-to", str(duration), fade_out_path]
-
-    ffmpeg_cmd.append("-y")
-    run_ffmpeg_command(ffmpeg_cmd, video_name=vname)
-
-    return SplitClip(
-        main=main_path,
-        fade_in=fade_in_path,
-        fade_out=fade_out_path,
-        fade_in_duration=buffer_in if fade_in else 0.0,
-        fade_out_duration=buffer_out if fade_out else 0.0,
-        fade_in_reserve=(buffer_in - fade_in) if fade_in else 0.0,
-        fade_out_reserve=(buffer_out - fade_out) if fade_out else 0.0,
-    )
-
-@dataclass
-class SegmentResult:
-    segment: str
-    start_time: float
-    end_time: float
-
-@time_it
-def quick_segment(video, vindex, output_dir, start_time, end_time) -> SegmentResult:
-    clip_point_list = []
-    s = time.time()
-    first_clip = max(10 * (start_time // 10 - 1), 0)
-    second_clip = 10 * (2 + end_time // 10)
-    log.info(f"first_clip: {first_clip}")
-    if first_clip > 0:
-        log.info(f"{type(first_clip)},{first_clip > 0} append {first_clip}")
-        clip_point_list.append(str(first_clip))
-    clip_point_list.append(str(second_clip))
-    clip_str = ",".join(clip_point_list)
-    segment = video
-
-    segment_cmd = [
-        'ffmpeg', "-ignore_editlist", "1",
-        '-i', video,
-        '-f', 'segment',
-        '-segment_times', clip_str,
-        '-reset_timestamps', '1',
-        '-c', 'copy',
-        f"{output_dir}segment_{vindex}_%03d.mp4"
-    ]
-    run_ffmpeg_command(segment_cmd)
-    log.info(f"segmented to segment_{vindex}_000.mp4")
-
-    if first_clip == 0:
-        segment = f"{output_dir}segment_{vindex}_000.mp4"
-        if os.path.exists(f"{output_dir}segment_{vindex}_001.mp4"):
-            os.remove(f"{output_dir}segment_{vindex}_001.mp4")
-    else:
-        video_info = get_video_info(f"{output_dir}segment_{vindex}_000.mp4")
-        w, h, d, r, f, codec = video_info.get_info()
-        log.info(f"the duration of before segment_{vindex} is {d}")
-        if start_time > d:
-            start_time -= d
-            end_time -= d
-            log.info(f"start_time of segment_{vindex} become {start_time}, end time become {end_time}")
-            segment = f"{output_dir}segment_{vindex}_001.mp4"
-        if os.path.exists(f"{output_dir}segment_{vindex}_000.mp4"):
-            os.remove(f"{output_dir}segment_{vindex}_000.mp4")
-        if os.path.exists(f"{output_dir}segment_{vindex}_002.mp4"):
-            os.remove(f"{output_dir}segment_{vindex}_002.mp4")
-    log.info(f"segment takes {time.time() - s} seconds")
-
-    return SegmentResult(segment=segment, start_time=start_time, end_time=end_time)
 
 @time_it
 def get_audio_info(audio_path_list: List[str]):
@@ -589,6 +547,7 @@ def get_audio_info(audio_path_list: List[str]):
             print(f"Error getting duration for {file_path}: {str(e)}")
             durations.append(0)
     return durations
+
 
 @time_it
 def extract_audio(video_file: str, project_id: str = "test") -> str:
@@ -617,6 +576,7 @@ def extract_audio(video_file: str, project_id: str = "test") -> str:
     ]
     run_ffmpeg_command(ffmpeg_cmd, video_name=video_file)
     return output_audio
+
 
 @time_it
 def concatenate_wavs(input_files: List[str], project_id: str = "test", need_pause=True) -> str:
@@ -648,6 +608,7 @@ def concatenate_wavs(input_files: List[str], project_id: str = "test", need_paus
     finally:
         if os.path.exists(source_txt_path):
             os.remove(source_txt_path)
+
 
 @time_it
 async def mute_audio(audio: str, project_id: str = "test") -> str:
