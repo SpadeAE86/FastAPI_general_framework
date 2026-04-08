@@ -65,8 +65,11 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
     :param save_dir: 本地保存目录，默认 ./obs_video
     :return: 本地完整文件路径
     """
+    import uuid
     filename = os.path.basename(path)
-    local_path = os.path.join(save_dir, filename)
+    # 给每次下载分配独立的临时文件名，防止同时并发下载时造成文件读写冲突崩溃
+    temp_local_name = f"{uuid.uuid4().hex}_{filename}"
+    local_path = os.path.join(save_dir, temp_local_name)
     fn, ext = os.path.splitext(filename)
     if not ext.lower() in [".mp4", ".mov", ".avi", ".wav", ".mp3", ".MP4", ".qt"]:
         raise ServiceException(code=461, message=f"{filename}文件不是合法格式")
@@ -96,8 +99,13 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
             def write_cache_and_clean():
                 with open(local_path, 'rb') as f:
                     set_to_cache(path, f)
-                # We optionally leave local_path or delete it. Since save_dir is used by default, we keep it or rely on cache path.
-                # Returning the cached path ensures downstream uses the new diskcache file format.
+                
+                # 删除临时下载的文件，释放磁盘空间
+                try:
+                    os.remove(local_path)
+                except Exception as cleanup_err:
+                    log.warning(f"Failed to delete temp file {local_path}: {cleanup_err}")
+
                 return get_from_cache(path, as_path=True)
             
             final_cached_path = await asyncio.to_thread(write_cache_and_clean)

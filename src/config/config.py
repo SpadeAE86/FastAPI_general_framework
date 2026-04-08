@@ -3,7 +3,6 @@ import shutil
 import requests
 
 import yaml
-from utils.log_utils import logger as log
 
 from utils.file_utils import read_yaml, save_yaml
 
@@ -447,3 +446,6 @@ FONTS_DIR: Path = STATIC_DIR / 'fonts'
 os.environ["PATH"] = str(FONTS_DIR) + os.pathsep + os.environ["PATH"]
 
 CONFIG_FILE: Path = Path(config_file)
+
+# 解决循环引用：在所有常量初始化完成后，最后暴露 log 供全局 * import
+from utils.log_utils import logger as log

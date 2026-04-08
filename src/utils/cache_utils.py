@@ -49,7 +49,8 @@ def set_to_cache(key: str, data: Union[bytes, io.BufferedIOBase]):
     assert data
     if check_in_cache(key):
         return
-    _CACHE.set(key, data, expire=_CACHE_TTL, read=True)
+    # 使用 add 防止高并发下 set 覆写同一 key 导致正在被前一个进程读取的旧物理文件被提前删除报错
+    _CACHE.add(key, data, expire=_CACHE_TTL, read=True)
 
 
 @time_it
