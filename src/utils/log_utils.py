@@ -31,7 +31,7 @@ def log_to_file(log_file: Union[Path, str], level: str = 'TRACE'):
     # 添加文件日志
     logger.add(
         log_file,
-        format='<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level:1.1}</level> | <yellow>{process}</yellow>:<yellow>{thread}</yellow> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>',
+        format='<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level:1.1}</level> | <yellow>{process}</yellow>:<yellow>{thread}</yellow> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - {message}',
         level=level,
         rotation='100 MB',
         retention=5,
@@ -112,7 +112,7 @@ LOG_LEVEL = MY_CONFIG['log'][ENV]['level'].upper()
 logger.remove()  # 移除默认
 logger.add(
     sys.stderr,
-    format='<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level:1.1}</level> | <yellow>{process}</yellow>:<yellow>{thread}</yellow> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>',
+    format='<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level:1.1}</level> | <yellow>{process}</yellow>:<yellow>{thread}</yellow> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - {message}',
     level=LOG_LEVEL,
     enqueue=True,  # 🌟 重要：开启异步写入，防止日志 IO 阻塞你的主逻辑（尤其是音视频处理）
 )
