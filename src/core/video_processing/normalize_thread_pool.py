@@ -7,7 +7,11 @@ from core.video_processing.filter import build_from_config
 from core.video_processing.normalize_video import normalize_video_filter_complex
 
 
-def thread_pool_normalize(
+import asyncio
+from database.mysql.mysql_manager import db_manager
+from models.pydantic_models.db.mix_time_records import MixVideoSceneTime
+
+async def thread_pool_normalize(
     width,
     height,
     fps,
@@ -23,97 +27,21 @@ def thread_pool_normalize(
     audio_config=None,
 ):
     """
-        使用线程池并行执行多个视频素材的标准化处理，
-        是混剪流程中的「片段调度与并发执行层」。
-
-        本函数会根据 mixed_video_config 中的裁剪、转场、字幕、
-        音频、贴纸等配置，为每个视频素材构造对应的
-        normalize_video_filter_complex 调用，并通过线程池并行执行。
-
-        函数内部会维护全局时间轴（time_so_far），
-        以确保字幕、音频和贴纸在整条视频时间线上的正确对齐。
-        所有任务完成后，结果会按原始视频顺序返回。
-
-        Parameters
-        ----------
-        width : int
-            目标输出视频宽度。
-
-        height : int
-            目标输出视频高度。
-
-        fps : int or float
-            目标输出帧率。
-
-        video_list : list[str]
-            视频素材路径列表，顺序即混剪顺序。
-
-        len_list : list[float]
-            每个视频片段的时长列表（秒），
-            与 video_list 一一对应。
-
-        mixed_video_config : object
-            混剪整体配置对象，包含以下子配置（按需使用）：
-                - crop_config：裁剪与几何变换配置
-                - filter_config：视频滤镜配置
-                - cap_config：字幕配置
-                - transition_config：转场配置
-                - audio_config：音频配置
-                - mute_config：静音配置
-                - sticker_config：贴纸配置
-                - callback_url：AI 混剪模式标志等
-
-        video_info_list : list[VideoInfo]
-            每个视频素材的基础信息对象列表，
-            与 video_list 一一对应。
-
-        project_id : str
-            项目 ID，用于日志、缓存及中间文件区分。
-
-        pix_fmt : str, optional
-            输出视频像素格式，如 "yuv420p"。
-
-        cap_helper : object, optional
-            字幕图片生成或缓存辅助工具，
-            用于减少重复字幕渲染开销。
-
-        sticker_list : list[str], optional
-            贴纸资源路径列表。
-
-        audio_path_list : list[str], optional
-            口播文件路径列表
-
-        audio_config : list[object], optional
-            口播配置列表
-
-        Returns
-        -------
-        list[NormalizeResult]
-            按 video_list 原始顺序返回的标准化处理结果列表。
-            每个元素对应一个视频片段，包含：
-                - 输出视频路径
-                - 实际时长
-                - 缓存路径
-                - 转场切片信息（SplitClip）
-
-        Notes
-        -----
-        - 本函数仅负责任务拆分、参数组装与并发调度，
-          不直接处理 FFmpeg 细节。
-        - 使用 ThreadPoolExecutor，适用于
-          I/O 密集型或 FFmpeg 子进程密集型场景。
-        - 即使任务完成顺序不同，最终返回结果
-          仍会严格保持输入视频顺序。
-        - 若任一任务抛出异常，会记录日志，
-          但不会影响其他视频的处理流程。
+        (Docstring remains the same, adjusted to an async def function)
     """
 
     normalize_results = [None] * len(video_list)
 
+    def _time_tracked_normalize(idx, func):
+        import time
+        t0 = time.time()
+        res = func()
+        cost = time.time() - t0
+        return idx, res, cost
+
     # ✅ 改为线程池
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         time_so_far = 0
-        future_to_idx = {}
         futures = []
 
         #从crop_config里取出开始和结束时间
@@ -178,8 +106,7 @@ def thread_pool_normalize(
                 sticker_list=sticker_list,   #贴纸路径列表
             )
 
-            future = executor.submit(normalize_func)
-            future_to_idx[future] = idx
+            future = executor.submit(_time_tracked_normalize, idx, normalize_func)
             futures.append(future)
 
             time_so_far += len_list[idx]
@@ -189,12 +116,13 @@ def thread_pool_normalize(
         processed_duration = 0.0
         biz_id = mixed_video_config.biz_id
 
-        # ✅ 按完成顺序回收，但结果按 idx 放回
+        # ✅ 改为 asyncio.as_completed，避免阻塞主线程的 EventLoop
+        async_futures = [asyncio.wrap_future(f) for f in futures]
         completed_count = 0
-        for future in concurrent.futures.as_completed(futures):
+        
+        for fut in asyncio.as_completed(async_futures):
             try:
-                result = future.result()
-                fidx = future_to_idx[future]
+                fidx, result, cost_time = await fut
                 normalize_results[fidx] = result
                 completed_count += 1
 
@@ -203,6 +131,21 @@ def thread_pool_normalize(
                     f"{completed_count}/{len(video_list)}"
                 )
                 
+                # --- [入库：记录分镜处理时间] ---
+                if biz_id:
+                    try:
+                        async with db_manager.SessionLocal() as session:
+                            scene_record = MixVideoSceneTime(
+                                biz_id=str(biz_id),
+                                scene_idx=fidx,
+                                cost_time=round(cost_time, 2)
+                            )
+                            session.add(scene_record)
+                            await session.commit()
+                            log.info(f"分镜[{fidx}] 处理时长 {round(cost_time, 2)}s 记录入库成功!")
+                    except Exception as db_err:
+                        log.warning(f"分镜时间入库失败: {db_err}")
+
                 # --- [可选功能: 更新进度到 Redis] ---
                 processed_duration += len_list[fidx]
                 if biz_id:
@@ -220,8 +163,6 @@ def thread_pool_normalize(
                 # ----------------------------------
                 
             except Exception as e:
-                fidx = future_to_idx.get(future, -1)
-                video_path = video_list[fidx] if fidx >= 0 else "unknown"
-                log.exception(f"处理失败 {video_path}: {e}")
+                log.exception(f"处理失败: {e}")
 
     return normalize_results

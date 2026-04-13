@@ -12,9 +12,8 @@ import httpx
 URL = "wss://nls-gateway-cn-shanghai.aliyuncs.com/ws/v1"
 # TOKEN = getToken("LTAI5tAGcBFi9pg4oFrHbtTV", "REDACTED")
 # APPKEY = "UwjC1qMrxjoKRbzV"  # 获取Appkey请前往控制台：https://nls-portal.console.aliyun.com/applist
-token = getToken(my_config['audio']['Ali']['access_key_id'],
-                                  my_config['audio']['Ali']['access_key_secret'])
-expire_time = time.time() + 86400
+token = None
+expire_time = 0
 
 TEXT = '曙光重临，一款治愈系Q萌画风的沉浸式抓宠游戏'
 
@@ -25,8 +24,8 @@ class AliTTS:
         self.__id = tid
         self.__test_file = test_file
         global token, expire_time
-        if time.time() > expire_time:
-            log.info(f"token has expired")
+        if token is None or time.time() > expire_time:
+            log.info(f"token has expired or not initialized")
             token = getToken(my_config['audio']['Ali']['access_key_id'],
                                   my_config['audio']['Ali']['access_key_secret'])
             expire_time = time.time() + 86400

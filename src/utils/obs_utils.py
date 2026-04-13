@@ -111,7 +111,7 @@ async def download_from_obs(path, save_dir: str = "./obs_video") -> str:
             final_cached_path = await asyncio.to_thread(write_cache_and_clean)
             return str(final_cached_path) if final_cached_path else local_path
         else:
-            raise ServiceException(code=460, message=f"obs下载异常，状态码{resp.status}")
+            raise ServiceException(code=460, message=f"obs下载异常，状态码{resp.status}，文件路径: {path}")
     except ServiceException:
         raise
     except Exception as e:

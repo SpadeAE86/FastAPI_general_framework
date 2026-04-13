@@ -103,3 +103,5 @@ yarl
 av
 func-to-web
 pymysql
+sqlalchemy
+sqlmodel

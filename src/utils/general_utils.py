@@ -52,7 +52,15 @@ def decode_chinese_url(url):
     pattern1 = r'%[A-Fa-f0-9]{2}%[A-Fa-f0-9]{2}%[A-Fa-f0-9]{2}'
     chinese_url = re.sub(pattern1, decode_match, url)
     pattern2 = r'%[A-Fa-f0-9]{2}'
-    return re.sub(pattern2, decode_match, chinese_url)
+    fixed_url = re.sub(pattern2, decode_match, chinese_url)
+
+    # 尝试修复由于上游/前端错误将 UTF-8 当作 Latin-1 解码导致的乱码现象（如 ç¾é£é¤é¥® 变回 美食餐饮）
+    try:
+        fixed_url = fixed_url.encode('latin1').decode('utf-8')
+    except Exception:
+        pass
+
+    return fixed_url
 
 def random_with_system_time():
     system_time = int(time.time() * 1000)
@@ -309,13 +317,24 @@ def run_ffmpeg_command(command, video_name=""):
             log.error(stderr)
             raise RuntimeError(f"ffmpeg failed for {video_name}")
 
-        print("Command executed successfully.")
-
-    except Exception as e:
-        print(f"An error occurred while execute ffmpeg command {e}")
+        log.info("Command executed successfully.")
+        
+    except subprocess.TimeoutExpired as e:
+        log.error(f"FFmpeg command timed out! Killing process...")
+        result.kill()
+        outs, errs = result.communicate()
         raise ServiceException(
             888,
             f"timeout while running command: {command}, Exception {e}"
+        )
+    except Exception as e:
+        log.error(f"An error occurred while execute ffmpeg command {e}")
+        if 'result' in locals() and result.poll() is None:
+            result.kill()
+            result.communicate()
+        raise ServiceException(
+            888,
+            f"error while running ffmpeg command: {command}, Exception {e}"
         )
 
 async def run_ffmpeg_command_async(command, video_name=""):
@@ -375,7 +394,7 @@ async def download_resource(path_list, output_dir=None):
         vpc_prefix = vpc + "/"
         path_list = [vpc_prefix+p for p in decode_path_list]
     else:
-        download_task = [download_from_obs(p, output_dir) for p in path_list]
+        download_task = [download_from_obs(p, output_dir) for p in decode_path_list]
         path_list = await asyncio.gather(*download_task)
     return path_list
 

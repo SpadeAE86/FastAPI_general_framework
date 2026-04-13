@@ -99,7 +99,7 @@ class RabbitMQManagementClient:
 
             if response.status_code == 200:
                 queue_info = response.json()
-                log.debug(f"成功获取队列 {queue_name} 信息: {queue_info}")
+                log.debug(f"成功获取队列 {queue_name}")
             elif response.status_code == 404:
                 log.warning(f"队列 {queue_name} 不存在")
                 queue_info = None

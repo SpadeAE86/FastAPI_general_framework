@@ -43,6 +43,12 @@ async def lifespan(app: FastAPI):
     log.info("memory loaded")
     log.info(f"established {len(db_manager.engines)} connections to mysql database")
     
+    # 自动执行表结构初始化(如果表不存在则会创建)
+    try:
+        await db_manager.init_db()
+    except Exception as e:
+        log.error(f"Failed to initialize database tables: {e}")
+        
     # 启动健康监控服务
     start_health_monitor()
     

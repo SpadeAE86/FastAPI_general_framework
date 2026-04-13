@@ -351,6 +351,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         mix_input = [f"[main_audio]"]
         speed_audio_str = f",{audio_filter_str}" if audio_filter_str else ""
         audio_filter += f"[{end_a}]volume=3{speed_audio_str}[main_audio];"
+        audio_filter_flag = []  # FFmpeg forbids combining simple (-af) and complex filtergraphs for the same mapped stream
         end_a = "[merged]"
         cur = len(subtitle_list)
         if mute_origin:
