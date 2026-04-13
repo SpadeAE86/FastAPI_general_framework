@@ -22,14 +22,29 @@ class DBManager:
         self.sql_config = my_config["mysql"][ENV]
         self.main_db_url = create_url(self.sql_config)
         
-        # 配置连接池属性，池大小和溢出
-        self.main_engine = create_async_engine(
-            self.main_db_url, 
-            echo=False,
-            pool_size=10, 
-            max_overflow=20,
-            pool_recycle=3600
-        )
+        import sys
+        # 架构级隔离设计：
+        # 如果当前运行在 Celery 进程中，由于 Celery 会频繁产生新的 event loop，必须使用 NullPool 以免跨 loop 污染。
+        # 如果运行在 FastAPI/Uvicorn 中，因为它们常驻同一个主 event loop，应该开启 QueuePool 保持高并发下的长连接复用性能。
+        is_celery = "celery" in sys.argv[0].lower() or "celery" in sys.modules
+
+        if is_celery:
+            from sqlalchemy.pool import NullPool
+            self.main_engine = create_async_engine(
+                self.main_db_url, 
+                echo=False,
+                poolclass=NullPool
+            )
+            log.info("Initialized MySQL Manager with NullPool (Celery Worker Mode)")
+        else:
+            self.main_engine = create_async_engine(
+                self.main_db_url, 
+                echo=False,
+                pool_size=10, 
+                max_overflow=20,
+                pool_recycle=3600
+            ) 
+            log.info("Initialized MySQL Manager with QueuePool (FastAPI Server Mode)")
         self.engines[self.main_db_url] = self.main_engine
         
         self.SessionLocal = async_sessionmaker(
