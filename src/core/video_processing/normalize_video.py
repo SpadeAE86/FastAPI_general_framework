@@ -267,14 +267,19 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     # 镜像滤镜
     if mirror:
         transform.append(f"hflip")
-    # 放大滤镜
+    # 放大缩小滤镜
     if scale != 1:
-        transform.append(f"scale=iw*{scale}:ih*{scale}:flags=lanczos")
         if scale < 1:
+            transform.append(f"scale=iw*{scale}:ih*{scale}:flags=lanczos")
             transform.append(f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:color=black")
         else:
-            # 放大视频，需要crop裁剪掉超出部分（保持原始尺寸）
-            transform.append(f"crop={width}:{height}:(iw-ow)/2:(ih-oh)/2")
+            # 放大视频，极寒优化：先裁剪出需要保留的中心区域，再缩放回目标画布，避免生成极其恐怖的 8K 甚至 16K 过渡画布！
+            crop_w = width / scale
+            crop_h = height / scale
+            c_x = (width - crop_w) / 2
+            c_y = (height - crop_h) / 2
+            transform.append(f"crop={crop_w}:{crop_h}:{c_x}:{c_y}")
+            transform.append(f"scale={width}:{height}:flags=lanczos")
     # 位移滤镜
     if translate_x or translate_y:
         translate_x = int(translate_x)
