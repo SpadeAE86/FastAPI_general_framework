@@ -35,4 +35,9 @@ class MixVideoSceneTime(SQLModel, table=True):
     scene_idx: int = Field(description="分镜序号")
     cost_time: float = Field(description="该分镜处理耗时(秒)")
     
+    video_duration: Optional[float] = Field(default=None, description="该分镜对应的视频截取时长")
+    video_resolution: Optional[str] = Field(default=None, max_length=64, description="原视频分辨率(宽x高)")
+    has_audio: Optional[bool] = Field(default=None, description="是否有音频轨")
+    speed_rate: Optional[float] = Field(default=None, description="倍速")
+
     created_at: datetime = Field(default_factory=datetime.now)

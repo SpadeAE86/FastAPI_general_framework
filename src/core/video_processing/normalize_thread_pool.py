@@ -134,11 +134,27 @@ async def thread_pool_normalize(
                 # --- [入库：记录分镜处理时间] ---
                 if biz_id:
                     try:
+                        # 收集当前视频的时长与分辨率等属性
+                        v_info = video_info_list[fidx] if video_info_list and len(video_info_list) > fidx else None
+                        f_duration = len_list[fidx] if len_list and len(len_list) > fidx else 0.0
+                        
+                        v_width = getattr(v_info, 'width', 0) if v_info else 0
+                        v_height = getattr(v_info, 'height', 0) if v_info else 0
+                        has_audio = bool(getattr(v_info, 'audio_stream', False)) if v_info else False
+                        
+                        speed_rate = 1.0
+                        if mixed_video_config.crop_config and len(mixed_video_config.crop_config) > fidx:
+                            speed_rate = mixed_video_config.crop_config[fidx].speed or 1.0
+
                         async with db_manager.SessionLocal() as session:
                             scene_record = MixVideoSceneTime(
                                 biz_id=str(biz_id),
                                 scene_idx=fidx,
-                                cost_time=round(cost_time, 2)
+                                cost_time=round(cost_time, 2),
+                                video_duration=f_duration,
+                                video_resolution=f"{v_width}x{v_height}",
+                                has_audio=has_audio,
+                                speed_rate=speed_rate
                             )
                             session.add(scene_record)
                             await session.commit()
