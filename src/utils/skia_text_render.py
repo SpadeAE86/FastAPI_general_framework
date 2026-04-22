@@ -726,6 +726,7 @@ def render_text_to_png(
     返回:
       有 save_path 时保存文件并返回 Path；否则返回 shape=(png_height, png_width, 4) 的 uint8 BGRA numpy 数组。
     """
+    os.makedirs(save_path, exist_ok=True)
     surface = _render_to_surface(
         text=text, curve_degree=curve_degree, wrap_width=wrap_width,
         text_transform=text_transform, font_name=font_name, font_size=font_size,
