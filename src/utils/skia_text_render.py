@@ -11,6 +11,7 @@ import skia
 
 import os
 import sys
+import shutil
 from collections import OrderedDict
 from functools import lru_cache
 from pathlib import Path
@@ -677,6 +678,13 @@ def _flush_and_return(
         _GR_CONTEXT.flushAndSubmit()
     image = surface.makeImageSnapshot()
     if save_path:
+        # 防御：若目标路径被误创建成目录（历史残留/并发异常），ffmpeg 会报 "Is a directory"
+        if save_path.exists() and save_path.is_dir():
+            try:
+                shutil.rmtree(save_path)
+                print(f"[skia_text_render] WARN removed directory at save_path={save_path}", file=sys.stderr)
+            except Exception as e:
+                raise RuntimeError(f"save_path exists but is a directory and cannot be removed: {save_path}") from e
         save_path.parent.mkdir(parents=True, exist_ok=True)
         image.save(str(save_path), skia.kPNG)
         return save_path
@@ -788,6 +796,12 @@ def render_texts_batch(
 
         for i, (image, w, h, sp) in enumerate(snapshots):
             if sp:
+                if sp.exists() and sp.is_dir():
+                    try:
+                        shutil.rmtree(sp)
+                        print(f"[skia_text_render] WARN removed directory at save_path={sp}", file=sys.stderr)
+                    except Exception as e:
+                        raise RuntimeError(f"save_path exists but is a directory and cannot be removed: {sp}") from e
                 sp.parent.mkdir(parents=True, exist_ok=True)
                 image.save(str(sp), skia.kPNG)
                 results[chunk_start + i] = sp

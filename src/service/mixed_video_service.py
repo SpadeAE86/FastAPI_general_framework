@@ -270,12 +270,12 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
             log.info(f"upload tasks {upload_cost} 秒")
             log.info(f"[normalized threadpool]{mixed_config.biz_id} 目前处理到100%")
             # 文件回收
-            if cap_helper:
+            if cap_helper and ENV != "test":
                 cap_helper.delete_cap_png()
             # 清空中间文件夹和结果文件夹，本地环境不清理方便调试
             if mixed_config.obs_video_path_list and ENV !="local":
                 # asyncio.create_task(delete_folder(os.path.join("./video", project_id)))
-                # asyncio.create_task(delete_folder(os.path.join("./work", project_id)))
+                asyncio.create_task(delete_folder(os.path.join("./work", project_id)))
                 asyncio.create_task(delete_folder(os.path.join("./final", project_id)))
 
             # 计算时长
