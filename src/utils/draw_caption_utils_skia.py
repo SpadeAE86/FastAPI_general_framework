@@ -59,6 +59,7 @@ def _strip_style_suffix(name: str) -> str:
     parts = name.rsplit("-", 1)
     if len(parts) == 2 and parts[1] in _STYLE_WORDS:
         return parts[0]
+
     return name
 
 
@@ -128,27 +129,28 @@ def create_subtitle_png(
 
 
 if __name__ == "__main__":
-    """
-    测试 skia 单线程"""
-    from pathlib import Path
-    import time
-    t0 = time.perf_counter()
-    for i in range(100):
-        img = create_subtitle_png(
-            texts="中国\n🚀 😊 🫶 🏁 Hello!\n中国 ❤ 🚀 😊 🫶 🏁 Hello!",
-            font_name="Songti SC Regular",
-            # anchor_x=960,
-            # anchor_y=640,
-            font_size=60,
-            font_color=(255, 255, 0, 255),
-            outline_color=(0, 0, 255, 255),
-            outline_width=3,
-            background_style=1,
-            background_color=(0, 0, 0, 100),
-            # rot=5,
-            # scale=1.2,
-            letter_spacing=30,
-            save_path=f'{Path(__file__).stem}.png',
-        )
-    print(f'{time.perf_counter()-t0 = }s')
-    exit()
+    # """
+    # 测试 skia 单线程"""
+    # from pathlib import Path
+    # import time
+    # t0 = time.perf_counter()
+    # for i in range(100):
+    #     img = create_subtitle_png(
+    #         texts="中国\n🚀 😊 🫶 🏁 Hello!\n中国 ❤ 🚀 😊 🫶 🏁 Hello!",
+    #         font_name="Songti SC Regular",
+    #         # anchor_x=960,
+    #         # anchor_y=640,
+    #         font_size=60,
+    #         font_color=(255, 255, 0, 255),
+    #         outline_color=(0, 0, 255, 255),
+    #         outline_width=3,
+    #         background_style=1,
+    #         background_color=(0, 0, 0, 100),
+    #         # rot=5,
+    #         # scale=1.2,
+    #         letter_spacing=30,
+    #         save_path=f'{Path(__file__).stem}.png',
+    #     )
+    # print(f'{time.perf_counter()-t0 = }s')
+    # exit()
+    _strip_style_suffix("Songti SC Regular")

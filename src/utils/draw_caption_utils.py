@@ -216,10 +216,10 @@ if __name__ == "__main__":
     font_path = "Songti SC Regular"
     # font_path = f"./fonts/{f2f["baotuxiaobaiti"]}"
     img = create_subtitle_png(
-        "一口沦陷！",
+        "一口沦陷！🫶☺🫶🫶☺🐬🔒🔮字幕",
         font_path,
-        anchor_x=960,
-        anchor_y=900,
+        anchor_x=300,
+        anchor_y=100,
         font_size=60,
         font_color=(255, 255, 0, 255),
         outline_color=(0, 0, 255, 255),

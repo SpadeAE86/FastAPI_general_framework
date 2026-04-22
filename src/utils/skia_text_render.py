@@ -19,7 +19,7 @@ import platform
 # 模块级别定义常量，避免重复构造对象
 _BASE_DIR = Path(__file__).resolve().parent
 # 字体目录固定指向项目的 src/fonts（与 utils 同级）
-_FONT_DIR = Path("/root/AIGC_video_mix_remake/src/fonts")
+_FONT_DIR = _BASE_DIR.parent/"fonts"
 
 def _create_gl_context() -> moderngl.Context | None:
     """创建可用于无头环境的 ModernGL 上下文，失败时返回 None。"""
@@ -827,7 +827,7 @@ if __name__ == "__main__":
             curve_degree=0,
             wrap_width=0,
             text_transform='uppercase',
-            font_name="Heiti TC",
+            font_name="Songti SC",
             font_size=20,
             font_color=(255, 255, 0, 255),
             letter_spacing=0,
