@@ -673,7 +673,8 @@ def _flush_and_return(
         save_path: Path = None,
 ) -> numpy.ndarray | Path:
     """flush GPU、snapshot，有 save_path 则保存并返回 Path，否则返回 BGRA numpy 数组。"""
-    _GR_CONTEXT.flushAndSubmit()
+    if _GR_CONTEXT is not None:
+        _GR_CONTEXT.flushAndSubmit()
     image = surface.makeImageSnapshot()
     if save_path:
         save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -781,7 +782,8 @@ def render_texts_batch(
             snapshots.append((surface.makeImageSnapshot(), w, h, save_path))
 
         # 整个 chunk 只做一次 CPU-GPU 同步
-        _GR_CONTEXT.flushAndSubmit()
+        if _GR_CONTEXT is not None:
+            _GR_CONTEXT.flushAndSubmit()
 
         for i, (image, w, h, sp) in enumerate(snapshots):
             if sp:
