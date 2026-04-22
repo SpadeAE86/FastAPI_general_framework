@@ -9,13 +9,30 @@ import numpy
 import moderngl
 import skia
 
+import os
+import sys
 from collections import OrderedDict
 from functools import lru_cache
 from pathlib import Path
 
 # 模块级别定义常量，避免重复构造对象
 _BASE_DIR = Path(__file__).resolve().parent
-_FONT_DIR = _BASE_DIR / "fonts"
+# 字体目录固定指向项目的 src/fonts（与 utils 同级）
+_FONT_DIR = _BASE_DIR.parent / "fonts"
+
+# --- ICU data bootstrap (Windows/Conda 常见问题) ---
+# skia-python 的 ICU loader 默认会在 python.exe 同目录找 icudtl.dat；
+# conda 环境下该文件通常位于 site-packages 里，需显式设置 ICU_DATA 指向它所在目录。
+_ICU_DTL = None
+try:
+    _site_packages_dir = Path(skia.__file__).resolve().parent
+    _candidate = _site_packages_dir / "icudtl.dat"
+    if _candidate.exists():
+        _ICU_DTL = _candidate
+        os.environ.setdefault("ICU_DATA", str(_candidate.parent))
+except Exception:
+    # 不阻断导入；后续若 ICU 初始化失败会报更明确异常
+    _ICU_DTL = None
 
 # 创建 ModernGL 上下文，保持当前 OpenGL 环境
 _ctx = moderngl.create_standalone_context()
@@ -23,14 +40,25 @@ _ctx = moderngl.create_standalone_context()
 _GR_CONTEXT = skia.GrDirectContext.MakeGL()
 # 预先创建 Unicode 对象和本地字体管理器，避免每次调用重新加载
 _UNICODES = skia.Unicodes.ICU.Make()
+if _UNICODES is None:
+    # 这里如果返回 None，后续 ParagraphBuilder 会渲染为空或异常；直接给出可操作的错误信息
+    raise RuntimeError(
+        "Skia ICU 初始化失败：找不到/加载失败 icudtl.dat。"
+        f"已尝试设置 ICU_DATA={os.environ.get('ICU_DATA')!r}，"
+        f"探测到 icudtl.dat={str(_ICU_DTL) if _ICU_DTL else None}。"
+        "请确认该文件存在且进程有权限读取。"
+    )
+# 本地字体管理器：项目 src/fonts
 _LOCAL_FONT_MGR = skia.FontMgr.New_Custom_Directory(str(_FONT_DIR))
-# 使用系统默认字体管理器作为回退字体源
+# 系统默认字体管理器：用于兜底回退（Windows 上可覆盖更多字符集/emoji）
 _SYS_FONT_MGR = skia.FontMgr.RefDefault()
 # 缓存已创建的 GPU Surface，按 (width, height) 复用，避免每次重新分配 GPU 内存
 # 使用 LRU 策略限制缓存数量，防止长时间运行时显存无限增长
 _MAX_SURFACE_CACHE = 8
 _surface_cache: OrderedDict[tuple[int, int], skia.Surface] = OrderedDict()
 # 模块级 FontCollection，避免每次渲染重新创建
+# 说明：skia-python(144.*) 的 FontCollection 只暴露 setDefaultFontManager；
+# 因此这里直接使用项目字体目录对应的 FontMgr 作为默认字体源（字幕字体都在 src/fonts）。
 _FONT_COLLECTION = skia.textlayout.FontCollection()
 _FONT_COLLECTION.setDefaultFontManager(_LOCAL_FONT_MGR)
 # Paragraph 布局宽度：固定足够大的值，避免字幕文字意外换行，同时使缓存 key 与输出分辨率无关
@@ -686,43 +714,45 @@ if __name__ == "__main__":
 
     """
     测试单次绘图"""
-    # t0 = time.perf_counter()
-    # # 循环单次
-    # for i in range(1):
-    #     render_text_to_png(
-    #         text="中❤国\n🚀 😊 🫶 🏁 Hello!\n中国 ❤ 🚀 😊 🫶 🏁 Hello!",
-    #         curve_degree=0,
-    #         wrap_width=0,
-    #         text_transform='uppercase',
-    #         font_name="Heiti TC",
-    #         font_size=20,
-    #         font_color=(255, 255, 0, 255),
-    #         letter_spacing=0,
-    #         text_style='bold_italic',
-    #
-    #         stroke_width=10,
-    #         stroke_color=(255, 0, 0, 255),
-    #
-    #         background_style=2,
-    #         background_color=(100, 0, 0, 100),
-    #         background_fill_width=10.0,
-    #         background_fill_height=10.0,
-    #         # background_offset_x=-100.0,
-    #         # background_offset_y=100.0,
-    #         # background_radius=180,
-    #
-    #         alignment='right',
-    #
-    #         line_spacing=5,
-    #
-    #         scale=2.5,
-    #         rotation=0.0,
-    #         anchor_x=1460,
-    #         anchor_y=640,
-    #         png_width=_DEFAULT_PNG_WIDTH,
-    #         png_height=_DEFAULT_PNG_HEIGHT,
-    #         save_path=Path(__file__).resolve().parent / "my_test_gpu_output.png",
-    #     )
+    print("测试开始")
+    t0 = time.perf_counter()
+    # 循环单次
+    for i in range(1):
+        render_text_to_png(
+            text="中❤国\n🚀 😊 🫶 🏁 Hello!\n中国 ❤ 🚀 😊 🫶 🏁 Hello!",
+            curve_degree=0,
+            wrap_width=0,
+            text_transform='uppercase',
+            font_name="Heiti TC",
+            font_size=20,
+            font_color=(255, 255, 0, 255),
+            letter_spacing=0,
+            text_style='bold_italic',
+
+            stroke_width=10,
+            stroke_color=(255, 0, 0, 255),
+
+            background_style=2,
+            background_color=(100, 0, 0, 100),
+            background_fill_width=10.0,
+            background_fill_height=10.0,
+            # background_offset_x=-100.0,
+            # background_offset_y=100.0,
+            # background_radius=180,
+
+            alignment='right',
+
+            line_spacing=5,
+
+            scale=2.5,
+            rotation=0.0,
+            anchor_x=1460,
+            anchor_y=640,
+            png_width=_DEFAULT_PNG_WIDTH,
+            png_height=_DEFAULT_PNG_HEIGHT,
+            save_path=Path(__file__).resolve().parent / "my_test_gpu_output.png",
+        )
+    print("绘图完成")
     # # 测试弯曲文字（凸弧 180°）
     # render_text_to_png(
     #     text="中❤国 🚀 Hello World! 你好世界",
@@ -1014,101 +1044,101 @@ if __name__ == "__main__":
     # print(f'{time.perf_counter()-t0 = }s')
     # exit()
 
-    """
-    测试 按帧字幕动画 示例：字幕上下移动"""
-    import ffmpeg
-    import os
-
-    t0 = time.perf_counter()
-    # ffmpeg位置
-    FFMPEG_DIR: Path = Path(r'C:/wsn_code/others/project_x/static/ffmpeg')
-    os.environ["PATH"] = str(FFMPEG_DIR) + os.pathsep + os.environ["PATH"]
-    # 视频信息 {'width': 2160, 'height': 3840, 'duration': 8.522, 'rotation': 0, 'pix_fmt': 'yuv420p', 'codec_name': 'h264'}
-    video_path = Path(r'C:\wsn_code\others\project_x\test_skia\tests\挂壁立式双瓶机制_1.mp4')
-    output_path = video_path.with_name(video_path.stem + "_subtitled_animated.mp4")
-
-    fps = 30
-    duration = 8.522
-    total_frames = int(duration * fps)  # 255
-    W, H = 2160, 3840
-
-    # 字幕只渲染一次（内容固定，位置通过 numpy 平移实现动画，避免逐帧 GPU 渲染）
-    subtitle_base = render_text_to_png(
-        text="字幕动画测试\nHello Animation 🚀你好你好你好呀\n🚀 😊 🫶 🏁 Hello!\n123123456789",
-        curve_degree=180,
-        font_name="Heiti TC",
-        font_size=60,
-        font_color=(255, 255, 0, 255),
-        text_style='bold',
-        stroke_width=8,
-        stroke_color=(0, 0, 0, 255),
-        background_style=2,
-        background_color=(0, 0, 0, 150),
-        background_fill_width=20.0,
-        background_fill_height=10.0,
-        alignment='center',
-        scale=1.0,
-        anchor_x=W // 2,
-        anchor_y=H // 2,  # 基准位置：垂直居中
-        png_width=W,
-        png_height=H,
-    )
-
-    # subtitle_base: shape=(H, W, 4), BGRA uint8
-
-    # 垂直平移：dy>0 向下，dy<0 向上；空白处填透明
-    _buf = numpy.zeros_like(subtitle_base)  # 循环外分配一次
-
-
-    def _shift_vertical(arr: numpy.ndarray, dy: int) -> numpy.ndarray:
-        _buf.fill(0)  # fill(0) 比 [:]=0 快（底层 memset）
-        if dy > 0:
-            _buf[dy:] = arr[:H - dy]
-        elif dy < 0:
-            _buf[:H + dy] = arr[-dy:]
-        else:
-            _buf[:] = arr
-        return _buf
-
-
-    anim_start_sec = 2.0
-    anim_end_sec = 6.0
-    anim_start_frame = int(anim_start_sec * fps)
-    anim_end_frame = int(anim_end_sec * fps)  # 120 帧
-
-    video_input = ffmpeg.input(str(video_path), hwaccel='cuda')
-    # itsoffset=anim_start_sec：告诉 ffmpeg 此 pipe 流从 t=2 开始，只需写 120 帧而非 255 帧
-    # 动画范围外由 enable= 控制跳过 overlay，pipe 不需要提供对应帧数据
-    array_input = ffmpeg.input(
-        'pipe:',
-        format='rawvideo',
-        pix_fmt='bgra',
-        s=f'{W}x{H}',
-        r=fps,
-        itsoffset=anim_start_sec,
-    )
-    video_overlaid = ffmpeg.filter(
-        [video_input.video, array_input.video],
-        'overlay',
-        enable=f'between(t,{anim_start_sec},{anim_end_sec})',
-    )
-    process = (
-        ffmpeg
-        .output(video_overlaid, video_input.audio, str(output_path), vcodec='h264_nvenc', acodec='copy')
-        .overwrite_output()
-        .run_async(pipe_stdin=True)
-    )
-
-    amplitude = 100  # 上下浮动幅度（像素）
-    # 只写动画区间帧（120帧），pipe 吞吐量减半
-    for frame_idx in range(anim_start_frame, anim_end_frame):
-        t_anim = (frame_idx - anim_start_frame) / fps
-        dy = int(amplitude * math.sin(2 * math.pi * 0.5 * t_anim))
-        frame_arr = _shift_vertical(subtitle_base, dy)
-        process.stdin.write(memoryview(frame_arr))  # memoryview 避免 tobytes() 的数据复制
-
-    process.stdin.close()
-    process.wait()
-    print(f"已保存字幕动画视频: {output_path}")
-    print(f'{time.perf_counter()-t0 = }s')
-    exit()
+    # """
+    # 测试 按帧字幕动画 示例：字幕上下移动"""
+    # import ffmpeg
+    # import os
+    #
+    # t0 = time.perf_counter()
+    # # ffmpeg位置
+    # FFMPEG_DIR: Path = Path(r'C:/wsn_code/others/project_x/static/ffmpeg')
+    # os.environ["PATH"] = str(FFMPEG_DIR) + os.pathsep + os.environ["PATH"]
+    # # 视频信息 {'width': 2160, 'height': 3840, 'duration': 8.522, 'rotation': 0, 'pix_fmt': 'yuv420p', 'codec_name': 'h264'}
+    # video_path = Path(r'C:\wsn_code\others\project_x\test_skia\tests\挂壁立式双瓶机制_1.mp4')
+    # output_path = video_path.with_name(video_path.stem + "_subtitled_animated.mp4")
+    #
+    # fps = 30
+    # duration = 8.522
+    # total_frames = int(duration * fps)  # 255
+    # W, H = 2160, 3840
+    #
+    # # 字幕只渲染一次（内容固定，位置通过 numpy 平移实现动画，避免逐帧 GPU 渲染）
+    # subtitle_base = render_text_to_png(
+    #     text="字幕动画测试\nHello Animation 🚀你好你好你好呀\n🚀 😊 🫶 🏁 Hello!\n123123456789",
+    #     curve_degree=180,
+    #     font_name="Heiti TC",
+    #     font_size=60,
+    #     font_color=(255, 255, 0, 255),
+    #     text_style='bold',
+    #     stroke_width=8,
+    #     stroke_color=(0, 0, 0, 255),
+    #     background_style=2,
+    #     background_color=(0, 0, 0, 150),
+    #     background_fill_width=20.0,
+    #     background_fill_height=10.0,
+    #     alignment='center',
+    #     scale=1.0,
+    #     anchor_x=W // 2,
+    #     anchor_y=H // 2,  # 基准位置：垂直居中
+    #     png_width=W,
+    #     png_height=H,
+    # )
+    #
+    # # subtitle_base: shape=(H, W, 4), BGRA uint8
+    #
+    # # 垂直平移：dy>0 向下，dy<0 向上；空白处填透明
+    # _buf = numpy.zeros_like(subtitle_base)  # 循环外分配一次
+    #
+    #
+    # def _shift_vertical(arr: numpy.ndarray, dy: int) -> numpy.ndarray:
+    #     _buf.fill(0)  # fill(0) 比 [:]=0 快（底层 memset）
+    #     if dy > 0:
+    #         _buf[dy:] = arr[:H - dy]
+    #     elif dy < 0:
+    #         _buf[:H + dy] = arr[-dy:]
+    #     else:
+    #         _buf[:] = arr
+    #     return _buf
+    #
+    #
+    # anim_start_sec = 2.0
+    # anim_end_sec = 6.0
+    # anim_start_frame = int(anim_start_sec * fps)
+    # anim_end_frame = int(anim_end_sec * fps)  # 120 帧
+    #
+    # video_input = ffmpeg.input(str(video_path), hwaccel='cuda')
+    # # itsoffset=anim_start_sec：告诉 ffmpeg 此 pipe 流从 t=2 开始，只需写 120 帧而非 255 帧
+    # # 动画范围外由 enable= 控制跳过 overlay，pipe 不需要提供对应帧数据
+    # array_input = ffmpeg.input(
+    #     'pipe:',
+    #     format='rawvideo',
+    #     pix_fmt='bgra',
+    #     s=f'{W}x{H}',
+    #     r=fps,
+    #     itsoffset=anim_start_sec,
+    # )
+    # video_overlaid = ffmpeg.filter(
+    #     [video_input.video, array_input.video],
+    #     'overlay',
+    #     enable=f'between(t,{anim_start_sec},{anim_end_sec})',
+    # )
+    # process = (
+    #     ffmpeg
+    #     .output(video_overlaid, video_input.audio, str(output_path), vcodec='h264_nvenc', acodec='copy')
+    #     .overwrite_output()
+    #     .run_async(pipe_stdin=True)
+    # )
+    #
+    # amplitude = 100  # 上下浮动幅度（像素）
+    # # 只写动画区间帧（120帧），pipe 吞吐量减半
+    # for frame_idx in range(anim_start_frame, anim_end_frame):
+    #     t_anim = (frame_idx - anim_start_frame) / fps
+    #     dy = int(amplitude * math.sin(2 * math.pi * 0.5 * t_anim))
+    #     frame_arr = _shift_vertical(subtitle_base, dy)
+    #     process.stdin.write(memoryview(frame_arr))  # memoryview 避免 tobytes() 的数据复制
+    #
+    # process.stdin.close()
+    # process.wait()
+    # print(f"已保存字幕动画视频: {output_path}")
+    # print(f'{time.perf_counter()-t0 = }s')
+    # exit()

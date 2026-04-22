@@ -1,20 +1,13 @@
 """
-绘制字幕 rgba 图片
-使用 skia 调用 gpu
-兼容旧版 pil
-性能：pil单线程100张落盘耗时14s；skia单线程100张落盘8s；skia单线程100张返回array 0.6s
-todo word_config 暂未实现
+绘制字幕 rgba 图片（Skia GPU）
+
+注意：
+- 字体目录固定读取项目 `src/fonts`
+- `word_config` 暂未实现（与原提交一致）
 """
 from pathlib import Path
-import sys
-import importlib.util
 
-# 直接按文件路径加载，避免经过 test_skia 包 __init__ 触发 pytest 依赖
-_my_test_path = Path(__file__).resolve().parent / "skia_text_render.py"
-_spec = importlib.util.spec_from_file_location("skia_text_render", _my_test_path)
-_my_test = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_my_test)
-render_text_to_png = _my_test.render_text_to_png
+from utils.skia_text_render import render_text_to_png
 
 # 字体显示名 → 文件名映射（用于文档/查阅，实际转换只需 _FONT_FAMILY_MAP）
 _F2F = {
@@ -106,7 +99,7 @@ def create_subtitle_png(
       有 save_path 时保存并返回 Path；否则返回 numpy BGRA 数组。
     """
     resolved_font = _FONT_FAMILY_MAP.get(font_name, font_name)
-    return render_text_to_png(
+    result = render_text_to_png(
 
         text=texts,
         font_name=resolved_font,
@@ -128,6 +121,10 @@ def create_subtitle_png(
         rotation=rot,
         letter_spacing=letter_spacing,
     )
+    # 兼容旧版 PIL：调用方（ffmpeg cmd 拼接）期望字幕 png 路径是 str，而不是 Path
+    if isinstance(result, Path):
+        return str(result)
+    return result
 
 
 if __name__ == "__main__":

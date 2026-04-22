@@ -27,5 +27,7 @@ dependencies = [
     "yarl>=1.23.0",
     "av>=17.0.0",
     "func-to-web>=0.9.13",
-    "pymysql"
+    "pymysql",
+    "skia-python>=144.0.post2",
+    "moderngl>=5.12.0",
 ]

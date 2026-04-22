@@ -122,247 +122,42 @@ def create_subtitle_png(
     background_color=(0, 0, 0, 128),  # 半透明黑色
     background_pad=10,
     png_width = 1920,
-    png_height = 1280,
+    png_height = 1080,
     save_path = "./fonts/test.png",
     scale = 1.0,
     rot = 0,
     letter_spacing = 4,
     word_config = None
 ):
-    #第一步: 确定字体
-    font_path = "/".join([FONT_DIR, f2f[font_name]])
-    # print(f"font_path: {font_path}")
-    font = ImageFont.truetype(font_path, font_size)
-    img = Image.new("RGBA", (png_width, png_height), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-
-    #第1.5步：生成字幕
-    base_style = Style(
-        font_name=font_name,
-        font_size=font_size,
-        color=font_color,
-        outline_color=outline_color,
-        outline_width=outline_width
-    )
-    max_line_width = png_width * 0.7
-    glyph_lines: list[list[Glyph]] = []
-    current_line: list[Glyph] = []
-    global_idx = 0
-    current_width = 0.0
-    for raw_line in texts.split('\n'):
-
-        for ch in raw_line:
-            style = style_for_index(global_idx, base_style, word_config)
-
-            # 字体实例（你可以加缓存）
-            font_path = os.path.join(FONT_DIR, f2f[style.font_name])
-            font_obj = ImageFont.truetype(font_path, style.font_size)
-
-            # 量宽（这一步以后不会再算）
-            width = draw.textlength(ch, font=font_obj) \
-                    + letter_spacing \
-                    + 2 * style.outline_width
-
-            glyph = Glyph(
-                char=ch,
-                style=style,
-                width=width,
-                index=global_idx
-            )
-
-            # 🔹 自动换行判断
-            if current_line and current_width + width > max_line_width:
-                glyph_lines.append(current_line)
-                current_line = []
-                current_width = 0.0
-
-            current_line.append(glyph)
-            current_width += width
-            global_idx += 1
-
-        # 原文本里的换行：强制断行
-        if current_line:
-            glyph_lines.append(current_line)
-            current_line = []
-            current_width = 0.0
-        # ⭐ newline 也占 index（与你现有语义一致）
-        global_idx += 1
-
-    # ================================
-    # 第二步：Glyph 行已经准备好
-    # glyph_lines: List[List[Glyph]]
-    # ================================
-    lines = glyph_lines
-    rows = len(lines)
-
-    line_widths = []
-    line_heights = []
-
-    # ================================
-    # 第三步：计算每一行的几何尺寸
-    # ================================
-    for line in lines:
-        line_width = sum(g.width for g in line)
-
-        line_height = max(
-            (g.style.font_size + 2 * g.style.outline_width)
-            for g in line
-            if g.style is not None
+    # 强制走 Skia GPU 版本（用于验证 Skia 绘制是否正常）
+    try:
+        from utils.draw_caption_utils_skia import create_subtitle_png as _skia_create_subtitle_png
+        return _skia_create_subtitle_png(
+            texts=texts,
+            font_name=font_name,
+            anchor_x=anchor_x,
+            anchor_y=anchor_y,
+            font_size=font_size,
+            font_color=font_color,
+            outline_color=outline_color,
+            outline_width=outline_width,
+            line_spacing=line_spacing,
+            background_style=background_style,
+            background_color=background_color,
+            background_pad=background_pad,
+            png_width=png_width,
+            png_height=png_height,
+            save_path=save_path,
+            scale=scale,
+            rot=rot,
+            letter_spacing=letter_spacing,
+            word_config=word_config,
         )
+    except Exception:
+        log.exception("Skia subtitle render failed")
+        raise
 
-        line_widths.append(line_width)
-        line_heights.append(line_height)
-
-    # ================================
-    # 第四步：整体文本垂直居中
-    # ================================
-    text_total_height = (
-            sum(line_heights) +
-            (rows - 1) * line_spacing
-    )
-    y = (png_height - text_total_height) / 2
-
-    # ================================
-    # 第五步：背景层绘制
-    # ================================
-    bg_layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    bg_draw = ImageDraw.Draw(bg_layer)
-
-    if background_style == 2:
-        total_width = max(line_widths)
-        x0 = (png_width - total_width) / 2 - background_pad
-        y0 = y - background_pad
-        x1 = (png_width + total_width) / 2 + background_pad
-        y1 = y + text_total_height + background_pad
-        bg_draw.rectangle([x0, y0, x1, y1], fill=background_color)
-
-    img = Image.alpha_composite(img, bg_layer)
-    draw = ImageDraw.Draw(img)
-
-    # ================================
-    # 每行背景
-    # ================================
-    if background_style == 1:
-        background_y = y
-
-        for i, line in enumerate(lines):
-            text_width = line_widths[i]
-            text_height = line_heights[i]
-            x = (png_width - text_width) / 2
-
-            draw.rectangle(
-                [
-                    x - background_pad,
-                    background_y - background_pad,
-                    x + text_width + background_pad,
-                    background_y + text_height + background_pad,
-                ],
-                fill=background_color,
-            )
-
-            background_y += text_height + line_spacing
-
-    # ================================
-    # 第六步：逐 Glyph 绘制文本
-    # ================================
-    cursor_y = y
-
-    for i, line in enumerate(lines):
-        cursor_x = (png_width - line_widths[i]) / 2
-        line_height = line_heights[i]  # 当前行的总高度
-
-        for g in line:
-
-            if g.char is None or g.style is None:
-                cursor_x += g.width
-                continue
-            if emoji.is_emoji(g.char):
-                emoji_name = "-".join([f"{ord(c):x}" for c in g.char])
-                filepath = os.path.join(emoji_dir, f"emoji_u{emoji_name}.png")
-                if os.path.exists(filepath):
-                    emj_img = Image.open(filepath).convert("RGBA")
-                    # 缩放和对齐（底部对齐）
-                    emj_size = g.style.font_size  # 或 g.style.font_size - 5
-                    emj_img = emj_img.resize((emj_size, emj_size), Image.LANCZOS)
-                    glyph_y = cursor_y + (line_height - emj_size)  # 底部对齐
-                    img.alpha_composite(emj_img, (round(cursor_x), round(glyph_y)))
-                    cursor_x += g.width
-                    continue  # 已经绘制 emoji，跳过普通文字绘制
-
-            font_path = os.path.join(FONT_DIR, f2f[g.style.font_name])
-            font = ImageFont.truetype(font_path, g.style.font_size)
-
-            # 计算底部对齐的 y 坐标
-            glyph_y = cursor_y + (line_height - (g.style.font_size + 2 * g.style.outline_width))
-
-            # 描边
-            if g.style.outline_width > 0:
-                for ox in range(-g.style.outline_width, g.style.outline_width + 1):
-                    for oy in range(-g.style.outline_width, g.style.outline_width + 1):
-                        if ox == 0 and oy == 0:
-                            continue
-                        draw.text(
-                            (cursor_x + ox, glyph_y + oy),
-                            g.char,
-                            font=font,
-                            fill=g.style.outline_color,
-                        )
-
-            # 本体
-            draw.text(
-                (cursor_x, glyph_y),
-                g.char,
-                font=font,
-                fill=g.style.color,
-            )
-
-            cursor_x += g.width
-
-        cursor_y += line_heights[i] + line_spacing
-
-    # ================================
-    # 第七步：后期变换（scale / rotate）
-    # ================================
-    content_img = img
-
-    if scale != 1.0:
-        new_width = int(img.width * scale)
-        new_height = int(img.height * scale)
-        content_img = img.resize((new_width, new_height), Image.LANCZOS)
-
-    if rot != 0:
-        content_img = content_img.rotate(
-            -rot,
-            expand=True,
-            resample=Image.BICUBIC,
-            fillcolor=(0, 0, 0, 0),
-        )
-
-    # ================================
-    # 第八步：锚点居中贴回画布
-    # ================================
-    final_img = Image.new("RGBA", (png_width, png_height), (0, 0, 0, 0))
-
-    content_x = anchor_x - content_img.width // 2
-    content_y = anchor_y - content_img.height // 2
-    dst_left = max(content_x, 0)
-    dst_top = max(content_y, 0)
-    dst_right = min(content_x + content_img.width, png_width)
-    dst_bottom = min(content_y + content_img.height, png_height)
-
-    src_left = dst_left - content_x
-    src_top = dst_top - content_y
-    src_right = src_left + (dst_right - dst_left)
-    src_bottom = src_top + (dst_bottom - dst_top)
-
-    if dst_right > dst_left and dst_bottom > dst_top:
-        cropped = content_img.crop((src_left, src_top, src_right, src_bottom))
-        final_img.paste(cropped, (dst_left, dst_top), cropped)
-    else:
-        final_img.paste(content_img, (content_x, content_y))
-
-    final_img.save(save_path)
-    return save_path
+    # NOTE: PIL 的实现代码保留在 git 历史中；当前分支用于验证 Skia 绘制，入口强制走 Skia。
 
 
 # 示例
