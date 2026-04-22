@@ -19,7 +19,7 @@ import platform
 # 模块级别定义常量，避免重复构造对象
 _BASE_DIR = Path(__file__).resolve().parent
 # 字体目录固定指向项目的 src/fonts（与 utils 同级）
-_FONT_DIR = _BASE_DIR.parent / "fonts"
+_FONT_DIR = Path("/root/AIGC_video_mix_remake/src/fonts")
 
 def _create_gl_context() -> moderngl.Context | None:
     """创建可用于无头环境的 ModernGL 上下文，失败时返回 None。"""
