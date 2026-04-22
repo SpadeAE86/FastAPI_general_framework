@@ -14,11 +14,93 @@ import sys
 from collections import OrderedDict
 from functools import lru_cache
 from pathlib import Path
-
+import platform
 # 模块级别定义常量，避免重复构造对象
 _BASE_DIR = Path(__file__).resolve().parent
 # 字体目录固定指向项目的 src/fonts（与 utils 同级）
 _FONT_DIR = _BASE_DIR.parent / "fonts"
+
+def _create_gl_context() -> moderngl.Context | None:
+    """创建可用于无头环境的 ModernGL 上下文，失败时返回 None。"""
+    """
+    这组信息已经把根因锁定了：
+
+    你的 EGL 现在走的是 Mesa，不是 NVIDIA
+    证据是 /usr/share/glvnd/egl_vendor.d/ 里只有 50_mesa.json，没有 NVIDIA 的 vendor json
+    所以会出现 eglInitialize failed (0x3001) 和 dri2 screen 警告
+    osmesa 报错是 glcontext 这个 Python 包当前不含 osmesa backend，不是你命令写错
+    下面给你可直接执行的修复清单。
+
+    第一步：补齐 NVIDIA 的 EGL 用户态组件（最关键）
+
+    先查有哪些 580 包可用：
+    apt-cache search nvidia | grep -E "580|egl|glvnd|libnvidia-gl|nvidia-utils"
+
+    然后安装（名称以你仓库实际为准，优先 580）：
+    sudo apt update
+    sudo apt install -y libnvidia-gl-580 nvidia-utils-580
+
+    安装后检查：
+    ldconfig -p | grep -E "libEGL_nvidia|libnvidia-eglcore"
+    ls -l /usr/share/glvnd/egl_vendor.d/
+
+    期望看到：
+
+    libEGL_nvidia.so.0
+    10_nvidia.json 或类似 nvidia 的 json 文件
+    如果包装了库但没自动生成 json，可手动补一个：
+    sudo tee /usr/share/glvnd/egl_vendor.d/10_nvidia.json >/dev/null <<EOF
+    {
+    "file_format_version": "1.0.0",
+    "ICD": {
+    "library_path": "libEGL_nvidia.so.0"
+    }
+    }
+    EOF
+
+    第二步：用无头参数验证 EGL
+
+    unset DISPLAY
+    export EGL_PLATFORM=surfaceless
+    python3 -c "import moderngl; c=moderngl.create_standalone_context(backend='egl'); print('EGL OK', c.version_code)"
+
+    第三步：如果还想用 osmesa 兜底（可选）
+
+    先装系统库：
+    sudo apt install -y libosmesa6 libosmesa6-dev build-essential pkg-config python3-dev
+
+    再让 glcontext 从源码编译（wheel 常不带 osmesa）：
+    pip uninstall -y glcontext
+    pip install --no-binary glcontext glcontext
+
+    验证：
+    python3 -c "import moderngl; c=moderngl.create_standalone_context(backend='osmesa'); print('OSMESA OK', c.version_code)"
+    """
+    system = platform.system().lower()
+
+    if system == "linux":
+        # Linux 服务器优先 EGL（NVIDIA/无头常见方案），再尝试 OSMesa，最后回退 X11。
+        candidates = ["egl", "osmesa", "x11"]
+    elif system == "windows":
+        candidates = [None, "wgl"]
+    else:
+        candidates = [None]
+
+    last_error = None
+    for backend in candidates:
+        try:
+            if backend is None:
+                return moderngl.create_standalone_context()
+            return moderngl.create_standalone_context(backend=backend)
+        except Exception as exc:
+            last_error = exc
+
+    display = os.environ.get("DISPLAY")
+    print(
+        f"[skia_text_render] GL context 初始化失败，降级为 CPU 渲染 "
+        f"(platform={system}, DISPLAY={display!r}, error={last_error!r})"
+    )
+    return None
 
 # --- ICU data bootstrap (Windows/Conda 常见问题) ---
 # skia-python 的 ICU loader 默认会在 python.exe 同目录找 icudtl.dat；
@@ -35,9 +117,10 @@ except Exception:
     _ICU_DTL = None
 
 # 创建 ModernGL 上下文，保持当前 OpenGL 环境
-_ctx = moderngl.create_standalone_context()
+_ctx = _create_gl_context()
 # 创建 Skia GPU 上下文，避免每次渲染都重新初始化
-_GR_CONTEXT = skia.GrDirectContext.MakeGL()
+_GR_CONTEXT = skia.GrDirectContext.MakeGL() if _ctx is not None else None
+_USE_GPU = _ctx is not None and _GR_CONTEXT is not None
 # 预先创建 Unicode 对象和本地字体管理器，避免每次调用重新加载
 _UNICODES = skia.Unicodes.ICU.Make()
 if _UNICODES is None:
@@ -78,15 +161,19 @@ _DEFAULT_PNG_HEIGHT = 1080
 
 
 def _get_surface(width: int, height: int) -> skia.Surface:
-    """按尺寸获取（或创建）GPU Surface，相同尺寸直接复用，LRU 淘汰超出上限的条目。"""
+    """按尺寸获取（或创建）Surface，相同尺寸直接复用，LRU 淘汰超出上限的条目。"""
     key = (width, height)
     if key in _surface_cache:
         _surface_cache.move_to_end(key)
         return _surface_cache[key]
     info = skia.ImageInfo.MakeN32Premul(width, height)
-    surface = skia.Surface.MakeRenderTarget(_GR_CONTEXT, skia.Budgeted.kNo, info)
+    if _USE_GPU:
+        surface = skia.Surface.MakeRenderTarget(_GR_CONTEXT, skia.Budgeted.kNo, info)
+    else:
+        surface = skia.Surface.MakeRaster(info)
     if surface is None:
-        raise RuntimeError(f"Skia GPU Surface 创建失败（显存不足或 GPU context 丢失）: {width}x{height}")
+        mode = "GPU" if _USE_GPU else "CPU"
+        raise RuntimeError(f"Skia {mode} Surface 创建失败: {width}x{height}")
     _surface_cache[key] = surface
     if len(_surface_cache) > _MAX_SURFACE_CACHE:
         _surface_cache.popitem(last=False)
