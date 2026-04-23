@@ -33,9 +33,13 @@ class CapHelper:
             font_type = caption.font_type if caption.font_type else self.cap_config.font_type
             if not font_type:
                 font_type = "Songti SC Regular"
-            fc = self.cap_config.cap_color
-            oc = self.cap_config.cap_outline_color
-            bc = self.cap_config.cap_background_color
+            fc = hex_to_bgra_v2(self.cap_config.cap_color) if self.cap_config.cap_color and is_valid_hex_color(caption.color)\
+                else hex_to_bgra_v2("#ffffff")
+            oc = hex_to_bgra_v2(self.cap_config.cap_outline_color) if self.cap_config.cap_outline_color and is_valid_hex_color(self.cap_config.cap_outline_color)\
+                else hex_to_bgra_v2("#000000")
+            bc = hex_to_bgra_v2(self.cap_config.cap_background_color) if self.cap_config.cap_background_color and is_valid_hex_color(self.cap_config.cap_background_color)\
+                else hex_to_bgra_v2("#000000ff")
+
             letter_spacing = caption.letter_spacing if caption.letter_spacing else self.cap_config.cap_letter_indent
             line_spacing = caption.line_spacing if caption.line_spacing else self.cap_config.cap_line_spacing
             background_type = caption.background_type if caption.background_type is not None \

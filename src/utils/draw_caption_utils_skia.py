@@ -64,7 +64,19 @@ def _strip_style_suffix(name: str) -> str:
 
 
 # f2f 显示名 → family name（传给 render_text_to_png 的 font_name）
-_FONT_FAMILY_MAP: dict[str, str] = {k: _strip_style_suffix(k) for k in _F2F}
+_FONT_FAMILY_MAP: dict[str, str] = {
+    **{k: _strip_style_suffix(k) for k in _F2F},
+    **{
+        "Alibaba Health Font 2.0 CN 85 B": "Alibaba Health Font 2.0 CN",
+        "PingFang SC Regular": "PingFang HK",
+        "TsangerShuYuanT W01": "TsangerShuYuanT",
+        "TsangerShuYuanT W04": "TsangerShuYuanT",
+        "Canger XiaoWanZi": "TsangerXWZ",
+        "YouShe Title Rounded": "YouSheBiaoTiYuan",
+        "HXBNanShen 2.0": "HuXiaoBo-NanShenTi2.0",
+        "HXBSaoBao 2.0": "HuXiaoBo-SaoBaoTi2.0",
+    }
+}
 
 
 def create_subtitle_png(
@@ -153,4 +165,4 @@ if __name__ == "__main__":
     #     )
     # print(f'{time.perf_counter()-t0 = }s')
     # exit()
-    _strip_style_suffix("Songti SC Regular")
+    print(_strip_style_suffix("TsangerShuYuanT W04"))

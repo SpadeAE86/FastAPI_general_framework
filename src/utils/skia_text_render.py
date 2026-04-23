@@ -831,7 +831,7 @@ if __name__ == "__main__":
             curve_degree=0,
             wrap_width=0,
             text_transform='uppercase',
-            font_name="Songti SC",
+            font_name="TsangerShuYuanT W01",
             font_size=20,
             font_color=(255, 255, 0, 255),
             letter_spacing=0,
