@@ -145,8 +145,8 @@ _surface_cache: OrderedDict[tuple[int, int], skia.Surface] = OrderedDict()
 # 因此这里直接使用项目字体目录对应的 FontMgr 作为默认字体源（字幕字体都在 src/fonts）。
 _FONT_COLLECTION = skia.textlayout.FontCollection()
 _FONT_COLLECTION.setDefaultFontManager(_LOCAL_FONT_MGR)
-# Paragraph 布局宽度：固定足够大的值，避免字幕文字意外换行，同时使缓存 key 与输出分辨率无关
-_PARAGRAPH_MAX_WIDTH = 16384
+# # Paragraph 布局宽度：固定足够大的值，避免字幕文字意外换行，同时使缓存 key 与输出分辨率无关
+# _PARAGRAPH_MAX_WIDTH = 16384
 # 字体样式映射，避免在热路径中重复创建 FontStyle 对象
 _FONT_STYLE_MAP: dict[str, skia.FontStyle] = {
     'normal': skia.FontStyle.Normal(),
@@ -159,6 +159,9 @@ _DEFAULT_FONT_STYLE = _FONT_STYLE_MAP['normal']
 # 默认输出分辨率，供函数签名默认值及批量渲染 fallback 使用
 _DEFAULT_PNG_WIDTH = 1920
 _DEFAULT_PNG_HEIGHT = 1080
+# 自动换行宽度相对大图最大宽度的内缩值（px）。
+# 当 wrap_width <= 0 时，实际布局宽度 = png_width - _AUTO_WRAP_WIDTH_MARGIN_PX。
+_AUTO_WRAP_WIDTH_MARGIN_PX = 50
 
 
 def _get_surface(width: int, height: int) -> skia.Surface:
@@ -443,7 +446,8 @@ def _render_to_surface(
       text: 要渲染的文字内容，可包含换行符。
       curve_degree: 文字弯曲度数，0=不弯曲，正值=凸弧（向上弯），负值=凹弧（向下弯），±360=首尾衔接的圆。
         启用时忽略换行，将全文视为单行沿弧渲染；wrap_width、alignment、line_spacing、background_style 在此模式下无效。
-      wrap_width: 自动换行宽度，单位为像素，0 表示不换行。
+      wrap_width: 自动换行宽度，单位为像素；当 wrap_width <= 0 时，
+        自动使用 png_width - _AUTO_WRAP_WIDTH_MARGIN_PX 作为换行宽度。
       text_transform: 文字大小写转换，'uppercase'=全大写，'lowercase'=全小写，'capitalize'=每词首字母大写，None=不转换。
       font_name: 主字体名称。
       font_size: 字体大小，单位为像素。
@@ -517,7 +521,7 @@ def _render_to_surface(
         return surface
 
     lines = text.split('\n')
-    _layout_width = int(wrap_width) if wrap_width > 0 else _PARAGRAPH_MAX_WIDTH
+    _layout_width = int(wrap_width) if wrap_width > 0 else max(1, int(png_width - _AUTO_WRAP_WIDTH_MARGIN_PX))
 
     # 步骤1 & 2: 为每一行预构建 Paragraph（填充色）及描边 Paragraph
     # 两者在同一循环中一并构建，避免二次遍历；实际绘制在步骤6定位完成后进行
@@ -544,8 +548,8 @@ def _render_to_surface(
             line, family_names, font_size, letter_spacing, text_style,
             _font_color_int, False, 0.0, _layout_width)
         paragraphs.append(paragraph)
-        # 换行时取实际排版后最长行宽，不换行时取无限宽下的理想宽度
-        line_widths.append(paragraph.LongestLine if wrap_width > 0 else paragraph.MaxIntrinsicWidth)
+        # 换行时取实际排版后最长行宽
+        line_widths.append(paragraph.LongestLine)
         line_heights.append(paragraph.Height)
 
         if _need_draw_stroke:
