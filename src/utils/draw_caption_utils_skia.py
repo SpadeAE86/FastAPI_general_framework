@@ -118,7 +118,8 @@ def create_subtitle_png(
         font_name=resolved_font,
         anchor_x=anchor_x,
         anchor_y=anchor_y,
-        font_size=font_size,
+        font_size=int(font_size * 720 / min(png_height, png_width)) if (png_width > png_height) else font_size,
+        # fix：横屏视频文字大小，前端显示和实际产物不一致。横屏时转换回原始fontsize
         font_color=font_color,
         stroke_color=outline_color,
         stroke_width=outline_width,
