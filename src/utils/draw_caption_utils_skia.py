@@ -68,7 +68,7 @@ _FONT_FAMILY_MAP: dict[str, str] = {
     **{k: _strip_style_suffix(k) for k in _F2F},
     **{
         "Alibaba Health Font 2.0 CN 85 B": "Alibaba Health Font 2.0 CN",
-        "PingFang SC Regular": "PingFang HK",
+        "PingFang SC Regular": "PingFang SC",
         "TsangerShuYuanT W01": "TsangerShuYuanT",
         "TsangerShuYuanT W04": "TsangerShuYuanT",
         "Canger XiaoWanZi": "TsangerXWZ",
