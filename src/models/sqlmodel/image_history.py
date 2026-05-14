@@ -4,20 +4,25 @@ from datetime import datetime
 from typing import Optional, Any, Dict, List
 
 from sqlmodel import SQLModel, Field
-from sqlalchemy import Column, Text, DateTime, func
+from sqlalchemy import Column, Text, DateTime, func, BigInteger
 from sqlalchemy.dialects.mysql import JSON as MySQLJSON, VARCHAR
 
 
 class ImageHistoryCard(SQLModel, table=True):
     """
-    Store each generated item as a row.
-    This maps closely to the frontend history card structure.
+    每条生图 / 异步生图记录一行（生视频实验室当前仍走 JSON 文件，不经此表）。
+
+    - ``numeric_id``: 自增主键；API 对外 ``id`` 字段为其十进制字符串（短、好记）。
+    - ``legacy_id``: 原字符串主键（UUID / 占位 / 与豆包 task_id 同值的异步键），唯一；查询时可继续用旧 id 或 ``taskId`` 命中行。
     """
 
     __tablename__ = "image_history_cards"
 
-    # Use the same id the frontend uses
-    id: str = Field(sa_column=Column(VARCHAR(64), primary_key=True, nullable=False))
+    numeric_id: Optional[int] = Field(
+        default=None,
+        sa_column=Column(BigInteger, primary_key=True, autoincrement=True),
+    )
+    legacy_id: str = Field(sa_column=Column(VARCHAR(64), nullable=False, unique=True))
 
     prompt: str = Field(sa_column=Column(Text, nullable=False))
     model: str = Field(sa_column=Column(Text, nullable=False))
@@ -27,7 +32,6 @@ class ImageHistoryCard(SQLModel, table=True):
     ratio: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
     duration: Optional[int] = Field(default=None, nullable=True)
 
-    # Keep both upstream (doubao) url and our mirrored obs url
     doubao_url: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
     obs_url: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
     time: str = Field(sa_column=Column(Text, nullable=False))
@@ -41,11 +45,8 @@ class ImageHistoryCard(SQLModel, table=True):
     taskId: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
     status: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
 
-    # 联表 http_request_traces.id，保存上游 / 网关真实 request、response
     request_id: Optional[str] = Field(default=None, sa_column=Column(VARCHAR(36), nullable=True))
 
-    # 当前这一次异步运行开始时间（新任务首次排队 / 每次重试时写入）。看板「进行中/完成」耗时相对此时间；
-    # 为 None 时前端回退 created_at。不修改 created_at，避免丢失「首次创建」审计。
     current_run_started_at: Optional[datetime] = Field(
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=True),
@@ -57,4 +58,3 @@ class ImageHistoryCard(SQLModel, table=True):
     updated_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
     )
-

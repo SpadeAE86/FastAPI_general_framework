@@ -39,6 +39,41 @@ def _truncate_for_trace(obj: Any, max_bytes: int = 28000) -> Any:
     return {"_truncated": True, "utf8_preview": pref + "…"}
 
 
+def _strip_large_numeric_vectors(obj: Any, *, max_list_len: int = 48) -> Any:
+    """
+    OpenSearch hybrid / KNN 请求体里的向量动辄数千维；写入 http_request_traces 前替换为占位，
+    保留可读的 query 结构与短前缀，避免整条变成无法解析的 utf8 裁剪串。
+    注意：业务重试匹配由 match_script_tags_segments(tags_json) 重新构造请求，从不反序列化本条入库体。
+    """
+    if isinstance(obj, list):
+        if len(obj) > max_list_len:
+            head_len = min(8, len(obj))
+            head = obj[:head_len]
+            if head and all(isinstance(x, (int, float)) for x in head):
+                return {
+                    "_omitted": "numeric_vector",
+                    "length": len(obj),
+                    "head_preview": [round(float(x), 6) for x in head],
+                }
+        return [_strip_large_numeric_vectors(x, max_list_len=max_list_len) for x in obj]
+    if isinstance(obj, dict):
+        return {str(k): _strip_large_numeric_vectors(v, max_list_len=max_list_len) for k, v in obj.items()}
+    return obj
+
+
+def _trace_request_body_for_shot_search(m: Dict[str, Any], **extra: Any) -> Any:
+    """分镜检索阶段写入 HTTP trace 的 request_body（已向量压缩 + 字节截断）。"""
+    payload: Dict[str, Any] = {
+        "index": INDEX_NAME,
+        "opensearch_body": m.get("opensearch_body"),
+        "search_params": m.get("search_params"),
+        "query_text": m.get("query_text"),
+    }
+    payload.update({k: v for k, v in extra.items() if v is not None})
+    compact = _strip_large_numeric_vectors(payload)
+    return _truncate_for_trace(compact)
+
+
 def _tags_by_seg_id(tags: SeedtextIndexTagsEnvelope) -> Dict[int, Any]:
     return {seg.id: seg for seg in tags.segment_result}
 
@@ -351,15 +386,7 @@ async def rematch_video_match_shot(job_id: str, shot_row_id: int) -> Dict[str, A
         top_hits = m.get("top_hits") or []
         elapsed = float(m.get("elapsed_ms") or 0)
         top1 = _best_video_path_from_hits(top_hits)
-        body_for_trace = _truncate_for_trace(
-            {
-                "index": INDEX_NAME,
-                "opensearch_body": m.get("opensearch_body"),
-                "search_params": m.get("search_params"),
-                "query_text": m.get("query_text"),
-                "rematch_single_shot": True,
-            }
-        )
+        body_for_trace = _trace_request_body_for_shot_search(m, rematch_single_shot=True)
         trace_rid = await http_request_trace_service.create_initial(
             request_url=f"/opensearch/{INDEX_NAME}/_search",
             http_method="POST",
@@ -538,14 +565,7 @@ async def run_job_search(
         elapsed = float(m.get("elapsed_ms") or 0)
         top1 = _best_video_path_from_hits(top_hits)
 
-        body_for_trace = _truncate_for_trace(
-            {
-                "index": INDEX_NAME,
-                "opensearch_body": m.get("opensearch_body"),
-                "search_params": m.get("search_params"),
-                "query_text": m.get("query_text"),
-            }
-        )
+        body_for_trace = _trace_request_body_for_shot_search(m)
         trace_rid = await http_request_trace_service.create_initial(
             request_url=f"/opensearch/{INDEX_NAME}/_search",
             http_method="POST",

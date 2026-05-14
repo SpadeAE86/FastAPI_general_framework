@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from sqlalchemy import or_, update, func
 from sqlmodel import select
@@ -9,67 +9,97 @@ from infra.storage.mysql_connector import mysql_connector
 from models.sqlmodel.image_history import ImageHistoryCard
 from utils.api_datetime import attach_image_row_duration_ms, normalize_row_utc_iso
 
+_ALLOWED_UPSERT_KEYS: Set[str] = {
+    "prompt",
+    "model",
+    "size",
+    "resolution",
+    "ratio",
+    "duration",
+    "doubao_url",
+    "obs_url",
+    "time",
+    "type",
+    "referenceMedia",
+    "error",
+    "taskId",
+    "status",
+    "request_id",
+    "current_run_started_at",
+}
+
+
+def _row_to_api(row: ImageHistoryCard) -> Dict[str, Any]:
+    d = row.model_dump(exclude_none=True)
+    d.pop("legacy_id", None)
+    nid = d.pop("numeric_id", None)
+    d["id"] = str(nid) if nid is not None else ""
+    d["url"] = d.get("obs_url") or d.get("doubao_url")
+    return attach_image_row_duration_ms(normalize_row_utc_iso(d))
+
 
 class ImageHistoryDBService:
+    async def _fetch_one(self, session: Any, key: str) -> Optional[ImageHistoryCard]:
+        k = (key or "").strip()
+        if not k:
+            return None
+        if k.isdigit():
+            return await session.get(ImageHistoryCard, int(k))
+        stmt = select(ImageHistoryCard).where(
+            or_(ImageHistoryCard.legacy_id == k, ImageHistoryCard.taskId == k)
+        )
+        res = await session.execute(stmt)
+        return res.scalars().first()
+
     async def list_all(self) -> List[Dict[str, Any]]:
         async with mysql_connector.session_scope() as session:
             res = await session.execute(select(ImageHistoryCard).order_by(ImageHistoryCard.created_at.desc()))
-            out: List[Dict[str, Any]] = []
-            for row in res.scalars().all():
-                d = row.model_dump(exclude_none=True)
-                # front-end expects `url`, prefer obs_url then fallback to doubao_url
-                d["url"] = d.get("obs_url") or d.get("doubao_url")
-                out.append(attach_image_row_duration_ms(normalize_row_utc_iso(d)))
-            return out
+            return [_row_to_api(row) for row in res.scalars().all()]
 
     async def get_by_id(self, item_id: str) -> Optional[Dict[str, Any]]:
         return await self.get_by_id_or_task_id(item_id)
 
     async def get_by_id_or_task_id(self, item_id: str) -> Optional[Dict[str, Any]]:
-        """按主键 id 或 taskId 查找；一次查询避免 session.get 边界情况，并兼容两套键。"""
         key = (item_id or "").strip()
         if not key:
             return None
         async with mysql_connector.session_scope() as session:
-            res = await session.execute(
-                select(ImageHistoryCard).where(
-                    or_(
-                        ImageHistoryCard.id == key,
-                        ImageHistoryCard.taskId == key,
-                    )
-                )
-            )
-            hit = res.scalars().first()
+            hit = await self._fetch_one(session, key)
             if hit is None:
                 return None
-            d = hit.model_dump(exclude_none=True)
-            d["url"] = d.get("obs_url") or d.get("doubao_url")
-            return attach_image_row_duration_ms(normalize_row_utc_iso(d))
+            return _row_to_api(hit)
 
     async def upsert_many(self, items: List[Dict[str, Any]]) -> None:
-        """
-        Replace-by-id behavior for each row. This mirrors the existing JSON overwrite behavior.
-        """
         async with mysql_connector.session_scope() as session:
-            for item in items:
-                item_id = item.get("id")
-                if not item_id:
+            for raw in items:
+                ext_id = raw.get("id")
+                if not ext_id:
                     continue
-                # accept front-end `url` as doubao_url by default
+                item_id = str(ext_id).strip()
+                item = dict(raw)
                 if "url" in item and "doubao_url" not in item and "obs_url" not in item:
-                    item = dict(item)
                     item["doubao_url"] = item.pop("url")
-                existing = await session.get(ImageHistoryCard, item_id)
+
+                existing = await self._fetch_one(session, item_id)
                 if existing is None:
-                    session.add(ImageHistoryCard(**item))
+                    kwargs: Dict[str, Any] = {"legacy_id": item_id}
+                    for k, v in item.items():
+                        if k == "id" or k not in _ALLOWED_UPSERT_KEYS:
+                            continue
+                        kwargs[k] = v
+                    session.add(ImageHistoryCard(**kwargs))
                 else:
                     for k, v in item.items():
+                        if k == "id":
+                            continue
+                        if k not in _ALLOWED_UPSERT_KEYS:
+                            continue
                         setattr(existing, k, v)
             await session.commit()
 
     async def update_obs_url(self, item_id: str, new_url: str) -> None:
         async with mysql_connector.session_scope() as session:
-            existing = await session.get(ImageHistoryCard, item_id)
+            existing = await self._fetch_one(session, item_id)
             if existing is None:
                 return
             existing.obs_url = new_url
@@ -77,7 +107,7 @@ class ImageHistoryDBService:
 
     async def delete_by_id(self, item_id: str) -> bool:
         async with mysql_connector.session_scope() as session:
-            existing = await session.get(ImageHistoryCard, item_id)
+            existing = await self._fetch_one(session, item_id)
             if existing is None:
                 return False
             await session.delete(existing)
@@ -85,7 +115,6 @@ class ImageHistoryDBService:
             return True
 
     async def mark_interrupted_running_as_failed(self, reason: str) -> int:
-        """进程重启后：将仍为进行中的生图行标为失败，便于看板与轮询感知。"""
         async with mysql_connector.session_scope() as session:
             stmt = (
                 update(ImageHistoryCard)
@@ -102,4 +131,3 @@ class ImageHistoryDBService:
 
 
 image_history_db_service = ImageHistoryDBService()
-

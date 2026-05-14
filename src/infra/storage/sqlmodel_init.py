@@ -73,6 +73,88 @@ async def _ensure_video_analysis_history_extras() -> None:
                 log.warning("Video history column migration failed: %s", e)
 
 
+async def _migrate_image_history_numeric_pk() -> None:
+    """
+    旧库主键为 ``id`` (VARCHAR)；迁移为 ``numeric_id`` BIGINT AUTO_INCREMENT + ``legacy_id`` (原 id，唯一)。
+    新库 ``create_all`` 已按新模型建表时，主键已是 ``numeric_id``，本函数立即返回。
+    全程幂等，在 lifespan / create_tables 中调用。
+    """
+    engine = await mysql_connector.get_engine()
+    async with engine.begin() as conn:
+        r = await conn.execute(
+            text(
+                "SELECT COUNT(*) FROM information_schema.tables "
+                "WHERE table_schema = DATABASE() AND table_name = 'image_history_cards'"
+            )
+        )
+        if (r.scalar() or 0) == 0:
+            return
+
+        rpk = await conn.execute(
+            text(
+                """
+                SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'image_history_cards'
+                  AND CONSTRAINT_NAME = 'PRIMARY'
+                ORDER BY ORDINAL_POSITION
+                """
+            )
+        )
+        pk_cols = [row[0] for row in rpk.fetchall()]
+        if pk_cols == ["numeric_id"]:
+            log.debug("image_history_cards already has numeric_id PK; skip migration")
+            return
+
+        if pk_cols != ["id"]:
+            log.warning(
+                "image_history_cards PRIMARY KEY is %s (expected id or numeric_id); skip PK migration",
+                pk_cols,
+            )
+            return
+
+        rcol = await conn.execute(
+            text(
+                """
+                SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'image_history_cards'
+                  AND COLUMN_NAME = 'numeric_id'
+                """
+            )
+        )
+        if (rcol.scalar() or 0) == 0:
+            try:
+                await conn.execute(text("ALTER TABLE image_history_cards ADD COLUMN numeric_id BIGINT NULL"))
+                log.info("Added image_history_cards.numeric_id for PK migration")
+            except Exception as e:
+                log.warning("image_history_cards ADD numeric_id failed: %s", e)
+                return
+
+        await conn.execute(text("SET @ih_rownum := 0"))
+        await conn.execute(
+            text(
+                "UPDATE image_history_cards SET numeric_id = (@ih_rownum := @ih_rownum + 1) ORDER BY created_at"
+            )
+        )
+
+        try:
+            await conn.execute(
+                text(
+                    "ALTER TABLE image_history_cards "
+                    "DROP PRIMARY KEY, "
+                    "CHANGE COLUMN id legacy_id VARCHAR(64) NOT NULL, "
+                    "MODIFY COLUMN numeric_id BIGINT NOT NULL AUTO_INCREMENT, "
+                    "ADD PRIMARY KEY (numeric_id), "
+                    "ADD UNIQUE KEY uq_image_history_legacy_id (legacy_id)"
+                )
+            )
+            log.info("image_history_cards migrated to numeric_id PK + legacy_id (short public id)")
+        except Exception as e:
+            log.error("image_history_cards PK migration failed (表可能处于中间状态，需人工处理): %s", e)
+            raise
+
+
 async def _ensure_image_history_extras() -> None:
     """image_history_cards：本轮运行开始时间（重试时耗时基准）。"""
     engine = await mysql_connector.get_engine()
@@ -197,6 +279,7 @@ async def create_tables_if_not_exists() -> None:
         log.info("Ensuring SQLModel tables exist...")
         await conn.run_sync(SQLModel.metadata.create_all)
         log.info("SQLModel table check complete.")
+    await _migrate_image_history_numeric_pk()
     await _ensure_http_request_trace_columns()
     await _ensure_history_request_id_columns()
     await _ensure_video_analysis_history_extras()
