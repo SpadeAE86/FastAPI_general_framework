@@ -44,6 +44,13 @@ class ImageHistoryCard(SQLModel, table=True):
     # 联表 http_request_traces.id，保存上游 / 网关真实 request、response
     request_id: Optional[str] = Field(default=None, sa_column=Column(VARCHAR(36), nullable=True))
 
+    # 当前这一次异步运行开始时间（新任务首次排队 / 每次重试时写入）。看板「进行中/完成」耗时相对此时间；
+    # 为 None 时前端回退 created_at。不修改 created_at，避免丢失「首次创建」审计。
+    current_run_started_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
+
     created_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     )

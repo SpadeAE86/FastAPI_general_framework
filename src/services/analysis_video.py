@@ -29,7 +29,33 @@ from sqlmodel import select
 from utils.cache_utils import get_from_cache, set_to_cache
 from services.video_analysis_db_service import video_analysis_db_service
 
-async def _get_or_upload_source_video(local_video_path: str, project_id: str) -> Optional[str]:
+
+def _car_model_slug_for_obs(car_model: Optional[str]) -> str:
+    """
+    OBS 路径分段用「车型/产品」目录名；空则用 unknown，非法字符压缩为下划线。
+    """
+    raw = (car_model or "").strip()
+    if not raw:
+        return "unknown"
+    slug = []
+    for ch in raw[:80]:
+        if ch.isalnum() or ch in ("-", "_", "."):
+            slug.append(ch)
+        elif ch.isspace():
+            slug.append("_")
+        else:
+            slug.append("_")
+    s = "".join(slug).strip("._-")
+    while "__" in s:
+        s = s.replace("__", "_")
+    return s[:64] if s else "unknown"
+
+
+async def _get_or_upload_source_video(
+    local_video_path: str,
+    project_id: str,
+    car_model: Optional[str] = None,
+) -> Optional[str]:
     """
     Check video_source_upload_cache for the source video.
     If not found, upload to OBS and cache it.
@@ -44,9 +70,10 @@ async def _get_or_upload_source_video(local_video_path: str, project_id: str) ->
             log.info(f"[{project_id}] 命中源视频缓存: {row.obs_url}")
             return row.obs_url
 
-    # Not found, upload
-    obs_key_prefix = f"ai_picture/car_video_analysis/source_video/{project_id}"
-    log.info(f"[{project_id}] 源视频未命中缓存，开始上传: {local_video_path}")
+    # 仅按车型目录 + 文件名，路径可预判，且与 video_source_upload_cache（按 basename）一致；分析任务仍用 project_id 区分
+    slug = _car_model_slug_for_obs(car_model)
+    obs_key_prefix = f"ai_picture/car_video_analysis/source_video/{slug}"
+    log.info(f"[{project_id}] 源视频未命中缓存，开始上传 (car_model_slug={slug}): {local_video_path}")
     try:
         from utils.obs_utils import upload_to_obs
         obs_url = await upload_to_obs(local_video_path, obs_prefix=obs_key_prefix)

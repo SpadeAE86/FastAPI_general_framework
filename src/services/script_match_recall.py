@@ -302,10 +302,13 @@ async def fill_timeline_after_top1(
         if anchor_id:
             hist, anchor_scene = parse_history_scene_from_doc_id(anchor_id)
             if hist and anchor_scene > 0:
-                follow_ids = [
-                    scene_doc_id(hist, sid)
-                    for sid in range(anchor_scene + 1, anchor_scene + 1 + int(_FILL_MAX_FOLLOW_SCENES))
-                ]
+                follow_ids: List[str] = []
+                for sid in range(anchor_scene + 1, anchor_scene + 1 + int(_FILL_MAX_FOLLOW_SCENES)):
+                    k1 = scene_doc_id(hist, sid)
+                    k2 = f"{hist}_{sid}"
+                    follow_ids.append(k1)
+                    if k2 != k1:
+                        follow_ids.append(k2)
             else:
                 follow_ids = []
 
@@ -329,8 +332,15 @@ async def fill_timeline_after_top1(
                 for sid in range(anchor_scene + 1, anchor_scene + 1 + int(_FILL_MAX_FOLLOW_SCENES)):
                     if acc >= seg_dur:
                         break
-                    did = scene_doc_id(hist, sid)
-                    src = src_map.get(did)
+                    candidates = [scene_doc_id(hist, sid), f"{hist}_{sid}"]
+                    src = None
+                    did = ""
+                    for cand in candidates:
+                        s0 = src_map.get(cand)
+                        if isinstance(s0, dict):
+                            src = s0
+                            did = cand
+                            break
                     if not isinstance(src, dict):
                         break
                     dv = _dur(src)

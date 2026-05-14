@@ -10,26 +10,61 @@ from infra.logging.logger import logger as log
 from dotenv import load_dotenv
 from utils.post_utils import post
 import httpx, os
-URL = "wss://nls-gateway-cn-shanghai.aliyuncs.com/ws/v1"
-token = None
-expire_time = 0
 
-TEXT = '曙光重临，一款治愈系Q萌画风的沉浸式抓宠游戏'
+URL = "wss://nls-gateway-cn-shanghai.aliyuncs.com/ws/v1"
 load_dotenv()
 AK = os.getenv("ALI_AUDIO_AK", "AK NOT FOUND")
 SK = os.getenv("ALI_AUDIO_SK", "SK NOT FOUND")
+
+_token_lock = threading.Lock()
+token = None
+expire_time = 0.0
+
+
+def _refresh_nls_token_unlocked() -> str:
+    """Must hold ``_token_lock``. Updates module-level ``token`` / ``expire_time``."""
+    global token, expire_time
+    raw = getToken(AK, SK)
+    if isinstance(raw, dict):
+        new_tok = raw.get("Id") or raw.get("Token") or raw.get("token") or ""
+        token = str(new_tok or "")
+        exp = raw.get("ExpireTime")
+        try:
+            if exp is not None:
+                exp_f = float(exp)
+                # Aliyun returns ms since epoch in many samples
+                if exp_f > 1e12:
+                    exp_f = exp_f / 1000.0
+                expire_time = exp_f
+            else:
+                expire_time = time.time() + 86400.0
+        except (TypeError, ValueError):
+            expire_time = time.time() + 86400.0
+    else:
+        token = str(raw or "")
+        expire_time = time.time() + 86400.0
+    return token
+
+
+def _ensure_nls_token() -> str:
+    """Thread-safe token fetch; refresh slightly before stated expiry."""
+    global token, expire_time
+    with _token_lock:
+        now = time.time()
+        skew = 120.0
+        if token is None or now > expire_time - skew:
+            log.debug("Aliyun NLS token refresh (cold start, expiry, or skew window)")
+            return _refresh_nls_token_unlocked()
+        return str(token)
+
+TEXT = '曙光重临，一款治愈系Q萌画风的沉浸式抓宠游戏'
 
 # 以下代码会根据上述TEXT文本反复进行语音合成
 class AliTTS:
     def __init__(self, tid, test_file, voice = "zhimao", speed = 0, volume = 80, TOKEN = ""):
         self.__id = tid
         self.__test_file = test_file
-        global token, expire_time
-        if token is None or time.time() > expire_time:
-            log.info(f"token has expired or not initialized")
-            token = getToken(AK, SK)
-            expire_time = time.time() + 86400
-        self.TOKEN = token
+        self.TOKEN = _ensure_nls_token()
         self.APPKEY = MY_CONFIG['audio']['Ali']['app_key']
         self._error_event = threading.Event()
         self._error_msg = ""
@@ -77,10 +112,25 @@ class AliTTS:
 
     def on_close(self, *args):
         # print("on_close: args=>{}".format(args))
+        f = getattr(self, "_AliTTS__f", None)
+        if f is None:
+            return
         try:
-            self.__f.close()
+            f.close()
         except Exception as e:
             print("close file failed since:", e)
+        setattr(self, "_AliTTS__f", None)
+
+    def close_file(self):
+        """与 ``on_close`` 一致地关闭异步合成打开的本地文件，并避免重复 close。"""
+        f = getattr(self, "_AliTTS__f", None)
+        if f is None:
+            return
+        try:
+            f.close()
+        except Exception:
+            pass
+        setattr(self, "_AliTTS__f", None)
 
     def on_data(self, data, *args):
         try:

@@ -262,3 +262,19 @@ opensearch:
     use_ssl: true
     verify_certs: true
 
+mix_compose:
+  mock: true
+  # 真实混剪：最终请求 URL = api_base（无尾斜杠）+ edit_path。
+  # 例：api_base: https://aigc-video-mix-remake-test.example.com:443
+  #     edit_path: /api/v1/video/edit
+  # → POST https://aigc-video-mix-remake-test.example.com:443/api/v1/video/edit
+  # 也可用环境变量 MIX_COMPOSE_API_BASE 覆盖。HTTPS 默认 443 时可省略 :443。
+  api_base: http://127.0.0.1:8000
+  edit_path: /api/v1/video/edit
+  poll_interval_sec: 5
+  poll_timeout_sec: 900
+  mock_result_obs_url: aigc/dev/mock_mixed_output_placeholder.mp4
+  overall_time_mysql_env: test
+  # 相对路径相对进程工作目录；支持 {compose_id} {biz_id}；目录则写 mix_compose_request_{compose_id}.json
+  dump_request_json: work/mix_compose_last_request.json
+

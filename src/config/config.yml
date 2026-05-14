@@ -2,7 +2,7 @@ audio:
   Ali:
     access_key_id: YOUR_ALIYUN_AK
     access_key_secret: YOUR_ALIYUN_SK
-    app_key: YOUR_ALIYUN_APPKEY
+    app_key: UwjC1qMrxjoKRbzV
   Azure:
     service_region: SERVICE_REGION
     speech_key: SPEECH_KEY
@@ -164,6 +164,7 @@ mysql:
   test:
     host: 1.94.143.208
     username: freeu
+    # 混剪结果表 mix_video_overall_time：mix_compose.overall_time_mysql_env 默认指向 test
     database: ai_recommend_test
     port: 3306
     password: RootDev123
@@ -300,4 +301,16 @@ opensearch:
     password: "Freeu@123"
     use_ssl: true
     verify_certs: false
+
+mix_compose:
+  mock: false
+  # 根地址无路径；实际 POST = api_base + edit_path → …/api/v1/video/edit
+  api_base: https://aigc-video-mix-remake-test.freeuuu.com
+  edit_path: /api/v1/video/edit
+  poll_interval_sec: 5
+  poll_timeout_sec: 900
+  mock_result_obs_url: aigc/dev/mock_mixed_output_placeholder.mp4
+  overall_time_mysql_env: test
+  # 落盘混剪请求体，便于本地/测试环境手动 POST；也可用环境变量 MIX_COMPOSE_DUMP_REQUEST_JSON 覆盖
+  dump_request_json: work/mix_compose_last_request.json
 

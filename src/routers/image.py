@@ -16,7 +16,7 @@ import asyncio
 import datetime
 import time
 
-from models.pydantic.request import ImageGenerateRequest, TextGenerateRequest
+from models.pydantic.request import ImageGenerateRequest, TextGenerateRequest, SeedreamModel
 from utils.call_model_utils import call_doubao_seedream, call_doubao_seedtext
 from infra.logging.logger import logger as log
 from services.image_history_db_service import image_history_db_service
@@ -163,6 +163,188 @@ class TextGenerateResponse(BaseModel):
     error: Optional[str] = None
 
 
+def _reference_urls_from_history_row(row: dict) -> Optional[list[str]]:
+    rm = row.get("referenceMedia")
+    if not rm or not isinstance(rm, list):
+        return None
+    urls: list[str] = []
+    for x in rm:
+        if isinstance(x, dict):
+            u = x.get("url")
+            if u:
+                t = str(u).strip()
+                if t:
+                    urls.append(t)
+        elif isinstance(x, str) and x.strip():
+            urls.append(x.strip())
+    return urls or None
+
+
+def _seedream_model_from_stored(model_str: Optional[str]) -> SeedreamModel:
+    v = (model_str or "").strip()
+    for m in SeedreamModel:
+        if m.value == v:
+            return m
+    log.warning("unknown stored model %r, fallback to Seedream 5.0", model_str)
+    return SeedreamModel.V5_0
+
+
+async def run_image_generation_job(tid: str, r: ImageGenerateRequest, trace_rid: str) -> None:
+    """异步生图后台任务（POST /image 与重试共用）。"""
+    t0 = time.monotonic()
+    duration_ms = 0
+
+    async def _finalize_ok(resp: dict):
+        nonlocal duration_ms
+        duration_ms = int((time.monotonic() - t0) * 1000)
+        await http_request_trace_service.finalize(
+            trace_rid,
+            status_code=200,
+            response_body=resp,
+            duration_ms=duration_ms,
+            business_success=True,
+        )
+
+    async def _finalize_fail(msg: str, resp: Optional[dict] = None):
+        nonlocal duration_ms
+        duration_ms = int((time.monotonic() - t0) * 1000)
+        await http_request_trace_service.finalize(
+            trace_rid,
+            status_code=500,
+            error_message=msg,
+            response_body=resp or {"success": False, "error": msg},
+            duration_ms=duration_ms,
+            business_success=False,
+        )
+
+    try:
+        img_url = await service_generate_image(
+            prompt=r.prompt,
+            model=r.model.value,
+            size=r.size,
+            reference_image_list=r.reference_image_list,
+        )
+        if img_url:
+            prefix = "ai_picture/generated_image"
+            try:
+                obs_url = await mirror_remote_url_to_obs(img_url, obs_prefix=prefix)
+                await image_history_db_service.upsert_many(
+                    [
+                        {
+                            "id": tid,
+                            "obs_url": obs_url,
+                            "doubao_url": img_url,
+                            "status": "success",
+                        }
+                    ]
+                )
+                await _finalize_ok(
+                    {
+                        "success": True,
+                        "image_url": img_url,
+                        "obs_url": obs_url,
+                        "task_id": tid,
+                    }
+                )
+            except Exception as e:
+                log.warning(f"Mirror failed in background for {tid}: {e}")
+                await image_history_db_service.upsert_many(
+                    [
+                        {
+                            "id": tid,
+                            "doubao_url": img_url,
+                            "status": "success",
+                        }
+                    ]
+                )
+                await _finalize_ok(
+                    {
+                        "success": True,
+                        "image_url": img_url,
+                        "task_id": tid,
+                        "mirror_warning": str(e),
+                    }
+                )
+        else:
+            await image_history_db_service.upsert_many(
+                [
+                    {
+                        "id": tid,
+                        "status": "failed",
+                        "error": "生成失败，未获取到 URL",
+                    }
+                ]
+            )
+            await _finalize_fail("生成失败，未获取到 URL")
+    except Exception as e:
+        log.error(f"Background generation error for {tid}: {e}")
+        await image_history_db_service.upsert_many(
+            [{"id": tid, "status": "failed", "error": str(e)}]
+        )
+        await _finalize_fail(str(e))
+
+
+@image_router.post("/image/history/{item_id}/retry")
+async def retry_failed_image_generation(item_id: str, background_tasks: BackgroundTasks):
+    """仅失败任务：用同一行 id 重新排队生图（参数来自历史行）。"""
+    item_id = (item_id or "").strip()
+    if not item_id:
+        raise HTTPException(status_code=400, detail="invalid id")
+    row = await image_history_db_service.get_by_id_or_task_id(item_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Item not found")
+    st = (row.get("status") or "").lower()
+    if st != "failed":
+        raise HTTPException(status_code=400, detail="仅失败任务可重试")
+    prompt = (row.get("prompt") or "").strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="记录缺少提示词，无法重试")
+
+    model = _seedream_model_from_stored(row.get("model"))
+    ref = _reference_urls_from_history_row(row)
+    try:
+        req = ImageGenerateRequest(
+            prompt=prompt,
+            model=model,
+            size=str(row.get("size") or "720x1280"),
+            ratio=row.get("ratio"),
+            reference_image_list=ref,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"无法构造生图请求: {e}") from e
+
+    now = datetime.datetime.now()
+    time_str = now.strftime("%m-%d %H:%M")
+    rid = str(row.get("id") or item_id)
+    run_start = datetime.datetime.now(datetime.timezone.utc)
+
+    trace_id = await http_request_trace_service.create_initial(
+        request_url=f"/image/history/{rid}/retry",
+        http_method="POST",
+        request_body={"retry_of": rid, **req.model_dump(mode="json")},
+        business_type="IMAGE_GEN",
+        method_name="POST /image/history/retry",
+        upstream_task_id=rid,
+    )
+
+    await image_history_db_service.upsert_many(
+        [
+            {
+                "id": rid,
+                "status": "running",
+                "error": None,
+                "request_id": trace_id,
+                "doubao_url": None,
+                "obs_url": None,
+                "time": time_str,
+                "current_run_started_at": run_start,
+            }
+        ]
+    )
+    background_tasks.add_task(run_image_generation_job, rid, req, trace_id)
+    return {"success": True, "task_id": rid}
+
+
 @image_router.post("/image", response_model=ImageGenerateResponse)
 async def generate_image(req: ImageGenerateRequest, background_tasks: BackgroundTasks, async_mode: bool = True):
     """
@@ -192,6 +374,7 @@ async def generate_image(req: ImageGenerateRequest, background_tasks: Background
         task_id = str(uuid.uuid4())
         now = datetime.datetime.now()
         time_str = now.strftime("%m-%d %H:%M")
+        run_start = datetime.datetime.now(datetime.timezone.utc)
 
         trace_id = await http_request_trace_service.create_initial(
             request_url="/image",
@@ -213,93 +396,12 @@ async def generate_image(req: ImageGenerateRequest, background_tasks: Background
             "type": "i2i" if req.reference_image_list else "t2i",
             "status": "running",
             "request_id": trace_id,
-            "referenceMedia": [{"url": m, "type": "image"} for m in req.reference_image_list] if req.reference_image_list else None
+            "referenceMedia": [{"url": m, "type": "image"} for m in req.reference_image_list] if req.reference_image_list else None,
+            "current_run_started_at": run_start,
         }
         await image_history_db_service.upsert_many([payload])
 
-        # 定义后台处理逻辑
-        async def _do_generate(tid: str, r: ImageGenerateRequest, trace_rid: str):
-            t0 = time.monotonic()
-            duration_ms = 0
-
-            async def _finalize_ok(resp: dict):
-                nonlocal duration_ms
-                duration_ms = int((time.monotonic() - t0) * 1000)
-                await http_request_trace_service.finalize(
-                    trace_rid,
-                    status_code=200,
-                    response_body=resp,
-                    duration_ms=duration_ms,
-                    business_success=True,
-                )
-
-            async def _finalize_fail(msg: str, resp: Optional[dict] = None):
-                nonlocal duration_ms
-                duration_ms = int((time.monotonic() - t0) * 1000)
-                await http_request_trace_service.finalize(
-                    trace_rid,
-                    status_code=500,
-                    error_message=msg,
-                    response_body=resp or {"success": False, "error": msg},
-                    duration_ms=duration_ms,
-                    business_success=False,
-                )
-
-            try:
-                img_url = await service_generate_image(
-                    prompt=r.prompt,
-                    model=r.model.value,
-                    size=r.size,
-                    reference_image_list=r.reference_image_list
-                )
-                if img_url:
-                    # 自动镜像到 OBS 并更新状态
-                    prefix = "ai_picture/generated_image"
-                    try:
-                        from services.media_mirror_service import mirror_remote_url_to_obs
-                        obs_url = await mirror_remote_url_to_obs(img_url, obs_prefix=prefix)
-                        await image_history_db_service.upsert_many([{
-                            "id": tid,
-                            "obs_url": obs_url,
-                            "doubao_url": img_url,
-                            "status": "success"
-                        }])
-                        await _finalize_ok({
-                            "success": True,
-                            "image_url": img_url,
-                            "obs_url": obs_url,
-                            "task_id": tid,
-                        })
-                    except Exception as e:
-                        log.warning(f"Mirror failed in background for {tid}: {e}")
-                        await image_history_db_service.upsert_many([{
-                            "id": tid,
-                            "doubao_url": img_url,
-                            "status": "success"
-                        }])
-                        await _finalize_ok({
-                            "success": True,
-                            "image_url": img_url,
-                            "task_id": tid,
-                            "mirror_warning": str(e),
-                        })
-                else:
-                    await image_history_db_service.upsert_many([{
-                        "id": tid,
-                        "status": "failed",
-                        "error": "生成失败，未获取到 URL"
-                    }])
-                    await _finalize_fail("生成失败，未获取到 URL")
-            except Exception as e:
-                log.error(f"Background generation error for {tid}: {e}")
-                await image_history_db_service.upsert_many([{
-                    "id": tid,
-                    "status": "failed",
-                    "error": str(e)
-                }])
-                await _finalize_fail(str(e))
-
-        background_tasks.add_task(_do_generate, task_id, req, trace_id)
+        background_tasks.add_task(run_image_generation_job, task_id, req, trace_id)
         return ImageGenerateResponse(success=True, task_id=task_id)
             
     except Exception as e:

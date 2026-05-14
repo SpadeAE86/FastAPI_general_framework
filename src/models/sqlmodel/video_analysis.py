@@ -62,6 +62,9 @@ class VideoAnalysisHistory(SQLModel, table=True):
     # 联表 http_request_traces.id（一次分析对应一条 HTTP 追踪）
     request_id: Optional[str] = Field(default=None, sa_column=Column(VARCHAR(36), nullable=True))
 
+    # 提交分析时填写的车型 / 产品名（如「智己LS6」），便于任务看板区分
+    car_model: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+
     created_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     )

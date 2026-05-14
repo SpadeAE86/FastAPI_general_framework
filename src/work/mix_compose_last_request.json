@@ -1,0 +1,288 @@
+{
+  "biz_id": 416,
+  "user_id": 0,
+  "obs_video_path_list": [
+    "mpc_transcode_cache/23023/20260513_111254_20260226-陈龙-路跑-4_H.264_1440x2560_AAC_4900.mp4",
+    "mpc_transcode_cache/23023/20260514_110843_20250924-新一代LS6-门把手-2_H.264_1080x1920_AAC_2100.mp4",
+    "mpc_transcode_cache/23023/20240924-新一代LS6-NOA-22_H.264_1080x1920_AAC_2100.mp4",
+    "mpc_transcode_cache/23023/20240924-新一代LS6-NOA-22_H.264_1080x1920_AAC_2100.mp4",
+    "mpc_transcode_cache/23023/20260514_111024_20250911-CG-悬浮音响-1_H.264_2700x1080_AAC_4900.mp4",
+    "mpc_transcode_cache/23023/20260514_111024_20250911-CG-悬浮音响-1_H.264_2700x1080_AAC_4900.mp4",
+    "mpc_transcode_cache/23023/20260513_111254_20260226-陈龙-路跑-4_H.264_1440x2560_AAC_4900.mp4"
+  ],
+  "fps": 30,
+  "crop_config": [
+    {
+      "start": 0.0,
+      "end": 4.840000000000001,
+      "translate_x": 0.0,
+      "translate_y": 0.0,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "mirror": false,
+      "speed": 1.0,
+      "cap_cnt": 1
+    },
+    {
+      "start": 0.0,
+      "end": 3.19,
+      "translate_x": 0.0,
+      "translate_y": 0.0,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "mirror": false,
+      "speed": 1.0,
+      "cap_cnt": 1
+    },
+    {
+      "start": 0.0,
+      "end": 4.2,
+      "translate_x": 0.0,
+      "translate_y": 0.0,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "mirror": false,
+      "speed": 1.0,
+      "cap_cnt": 1
+    },
+    {
+      "start": 0.0,
+      "end": 3.06,
+      "translate_x": 0.0,
+      "translate_y": 0.0,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "mirror": false,
+      "speed": 1.0,
+      "cap_cnt": 1
+    },
+    {
+      "start": 0.0,
+      "end": 3.64,
+      "translate_x": 0.0,
+      "translate_y": 0.0,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "mirror": false,
+      "speed": 1.0,
+      "cap_cnt": 1
+    },
+    {
+      "start": 0.0,
+      "end": 2.75,
+      "translate_x": 0.0,
+      "translate_y": 0.0,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "mirror": false,
+      "speed": 1.0,
+      "cap_cnt": 1
+    },
+    {
+      "start": 0.0,
+      "end": 2.94,
+      "translate_x": 0.0,
+      "translate_y": 0.0,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "mirror": false,
+      "speed": 1.0,
+      "cap_cnt": 1
+    }
+  ],
+  "cap_config": {
+    "caption_list": [
+      {
+        "start": 0.0,
+        "end": 4.44,
+        "cap": "智己LS6有行业首创的ERNC主动降噪",
+        "rotation": 0.0,
+        "outline_width": 2.0,
+        "scale": 1.0,
+        "font_size": 40,
+        "font_type": "Source Han Sans CN",
+        "color": "#ffffff",
+        "outline_color": "#000000",
+        "background_type": 0,
+        "line_spacing": 0,
+        "letter_spacing": 0,
+        "word_config": []
+      },
+      {
+        "start": 4.840000000000001,
+        "end": 7.630000000000001,
+        "cap": "怠速噪音不到36分贝",
+        "rotation": 0.0,
+        "outline_width": 2.0,
+        "scale": 1.0,
+        "font_size": 40,
+        "font_type": "Source Han Sans CN",
+        "color": "#ffffff",
+        "outline_color": "#000000",
+        "background_type": 0,
+        "line_spacing": 0,
+        "letter_spacing": 0,
+        "word_config": []
+      },
+      {
+        "start": 8.030000000000001,
+        "end": 11.830000000000002,
+        "cap": "增程器介入时噪音最低只有0.01分贝",
+        "rotation": 0.0,
+        "outline_width": 2.0,
+        "scale": 1.0,
+        "font_size": 40,
+        "font_type": "Source Han Sans CN",
+        "color": "#ffffff",
+        "outline_color": "#000000",
+        "background_type": 0,
+        "line_spacing": 0,
+        "letter_spacing": 0,
+        "word_config": []
+      },
+      {
+        "start": 12.23,
+        "end": 14.89,
+        "cap": "安静到让你忘记它是增程车！",
+        "rotation": 0.0,
+        "outline_width": 2.0,
+        "scale": 1.0,
+        "font_size": 40,
+        "font_type": "Source Han Sans CN",
+        "color": "#ffffff",
+        "outline_color": "#000000",
+        "background_type": 0,
+        "line_spacing": 0,
+        "letter_spacing": 0,
+        "word_config": []
+      },
+      {
+        "start": 15.290000000000001,
+        "end": 18.53,
+        "cap": "搭配21鎏金天籁声学单元",
+        "rotation": 0.0,
+        "outline_width": 2.0,
+        "scale": 1.0,
+        "font_size": 40,
+        "font_type": "Source Han Sans CN",
+        "color": "#ffffff",
+        "outline_color": "#000000",
+        "background_type": 0,
+        "line_spacing": 0,
+        "letter_spacing": 0,
+        "word_config": []
+      },
+      {
+        "start": 18.93,
+        "end": 21.28,
+        "cap": "7.1.4声道布局",
+        "rotation": 0.0,
+        "outline_width": 2.0,
+        "scale": 1.0,
+        "font_size": 40,
+        "font_type": "Source Han Sans CN",
+        "color": "#ffffff",
+        "outline_color": "#000000",
+        "background_type": 0,
+        "line_spacing": 0,
+        "letter_spacing": 0,
+        "word_config": []
+      },
+      {
+        "start": 21.68,
+        "end": 24.22,
+        "cap": "整个车厢就是个移动音乐厅！",
+        "rotation": 0.0,
+        "outline_width": 2.0,
+        "scale": 1.0,
+        "font_size": 40,
+        "font_type": "Source Han Sans CN",
+        "color": "#ffffff",
+        "outline_color": "#000000",
+        "background_type": 0,
+        "line_spacing": 0,
+        "letter_spacing": 0,
+        "word_config": []
+      }
+    ],
+    "font_size": 40,
+    "font_type": "Source Han Sans CN",
+    "cap_color": "#ffffff",
+    "cap_outline_color": "#000000",
+    "cap_outline_width": 2.0,
+    "cap_background_color": "#000000ff",
+    "cap_absolute_x": 0.0,
+    "cap_absolute_y": 0.25,
+    "cap_background_type": 0,
+    "cap_line_spacing": 10,
+    "cap_letter_indent": 2
+  },
+  "local_mode": false,
+  "mute_config": [],
+  "obs_audio_path_list": [
+    "aigc/aigc_local/bb51a380-dc3c-45ab-8538-d41f81b09e4c/seg_s1_0_e61f7e753e.wav",
+    "aigc/aigc_local/bb51a380-dc3c-45ab-8538-d41f81b09e4c/seg_s2_1_60b6f2da27.wav",
+    "aigc/aigc_local/bb51a380-dc3c-45ab-8538-d41f81b09e4c/seg_s3_2_9f3805112b.wav",
+    "aigc/aigc_local/bb51a380-dc3c-45ab-8538-d41f81b09e4c/seg_s4_3_1e55531153.wav",
+    "aigc/aigc_local/bb51a380-dc3c-45ab-8538-d41f81b09e4c/seg_s5_4_1f186d19c4.wav",
+    "aigc/aigc_local/bb51a380-dc3c-45ab-8538-d41f81b09e4c/seg_s6_5_5337486a7c.wav",
+    "aigc/aigc_local/bb51a380-dc3c-45ab-8538-d41f81b09e4c/seg_s7_6_41bb3514fb.wav"
+  ],
+  "audio_config": [
+    {
+      "start": 0.0,
+      "end": 4.44,
+      "offset": 0.0,
+      "volume": 1.0,
+      "weight": 1.0
+    },
+    {
+      "start": 0.0,
+      "end": 2.79,
+      "offset": 4.840000000000001,
+      "volume": 1.0,
+      "weight": 1.0
+    },
+    {
+      "start": 0.0,
+      "end": 3.8,
+      "offset": 8.030000000000001,
+      "volume": 1.0,
+      "weight": 1.0
+    },
+    {
+      "start": 0.0,
+      "end": 2.66,
+      "offset": 12.23,
+      "volume": 1.0,
+      "weight": 1.0
+    },
+    {
+      "start": 0.0,
+      "end": 3.24,
+      "offset": 15.290000000000001,
+      "volume": 1.0,
+      "weight": 1.0
+    },
+    {
+      "start": 0.0,
+      "end": 2.35,
+      "offset": 18.93,
+      "volume": 1.0,
+      "weight": 1.0
+    },
+    {
+      "start": 0.0,
+      "end": 2.54,
+      "offset": 21.68,
+      "volume": 1.0,
+      "weight": 1.0
+    }
+  ],
+  "filter_config": [],
+  "obs_bgm_path_list": [],
+  "bgm_config": [],
+  "retry_count": 0,
+  "sticker_config": [],
+  "obs_sticker_path_list": []
+}

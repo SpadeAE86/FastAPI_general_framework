@@ -6,7 +6,7 @@
 #   4. 启动时初始化 infra 层 (scheduler, mq, cache)
 #   5. 关闭时优雅释放资源
 import uvicorn, asyncio, os, json, contextlib
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from routers import *
@@ -45,6 +45,22 @@ async def lifespan(app: FastAPI):
         # Create SQLModel tables if missing
         await create_tables_if_not_exists()
 
+        try:
+            from services.image_history_db_service import image_history_db_service
+            from services.video_analysis_db_service import video_analysis_db_service
+
+            _reason = "服务重启或进程中断，任务未完成"
+            _n_img = await image_history_db_service.mark_interrupted_running_as_failed(_reason)
+            _n_vid = await video_analysis_db_service.mark_interrupted_running_histories_failed(_reason)
+            if _n_img or _n_vid:
+                log.warning(
+                    "启动恢复: 已将进行中的生图 %s 条、视频分析 %s 条标为失败",
+                    _n_img,
+                    _n_vid,
+                )
+        except Exception as _e:
+            log.warning("启动时标记中断任务失败（可忽略若表未就绪）: %s", _e)
+
         # # --- 模型预热（后台）：须先 yield 后才开始接 HTTP；原先在 yield 前 await 会卡住整条事件循环，
         # # 导致 /health、/docs 在预热完成前一律无响应（本地常需 30–90s，看起来像「服务挂死」）。
         # async def _warmup_embedding() -> None:
@@ -70,21 +86,17 @@ async def lifespan(app: FastAPI):
             await connector_loader.shutdown()
         except Exception as e:
             log.warning(f"connector shutdown failed: {e}")
+        try:
+            from infra.storage.mix_overall_time_mysql import dispose_mix_overall_time_engine
+
+            await dispose_mix_overall_time_engine()
+        except Exception:
+            pass
         log.info("shutting down...")
         log.info("exit")
 
 
 app = FastAPI(lifespan=lifespan)
-
-
-@app.middleware("http")
-async def _log_incoming_http(request: Request, call_next):
-    """确认 ASGI 层是否收到请求（与 Uvicorn access log 互补）。"""
-    log.info("http in  %s %s", request.method, request.url.path)
-    resp: Response = await call_next(request)
-    log.info("http out %s %s -> %s", request.method, request.url.path, resp.status_code)
-    return resp
-
 
 app.add_middleware(
     CORSMiddleware,

@@ -2,7 +2,7 @@ audio:
   Ali:
     access_key_id: YOUR_ALIYUN_AK
     access_key_secret: YOUR_ALIYUN_SK
-    app_key: YOUR_ALIYUN_APPKEY
+    app_key: UwjC1qMrxjoKRbzV
   Azure:
     service_region: SERVICE_REGION
     speech_key: SPEECH_KEY

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import or_
+from sqlalchemy import or_, update, func
 from sqlmodel import select
 
 from infra.storage.mysql_connector import mysql_connector
@@ -82,6 +82,22 @@ class ImageHistoryDBService:
             await session.delete(existing)
             await session.commit()
             return True
+
+    async def mark_interrupted_running_as_failed(self, reason: str) -> int:
+        """进程重启后：将仍为进行中的生图行标为失败，便于看板与轮询感知。"""
+        async with mysql_connector.session_scope() as session:
+            stmt = (
+                update(ImageHistoryCard)
+                .where(
+                    func.lower(func.coalesce(ImageHistoryCard.status, "")).in_(
+                        ["running", "pending", "processing"]
+                    )
+                )
+                .values(status="failed", error=reason)
+            )
+            res = await session.execute(stmt)
+            await session.commit()
+            return int(res.rowcount or 0)
 
 
 image_history_db_service = ImageHistoryDBService()

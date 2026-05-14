@@ -109,17 +109,31 @@ def history_id_from_doc_id(doc_id: str) -> str:
         return ""
     if "_scene_" in doc_id:
         return doc_id.split("_scene_", 1)[0]
+    # Legacy bulk format from map_shotcards: "{history_id}_{scene_id}" (plain int suffix).
+    if "_" in doc_id:
+        left, right = doc_id.rsplit("_", 1)
+        if right.isdigit():
+            return left or ""
     return doc_id
 
 
 def parse_history_scene_from_doc_id(doc_id: str) -> tuple[str, int]:
-    if not doc_id or "_scene_" not in doc_id:
+    if not doc_id:
         return "", 0
-    hid, rest = doc_id.split("_scene_", 1)
-    try:
-        return hid, int(rest, 10)
-    except ValueError:
-        return hid or "", 0
+    if "_scene_" in doc_id:
+        hid, rest = doc_id.split("_scene_", 1)
+        try:
+            return hid or "", int(rest, 10)
+        except ValueError:
+            return hid or "", 0
+    if "_" in doc_id:
+        left, right = doc_id.rsplit("_", 1)
+        if right.isdigit():
+            try:
+                return left or "", int(right, 10)
+            except ValueError:
+                return left or "", 0
+    return doc_id, 0
 
 
 def scene_doc_id(history_id: str, scene_id: int) -> str:

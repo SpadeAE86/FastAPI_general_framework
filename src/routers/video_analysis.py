@@ -713,6 +713,8 @@ async def _bg_analyze_video(
     car_model: Optional[str],
     obs_video_url: str,
     http_trace_id: str,
+    *,
+    remove_local_after: bool = True,
 ):
     """后台分析任务逻辑"""
     t0 = time.monotonic()
@@ -726,6 +728,7 @@ async def _bg_analyze_video(
         "workspace": workspace,
         "status": "RUNNING",
         "request_id": http_trace_id,
+        "car_model": car_model,
     }, shot_cards_version=workspace)
 
     try:
@@ -747,6 +750,7 @@ async def _bg_analyze_video(
             time=datetime.now().isoformat(timespec="seconds"),
             video_url=obs_video_url,
             workspace=workspace,
+            car_model=car_model,
             cards=cards,
             request_id=http_trace_id,
         )
@@ -799,6 +803,7 @@ async def _bg_analyze_video(
                 "status": "FAILED",
                 "error_msg": str(e),
                 "request_id": http_trace_id,
+                "car_model": car_model,
             }, shot_cards_version=workspace)
         except Exception as _db_e:
             log.warning("persist FAILED video history: %s", _db_e)
@@ -814,10 +819,11 @@ async def _bg_analyze_video(
         except Exception as _fe:
             log.warning("finalize http trace: %s", _fe)
     finally:
-        if os.path.exists(local_path):
+        if remove_local_after and os.path.exists(local_path):
             try:
                 os.remove(local_path)
-            except: pass
+            except Exception:
+                pass
 
 @video_analysis_router.post("")
 async def analyze_video_endpoint(
@@ -829,7 +835,7 @@ async def analyze_video_endpoint(
     split_scenes: bool = Form(True),
     workspace: str = Form("v1"),
     car_model: Optional[str] = Form(None),
-    async_mode: bool = True,
+    async_mode: bool = Form(True),
 ):
     """接收上传视频并执行分析流水线"""
     log.info(f"[analyze_video_endpoint] received request: filename={file.filename}, async={async_mode}")
@@ -852,7 +858,7 @@ async def analyze_video_endpoint(
 
     # 上传源视频
     from services.analysis_video import _get_or_upload_source_video
-    obs_video_url = await _get_or_upload_source_video(local_path, project_id)
+    obs_video_url = await _get_or_upload_source_video(local_path, project_id, car_model)
 
     va_trace_id = await http_request_trace_service.create_initial(
         request_url="/video-analysis",
@@ -881,6 +887,7 @@ async def analyze_video_endpoint(
             frame_interval, threshold, custom_prompt,
             split_scenes, workspace, car_model, obs_video_url,
             va_trace_id,
+            remove_local_after=True,
         )
         return {"success": True, "task_id": project_id, "status": "PENDING"}
     else:
@@ -891,6 +898,7 @@ async def analyze_video_endpoint(
                 frame_interval, threshold, custom_prompt,
                 split_scenes, workspace, car_model, obs_video_url,
                 va_trace_id,
+                remove_local_after=True,
             )
             item = await video_analysis_db_service.get_history_item(project_id)
             return {"success": True, "item": item}

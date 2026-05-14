@@ -33,6 +33,23 @@ class VideoSourceUploadCache(SQLModel, table=True):
     obs_key: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
     obs_url: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
 
+    low_res_url: Optional[str] = Field(
+        default=None, sa_column=Column(Text, nullable=True), description="MPC 低码率便于预览"
+    )
+    high_res_url: Optional[str] = Field(
+        default=None, sa_column=Column(Text, nullable=True), description="MPC 高码率用于混剪主轨"
+    )
+
+    transcode_status: Optional[str] = Field(
+        default=None,
+        sa_column=Column(VARCHAR(32), nullable=True, index=True),
+        description="idle|processing|ready|failed；同源并发时仅一路执行 MPC，其它等待",
+    )
+    transcode_error: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    transcode_started_at: Optional[datetime] = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
+    )
+
     created_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     )

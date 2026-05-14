@@ -165,6 +165,46 @@ def build_video_analysis_task_detail(row: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def build_video_match_shot_search_task_detail(
+    *,
+    job_id: str,
+    shot_row_id: int,
+    shot_order: int,
+    segment_text_preview: str,
+    opensearch_index: str = "car_interior_analysis_v2",
+) -> Dict[str, Any]:
+    """无 http_request_traces 行时的占位详情；有 trace 时由 merge_http_trace_into_detail 覆盖。"""
+    preview = (segment_text_preview or "").strip()[:240]
+    return {
+        "id": f"{job_id}:{shot_row_id}",
+        "taskId": str(shot_row_id),
+        "traceId": None,
+        "parentTraceId": None,
+        "serviceName": "my_bot_advance",
+        "methodName": f"POST /internal/opensearch/{opensearch_index}/_search",
+        "httpMethod": "POST",
+        "businessType": "VIDEO_MATCH_SHOT_SEARCH",
+        "requestUrl": f"/opensearch/{opensearch_index}/_search",
+        "statusCode": None,
+        "durationMs": None,
+        "businessSuccess": None,
+        "businessStatusLabel": "—",
+        "errorMessage": None,
+        "createdAt": None,
+        "updatedAt": None,
+        "requestHeaders": {},
+        "requestBody": {
+            "job_id": job_id,
+            "shot_row_id": shot_row_id,
+            "shot_order": shot_order,
+            "segment_preview": preview or None,
+        },
+        "responseHeaders": {},
+        "responseBody": {},
+        "note": "执行「素材匹配」后写入 http_request_traces，并通过分镜行的 search_request_id 关联；无 rid 时仅展示占位字段。",
+    }
+
+
 def merge_http_trace_into_detail(
     base: Dict[str, Any],
     trace: Optional[Dict[str, Any]],

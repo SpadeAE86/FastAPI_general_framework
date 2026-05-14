@@ -5,7 +5,7 @@ import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from sqlmodel import select, delete
-from sqlalchemy import tuple_
+from sqlalchemy import tuple_, update, func
 
 from infra.logging.logger import logger as log
 from infra.storage.mysql_connector import mysql_connector
@@ -415,6 +415,7 @@ class VideoAnalysisDBService:
                         status=item.get("status") or "SUCCESS",
                         error_msg=item.get("error_msg"),
                         request_id=item.get("request_id"),
+                        car_model=item.get("car_model"),
                     )
                 )
             else:
@@ -429,6 +430,8 @@ class VideoAnalysisDBService:
                     existing.error_msg = item["error_msg"]
                 if "request_id" in item:
                     existing.request_id = item["request_id"]
+                if "car_model" in item:
+                    existing.car_model = item["car_model"]
 
             if shot_cards_version == "v2":
                 vres = await session.execute(
@@ -720,6 +723,18 @@ class VideoAnalysisDBService:
                 r.os_index_error = error
             await session.commit()
             return len(rows)
+
+    async def mark_interrupted_running_histories_failed(self, reason: str) -> int:
+        """进程重启后：将仍为 RUNNING/PENDING 的视频分析历史标为失败。"""
+        async with mysql_connector.session_scope() as session:
+            stmt = (
+                update(VideoAnalysisHistory)
+                .where(func.upper(VideoAnalysisHistory.status).in_(["RUNNING", "PENDING"]))
+                .values(status="FAILED", error_msg=reason)
+            )
+            res = await session.execute(stmt)
+            await session.commit()
+            return int(res.rowcount or 0)
 
 
 video_analysis_db_service = VideoAnalysisDBService()

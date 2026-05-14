@@ -3,6 +3,9 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
+import shutil
+import uuid
 from pathlib import Path
 from tempfile import mkdtemp
 from typing import Any, Dict, List, Optional, Tuple
@@ -14,6 +17,7 @@ from models.pydantic.model_output_schema.seedtext_script_segments_schema import 
 )
 from utils.call_model_utils import call_doubao_seedtext
 from utils.alivoice_utils import AliTTS
+from infra.logging.logger import logger as log
 
 try:
     from pymediainfo import MediaInfo
@@ -170,46 +174,110 @@ def _mediainfo_duration_seconds(path: str) -> Optional[float]:
     return None
 
 
-async def _apply_tts_durations_inplace(storyboard: SeedtextStoryboardEnvelope) -> None:
+async def _apply_tts_durations_inplace(
+    storyboard: SeedtextStoryboardEnvelope,
+    *,
+    obs_project_id: Optional[str] = None,
+    obs_audio_urls: Optional[List[Optional[str]]] = None,
+) -> None:
     """
     Mutate storyboard.storyboard[*].duration using AliTTS audio length + padding.
     Any errors fall back to existing duration.
+    When ``obs_project_id`` and ``obs_audio_urls`` are set, successful WAVs are uploaded to OBS
+    and URLs are written to ``obs_audio_urls[i]`` (parallel to storyboard order).
     """
     if not storyboard or not getattr(storyboard, "storyboard", None):
         return
 
-    # Create a temp workspace folder for wavs.
     out_dir = Path(mkdtemp(prefix="tts_dur_"))
+    try:
+        sem = asyncio.Semaphore(int(TTS_MAX_CONCURRENCY))
 
-    sem = asyncio.Semaphore(int(TTS_MAX_CONCURRENCY))
-
-    async def one(i: int) -> None:
-        seg = storyboard.storyboard[i]
-        text = (seg.segment_text or "").strip()
-        if not text:
-            return
-        wav_path = str(out_dir / f"seg_{i:04d}.wav")
-        try:
-            async with sem:
-                tts = AliTTS(
-                    tid=f"tts_dur_{i}",
-                    test_file=wav_path,
-                    voice=TTS_VOICE,
-                    speed=TTS_SPEED,
-                    volume=TTS_VOLUME,
-                )
-                # Generate wav
-                await tts.async_start(text)
-            dur = _mediainfo_duration_seconds(wav_path)
-            if dur is None:
+        async def one(i: int) -> None:
+            seg = storyboard.storyboard[i]
+            text = (seg.segment_text or "").strip()
+            if not text:
                 return
-            dur2 = float(dur) + float(TTS_DURATION_PAD_SECONDS)
-            # Keep a sane floor; avoid 0 duration.
-            seg.duration = max(0.5, round(dur2, 2))
-        except Exception:
-            return
+            wav_path = str(out_dir / f"seg_{i:04d}.wav")
+            try:
+                async with sem:
+                    tts = AliTTS(
+                        tid=f"tts_dur_{i}",
+                        test_file=wav_path,
+                        voice=TTS_VOICE,
+                        speed=TTS_SPEED,
+                        volume=TTS_VOLUME,
+                    )
+                    await tts.async_start(text)
+                dur = _mediainfo_duration_seconds(wav_path)
+                if dur is None:
+                    return
+                dur2 = float(dur) + float(TTS_DURATION_PAD_SECONDS)
+                seg.duration = max(0.5, round(dur2, 2))
+                if obs_project_id and obs_audio_urls is not None and i < len(obs_audio_urls):
+                    try:
+                        from utils.obs_utils import upload_audio
 
-    await asyncio.gather(*[one(i) for i in range(len(storyboard.storyboard))])
+                        url = str(await upload_audio(wav_path, project_id=obs_project_id) or "").strip()
+                        if url:
+                            obs_audio_urls[i] = url
+                    except Exception as e:
+                        log.warning("TTS segment %s OBS upload failed: %s", i, e)
+            except Exception:
+                return
+
+        await asyncio.gather(*[one(i) for i in range(len(storyboard.storyboard))])
+    finally:
+        try:
+            shutil.rmtree(out_dir, ignore_errors=True)
+        except Exception:
+            pass
+
+
+async def synthesize_text_to_obs_wav(
+    text: str,
+    *,
+    obs_project_id: str,
+    tts_tid_suffix: str = "one",
+) -> tuple[Optional[str], Optional[float]]:
+    """
+    单次口播合成 WAV → 上传 OBS。返回 (obs_url, 建议时长秒) — 与段落 TTS _pad 逻辑一致。
+    不受 ENABLE_TTS_DURATION 开关影响（供「补生成朗读」按钮使用）。
+    """
+    text = (text or "").strip()
+    if not text:
+        return None, None
+    pid = (obs_project_id or "").strip()
+    if not pid:
+        return None, None
+
+    out_dir = Path(mkdtemp(prefix="tts_one_"))
+    safe = re.sub(r"[^a-zA-Z0-9._-]+", "_", str(tts_tid_suffix)).strip("._-") or "one"
+    wav_path = str(out_dir / f"seg_{safe}_{uuid.uuid4().hex[:10]}.wav")
+    try:
+        tts = AliTTS(
+            tid=f"tts_{tts_tid_suffix}"[:48],
+            test_file=wav_path,
+            voice=TTS_VOICE,
+            speed=TTS_SPEED,
+            volume=TTS_VOLUME,
+        )
+        await tts.async_start(text)
+        dur = _mediainfo_duration_seconds(wav_path)
+        dur_out: Optional[float] = None
+        if dur is not None:
+            dur_out = max(0.5, round(float(dur) + float(TTS_DURATION_PAD_SECONDS), 2))
+        from utils.obs_utils import upload_audio
+
+        surl = str(await upload_audio(wav_path, project_id=pid) or "").strip()
+        if not surl:
+            return None, dur_out
+        return surl, dur_out
+    finally:
+        try:
+            shutil.rmtree(out_dir, ignore_errors=True)
+        except Exception:
+            pass
 
 
 async def rewrite_script_to_storyboard_and_tags(
@@ -219,6 +287,8 @@ async def rewrite_script_to_storyboard_and_tags(
     title: str | None = None,
     car_model: str | None = None,
     index: int = 0,
+    tts_obs_project_id: Optional[str] = None,
+    out_obs_audio_urls: Optional[List[Optional[str]]] = None,
 ) -> Tuple[SeedtextStoryboardEnvelope, SeedtextIndexTagsEnvelope]:
     """
     Two-stage rewrite:
@@ -256,7 +326,17 @@ async def rewrite_script_to_storyboard_and_tags(
     # --- Optional: TTS precise duration step (can be toggled off) ---
     # If you want to skip, set ENABLE_TTS_DURATION = False.
     if ENABLE_TTS_DURATION:
-        await _apply_tts_durations_inplace(storyboard)
+        if out_obs_audio_urls is not None:
+            out_obs_audio_urls.clear()
+            if tts_obs_project_id:
+                out_obs_audio_urls.extend([None] * len(storyboard.storyboard))
+        await _apply_tts_durations_inplace(
+            storyboard,
+            obs_project_id=tts_obs_project_id,
+            obs_audio_urls=out_obs_audio_urls if tts_obs_project_id else None,
+        )
+    elif out_obs_audio_urls is not None:
+        out_obs_audio_urls.clear()
 
     stage2_prompt = (
         "下面是 Stage1 生成的 storyboard JSON，请基于它输出 Stage2 的严格标签。\n\n"
