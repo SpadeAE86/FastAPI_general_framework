@@ -21,9 +21,9 @@ from utils.obs_utils import upload_to_obs
 
 load_dotenv()
 
-_TEXT2IMG_URL = (os.getenv("GPT_IMAGE_WANGSU_TEXT_URL") or "").strip()
+_TEXT2IMG_URL = "https://aigateway.edgecloudapp.com/v1/7ab0a462e54c5b92a93c285e43dadcb6/gpt-image-2"
 _TEXT2IMG_KEY = (os.getenv("GPT_IMAGE_WANGSU_TEXT_API_KEY") or "").strip()
-_IMGEDIT_URL = (os.getenv("GPT_IMAGE_WANGSU_EDIT_URL") or "").strip()
+_IMGEDIT_URL = "https://aigateway.edgecloudapp.com/v1/7ab0a462e54c5b92a93c285e43dadcb6/gpt-imge-2-image-edit"
 _IMGEDIT_KEY = (os.getenv("GPT_IMAGE_WANGSU_EDIT_API_KEY") or "").strip()
 
 _NO_PROXY = {"http": None, "https": None}

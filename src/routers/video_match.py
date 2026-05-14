@@ -4,14 +4,20 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Body, HTTPException
 
+from infra.storage.mysql_connector import mysql_connector
+from models.sqlmodel.video_match import VideoMatchJob
+from services.http_request_trace_service import http_request_trace_service
 from services.video_match_service import (
     create_job_and_parse,
     get_job_payload,
     get_shot_match_detail,
     list_video_match_jobs,
+    rematch_video_match_shot,
     run_job_search,
+    run_video_match_retry_background,
+    schedule_video_match_job_retry,
     synthesize_shot_obs_audio,
 )
 from services.video_mix_compose_service import start_mix_compose_for_job
@@ -63,12 +69,64 @@ async def create_video_match_job(body: VideoMatchCreateJobBody):
     )
 
 
+@video_match_router.get("/jobs/{job_id}/detail")
+async def get_video_match_job_board_detail(job_id: str):
+    """任务看板：整 job 口播转写 / 解析阶段的 HTTP 详情（联表 request_id）。"""
+    from services.task_detail_service import build_video_match_job_task_detail, merge_http_trace_into_detail
+
+    jid = (job_id or "").strip()
+    if not jid:
+        raise HTTPException(status_code=400, detail="invalid job_id")
+    async with mysql_connector.session_scope() as session:
+        job = await session.get(VideoMatchJob, jid)
+    if job is None:
+        raise HTTPException(status_code=404, detail="job not found")
+    row = {
+        "id": job.id,
+        "script": job.script,
+        "topic": job.topic,
+        "title": job.title,
+        "car_model": job.car_model,
+        "workspace": job.workspace,
+        "parse_status": job.parse_status,
+        "parse_error": job.parse_error,
+        "search_status": job.search_status,
+        "search_error": job.search_error,
+        "request_id": job.request_id,
+        "created_at": job.created_at,
+        "updated_at": job.updated_at,
+    }
+    base = build_video_match_job_task_detail(row)
+    rid = (job.request_id or "").strip()
+    trace_dict = await http_request_trace_service.get_dict(str(rid)) if rid else None
+    return {"success": True, "detail": merge_http_trace_into_detail(base, trace_dict)}
+
+
 @video_match_router.get("/jobs/{job_id}")
 async def get_video_match_job(job_id: str):
     data = await get_job_payload(job_id)
     if data is None:
         raise HTTPException(status_code=404, detail="job not found")
     return data
+
+
+@video_match_router.post("/jobs/{job_id}/retry")
+async def retry_video_match_job(job_id: str, background_tasks: BackgroundTasks):
+    """失败任务重试：转写失败则重新解析；仅检索失败则依赖 job 内记录的检索策略重新跑匹配（需曾成功发起过匹配）。"""
+    body = await schedule_video_match_job_retry(job_id)
+    if not body.get("success"):
+        raise HTTPException(status_code=400, detail=str(body.get("error") or "retry not allowed"))
+    kind = str(body.get("kind") or "").strip()
+    strat = body.get("strategy_name")
+    strategy_name = str(strat).strip() if strat else None
+    background_tasks.add_task(run_video_match_retry_background, job_id, kind, strategy_name)
+    return {"success": True, "retry": kind}
+
+
+@video_match_router.post("/jobs/{job_id}/shots/{shot_row_id}/rematch")
+async def rematch_video_match_shot_route(job_id: str, shot_row_id: int):
+    """对单条分镜重新执行素材检索（与整 job 匹配共用策略快照）。"""
+    return await rematch_video_match_shot(job_id, shot_row_id)
 
 
 @video_match_router.get("/jobs/{job_id}/shots/{shot_row_id}/detail")

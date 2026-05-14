@@ -17,6 +17,7 @@ from models.sqlmodel.video_analysis import (
     VideoAnalysisShotCardV2,
     VideoAnalysisVideoV2,
 )
+from utils.api_datetime import normalize_row_utc_iso
 
 ShotCardsVersion = Literal["v1", "v2"]
 
@@ -315,7 +316,27 @@ class VideoAnalysisDBService:
                 stmt = stmt.where(VideoAnalysisHistory.workspace == workspace)
             stmt = stmt.order_by(VideoAnalysisHistory.created_at.desc())
             res = await session.execute(stmt)
-            return [row.model_dump(exclude_none=True) for row in res.scalars().all()]
+            return [
+                normalize_row_utc_iso(row.model_dump(exclude_none=True), keys=("created_at", "updated_at"))
+                for row in res.scalars().all()
+            ]
+
+    async def count_active_task_statuses(self, workspace: Optional[str] = None) -> Dict[str, int]:
+        """PENDING / RUNNING 计数，供侧边栏角标。"""
+        out: Dict[str, int] = {"PENDING": 0, "RUNNING": 0}
+        async with mysql_connector.session_scope() as session:
+            stmt = select(VideoAnalysisHistory.status, func.count()).where(
+                func.upper(VideoAnalysisHistory.status).in_(["PENDING", "RUNNING"])
+            )
+            if workspace:
+                stmt = stmt.where(VideoAnalysisHistory.workspace == workspace)
+            stmt = stmt.group_by(VideoAnalysisHistory.status)
+            res = await session.execute(stmt)
+            for row in res.all():
+                st = str(row[0] or "").upper()
+                if st in out:
+                    out[st] = int(row[1] or 0)
+        return out
 
     async def get_history_row(self, history_id: str) -> Optional[Dict[str, Any]]:
         """仅取 ``video_analysis_history`` 一行（不含分镜），供任务看板等轻量接口。"""
@@ -323,7 +344,10 @@ class VideoAnalysisDBService:
             hist = await session.get(VideoAnalysisHistory, history_id)
             if hist is None:
                 return None
-            return hist.model_dump(exclude_none=True)
+            return normalize_row_utc_iso(
+                hist.model_dump(exclude_none=True),
+                keys=("created_at", "updated_at"),
+            )
 
     async def get_history_item(
         self,

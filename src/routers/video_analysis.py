@@ -52,6 +52,10 @@ UPLOAD_TMP_DIR = os.path.join(
     "video_analysis_uploads",
 )
 
+# 全局并发：超出时在后台任务内排队，配合 DB 中 PENDING → RUNNING
+_video_analysis_max_concurrent = max(1, min(32, int(os.getenv("VIDEO_ANALYSIS_MAX_CONCURRENT", "3"))))
+_video_analysis_slot = asyncio.BoundedSemaphore(_video_analysis_max_concurrent)
+
 
 # ---------------- Workspace 接口 ----------------
 
@@ -188,6 +192,14 @@ async def delete_search_strategy(strategy_id: int):
 async def get_history(workspace: Optional[str] = Query(None, description="工作区标识，如 v1 / v2")):
     history = await video_analysis_db_service.list_history(workspace=workspace)
     return {"success": True, "history": history}
+
+
+@video_analysis_router.get("/task-badges")
+async def video_analysis_task_badges(workspace: Optional[str] = Query(None)):
+    """侧边栏角标：PENDING + RUNNING 数量（可按 workspace 过滤，不传则全 workspace）。"""
+    counts = await video_analysis_db_service.count_active_task_statuses(workspace=workspace)
+    active_total = int(counts.get("PENDING", 0)) + int(counts.get("RUNNING", 0))
+    return {"success": True, "counts": counts, "active_total": active_total}
 
 
 @video_analysis_router.get("/history/{history_id}/detail")
@@ -694,11 +706,14 @@ async def get_video_status(task_id: str):
     """查询视频分析任务状态"""
     status = video_task_status.get(task_id)
     if not status:
-        # 如果内存没有，尝试去 DB 查一下是否已完成
-        item = await video_analysis_db_service.get_history_item(task_id)
-        if item:
-            return {"success": True, "status": item.get("status", "SUCCESS"), "item": item}
-        return {"success": False, "error": "Task not found"}
+        row = await video_analysis_db_service.get_history_row(task_id)
+        if not row:
+            return {"success": False, "error": "Task not found"}
+        st = str(row.get("status") or "SUCCESS").upper()
+        if st == "SUCCESS":
+            item = await video_analysis_db_service.get_history_item(task_id)
+            return {"success": True, "status": "SUCCESS", "item": item or row}
+        return {"success": True, "status": st, "item": row}
     return {"success": True, **status}
 
 async def _bg_analyze_video(
@@ -716,109 +731,120 @@ async def _bg_analyze_video(
     *,
     remove_local_after: bool = True,
 ):
-    """后台分析任务逻辑"""
+    """后台分析：先排队等全局并发槽，再 RUNNING 并执行 analyze_video。"""
+    await _video_analysis_slot.acquire()
     t0 = time.monotonic()
     video_task_status[project_id] = {"status": "RUNNING", "progress": 0}
-    # 初始状态写入 DB
-    await video_analysis_db_service.upsert_history_item({
-        "id": project_id,
-        "name": file_name,
-        "time": datetime.now().isoformat(timespec="seconds"),
-        "video_url": obs_video_url,
-        "workspace": workspace,
-        "status": "RUNNING",
-        "request_id": http_trace_id,
-        "car_model": car_model,
-    }, shot_cards_version=workspace)
-
+    await video_analysis_db_service.upsert_history_item(
+        {
+            "id": project_id,
+            "name": file_name,
+            "time": datetime.now().isoformat(timespec="seconds"),
+            "video_url": obs_video_url,
+            "workspace": workspace,
+            "status": "RUNNING",
+            "request_id": http_trace_id,
+            "car_model": car_model,
+        },
+        shot_cards_version=workspace,
+    )
     try:
-        cards = await analyze_video(
-            local_video_path=local_path,
-            project_id=project_id,
-            frame_interval=frame_interval,
-            threshold=threshold,
-            custom_prompt=custom_prompt,
-            split_scenes=split_scenes,
-            cleanup_workspace=True,
-            workspace=workspace,
-            car_model=car_model,
-        )
-
-        history_item = VideoAnalysisHistoryItem(
-            id=project_id,
-            name=file_name,
-            time=datetime.now().isoformat(timespec="seconds"),
-            video_url=obs_video_url,
-            workspace=workspace,
-            car_model=car_model,
-            cards=cards,
-            request_id=http_trace_id,
-        )
-        
-        # 写入结果并更新状态为 SUCCESS
-        await video_analysis_db_service.upsert_history_item({
-            **history_item.model_dump(exclude_none=True),
-            "status": "SUCCESS"
-        }, shot_cards_version=workspace)
-
-        keys_ok = [(project_id, c.scene_id) for c in cards if not c.error]
-        if keys_ok:
-            try:
-                # 使用 refresh=True 确保即时性
-                await index_shotcards_to_opensearch(cards, id_prefix=project_id, refresh=True, workspace=workspace)
-                await video_analysis_db_service.update_cards_index_status(keys_ok, status="OK", error=None, shot_cards_version=workspace)
-                log.info(f"[{project_id}] OpenSearch 入库完成")
-            except Exception as _e:
-                await video_analysis_db_service.update_cards_index_status(keys_ok, status="FAILED", error=str(_e), shot_cards_version=workspace)
-                log.error(f"[{project_id}] OpenSearch 入库失败: {_e}")
-
-        # 获取最终完整的 item
-        final_item = await video_analysis_db_service.get_history_item(project_id)
-        video_task_status[project_id] = {"status": "SUCCESS", "item": final_item or history_item.model_dump()}
-
-        duration_ms = int((time.monotonic() - t0) * 1000)
-        await http_request_trace_service.finalize(
-            http_trace_id,
-            status_code=200,
-            response_body={
-                "status": "SUCCESS",
-                "project_id": project_id,
-                "scene_count": len(cards),
-            },
-            duration_ms=duration_ms,
-            business_success=True,
-        )
-        
-    except Exception as e:
-        log.error(f"[{project_id}] 视频分析任务异常: {e}")
-        video_task_status[project_id] = {"status": "FAILED", "error": str(e)}
-        duration_ms = int((time.monotonic() - t0) * 1000)
         try:
-            await video_analysis_db_service.upsert_history_item({
-                "id": project_id,
-                "name": file_name,
-                "time": datetime.now().isoformat(timespec="seconds"),
-                "video_url": obs_video_url,
-                "workspace": workspace,
-                "status": "FAILED",
-                "error_msg": str(e),
-                "request_id": http_trace_id,
-                "car_model": car_model,
-            }, shot_cards_version=workspace)
-        except Exception as _db_e:
-            log.warning("persist FAILED video history: %s", _db_e)
-        try:
+            cards = await analyze_video(
+                local_video_path=local_path,
+                project_id=project_id,
+                frame_interval=frame_interval,
+                threshold=threshold,
+                custom_prompt=custom_prompt,
+                split_scenes=split_scenes,
+                cleanup_workspace=True,
+                workspace=workspace,
+                car_model=car_model,
+            )
+
+            history_item = VideoAnalysisHistoryItem(
+                id=project_id,
+                name=file_name,
+                time=datetime.now().isoformat(timespec="seconds"),
+                video_url=obs_video_url,
+                workspace=workspace,
+                car_model=car_model,
+                cards=cards,
+                request_id=http_trace_id,
+            )
+
+            await video_analysis_db_service.upsert_history_item(
+                {
+                    **history_item.model_dump(exclude_none=True),
+                    "status": "SUCCESS",
+                },
+                shot_cards_version=workspace,
+            )
+
+            keys_ok = [(project_id, c.scene_id) for c in cards if not c.error]
+            if keys_ok:
+                try:
+                    await index_shotcards_to_opensearch(cards, id_prefix=project_id, refresh=True, workspace=workspace)
+                    await video_analysis_db_service.update_cards_index_status(
+                        keys_ok, status="OK", error=None, shot_cards_version=workspace
+                    )
+                    log.info(f"[{project_id}] OpenSearch 入库完成")
+                except Exception as _e:
+                    await video_analysis_db_service.update_cards_index_status(
+                        keys_ok, status="FAILED", error=str(_e), shot_cards_version=workspace
+                    )
+                    log.error(f"[{project_id}] OpenSearch 入库失败: {_e}")
+
+            final_item = await video_analysis_db_service.get_history_item(project_id)
+            video_task_status[project_id] = {"status": "SUCCESS", "item": final_item or history_item.model_dump()}
+
+            duration_ms = int((time.monotonic() - t0) * 1000)
             await http_request_trace_service.finalize(
                 http_trace_id,
-                status_code=500,
-                error_message=str(e),
-                response_body={"status": "FAILED", "project_id": project_id, "error": str(e)},
+                status_code=200,
+                response_body={
+                    "status": "SUCCESS",
+                    "project_id": project_id,
+                    "scene_count": len(cards),
+                },
                 duration_ms=duration_ms,
-                business_success=False,
+                business_success=True,
             )
-        except Exception as _fe:
-            log.warning("finalize http trace: %s", _fe)
+
+        except Exception as e:
+            log.error(f"[{project_id}] 视频分析任务异常: {e}")
+            video_task_status[project_id] = {"status": "FAILED", "error": str(e)}
+            duration_ms = int((time.monotonic() - t0) * 1000)
+            try:
+                await video_analysis_db_service.upsert_history_item(
+                    {
+                        "id": project_id,
+                        "name": file_name,
+                        "time": datetime.now().isoformat(timespec="seconds"),
+                        "video_url": obs_video_url,
+                        "workspace": workspace,
+                        "status": "FAILED",
+                        "error_msg": str(e),
+                        "request_id": http_trace_id,
+                        "car_model": car_model,
+                    },
+                    shot_cards_version=workspace,
+                )
+            except Exception as _db_e:
+                log.warning("persist FAILED video history: %s", _db_e)
+            try:
+                await http_request_trace_service.finalize(
+                    http_trace_id,
+                    status_code=500,
+                    error_message=str(e),
+                    response_body={"status": "FAILED", "project_id": project_id, "error": str(e)},
+                    duration_ms=duration_ms,
+                    business_success=False,
+                )
+            except Exception as _fe:
+                log.warning("finalize http trace: %s", _fe)
     finally:
+        _video_analysis_slot.release()
         if remove_local_after and os.path.exists(local_path):
             try:
                 os.remove(local_path)
@@ -879,6 +905,22 @@ async def analyze_video_endpoint(
         method_name="POST /video-analysis",
         upstream_task_id=project_id,
     )
+
+    # 先入库 PENDING：批量提交时任务看板/角标可立即看到排队项
+    await video_analysis_db_service.upsert_history_item(
+        {
+            "id": project_id,
+            "name": file.filename or "video",
+            "time": datetime.now().isoformat(timespec="seconds"),
+            "video_url": obs_video_url or "",
+            "workspace": workspace,
+            "status": "PENDING",
+            "request_id": va_trace_id,
+            "car_model": car_model,
+        },
+        shot_cards_version=workspace,
+    )
+    video_task_status[project_id] = {"status": "PENDING"}
 
     if async_mode:
         background_tasks.add_task(

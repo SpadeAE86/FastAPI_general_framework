@@ -7,6 +7,7 @@ from sqlmodel import select
 
 from infra.storage.mysql_connector import mysql_connector
 from models.sqlmodel.image_history import ImageHistoryCard
+from utils.api_datetime import attach_image_row_duration_ms, normalize_row_utc_iso
 
 
 class ImageHistoryDBService:
@@ -18,7 +19,7 @@ class ImageHistoryDBService:
                 d = row.model_dump(exclude_none=True)
                 # front-end expects `url`, prefer obs_url then fallback to doubao_url
                 d["url"] = d.get("obs_url") or d.get("doubao_url")
-                out.append(d)
+                out.append(attach_image_row_duration_ms(normalize_row_utc_iso(d)))
             return out
 
     async def get_by_id(self, item_id: str) -> Optional[Dict[str, Any]]:
@@ -43,7 +44,7 @@ class ImageHistoryDBService:
                 return None
             d = hit.model_dump(exclude_none=True)
             d["url"] = d.get("obs_url") or d.get("doubao_url")
-            return d
+            return attach_image_row_duration_ms(normalize_row_utc_iso(d))
 
     async def upsert_many(self, items: List[Dict[str, Any]]) -> None:
         """

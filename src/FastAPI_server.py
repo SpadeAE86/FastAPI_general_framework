@@ -46,18 +46,9 @@ async def lifespan(app: FastAPI):
         await create_tables_if_not_exists()
 
         try:
-            from services.image_history_db_service import image_history_db_service
-            from services.video_analysis_db_service import video_analysis_db_service
+            from services.interrupted_tasks_recovery import mark_interrupted_tasks_on_startup
 
-            _reason = "服务重启或进程中断，任务未完成"
-            _n_img = await image_history_db_service.mark_interrupted_running_as_failed(_reason)
-            _n_vid = await video_analysis_db_service.mark_interrupted_running_histories_failed(_reason)
-            if _n_img or _n_vid:
-                log.warning(
-                    "启动恢复: 已将进行中的生图 %s 条、视频分析 %s 条标为失败",
-                    _n_img,
-                    _n_vid,
-                )
+            await mark_interrupted_tasks_on_startup("服务重启或进程中断，任务未完成")
         except Exception as _e:
             log.warning("启动时标记中断任务失败（可忽略若表未就绪）: %s", _e)
 

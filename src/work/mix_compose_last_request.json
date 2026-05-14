@@ -1,13 +1,13 @@
 {
-  "biz_id": 416,
+  "biz_id": 595,
   "user_id": 0,
   "obs_video_path_list": [
     "mpc_transcode_cache/23023/20260513_111254_20260226-陈龙-路跑-4_H.264_1440x2560_AAC_4900.mp4",
-    "mpc_transcode_cache/23023/20260514_110843_20250924-新一代LS6-门把手-2_H.264_1080x1920_AAC_2100.mp4",
-    "mpc_transcode_cache/23023/20240924-新一代LS6-NOA-22_H.264_1080x1920_AAC_2100.mp4",
-    "mpc_transcode_cache/23023/20240924-新一代LS6-NOA-22_H.264_1080x1920_AAC_2100.mp4",
-    "mpc_transcode_cache/23023/20260514_111024_20250911-CG-悬浮音响-1_H.264_2700x1080_AAC_4900.mp4",
-    "mpc_transcode_cache/23023/20260514_111024_20250911-CG-悬浮音响-1_H.264_2700x1080_AAC_4900.mp4",
+    "mpc_transcode_cache/23023/20260513_111254_20260226-陈龙-路跑-4_H.264_1440x2560_AAC_4900.mp4",
+    "mpc_transcode_cache/23023/20260513_111254_20260226-陈龙-路跑-4_H.264_1440x2560_AAC_4900.mp4",
+    "mpc_transcode_cache/23023/20260513_111254_20260226-陈龙-路跑-4_H.264_1440x2560_AAC_4900.mp4",
+    "mpc_transcode_cache/23023/20260513_111254_20260226-陈龙-路跑-4_H.264_1440x2560_AAC_4900.mp4",
+    "mpc_transcode_cache/23023/20260513_111254_20260226-陈龙-路跑-4_H.264_1440x2560_AAC_4900.mp4",
     "mpc_transcode_cache/23023/20260513_111254_20260226-陈龙-路跑-4_H.264_1440x2560_AAC_4900.mp4"
   ],
   "fps": 30,
@@ -143,7 +143,7 @@
       {
         "start": 12.23,
         "end": 14.89,
-        "cap": "安静到让你忘记它是增程车！",
+        "cap": "安静到让你忘记它是增程车",
         "rotation": 0.0,
         "outline_width": 2.0,
         "scale": 1.0,
@@ -191,7 +191,7 @@
       {
         "start": 21.68,
         "end": 24.22,
-        "cap": "整个车厢就是个移动音乐厅！",
+        "cap": "整个车厢就是个移动音乐厅",
         "rotation": 0.0,
         "outline_width": 2.0,
         "scale": 1.0,
@@ -220,13 +220,13 @@
   "local_mode": false,
   "mute_config": [],
   "obs_audio_path_list": [
-    "aigc/aigc_local/bb51a380-dc3c-45ab-8538-d41f81b09e4c/seg_s1_0_e61f7e753e.wav",
-    "aigc/aigc_local/bb51a380-dc3c-45ab-8538-d41f81b09e4c/seg_s2_1_60b6f2da27.wav",
-    "aigc/aigc_local/bb51a380-dc3c-45ab-8538-d41f81b09e4c/seg_s3_2_9f3805112b.wav",
-    "aigc/aigc_local/bb51a380-dc3c-45ab-8538-d41f81b09e4c/seg_s4_3_1e55531153.wav",
-    "aigc/aigc_local/bb51a380-dc3c-45ab-8538-d41f81b09e4c/seg_s5_4_1f186d19c4.wav",
-    "aigc/aigc_local/bb51a380-dc3c-45ab-8538-d41f81b09e4c/seg_s6_5_5337486a7c.wav",
-    "aigc/aigc_local/bb51a380-dc3c-45ab-8538-d41f81b09e4c/seg_s7_6_41bb3514fb.wav"
+    "aigc/aigc_local/671c40b7-2ea3-4da4-8414-972efe27cac4/seg_s8_0_a90c70d2cb.wav",
+    "aigc/aigc_local/671c40b7-2ea3-4da4-8414-972efe27cac4/seg_s9_1_c0a7e9acf9.wav",
+    "aigc/aigc_local/671c40b7-2ea3-4da4-8414-972efe27cac4/seg_s10_2_a2828180bc.wav",
+    "aigc/aigc_local/671c40b7-2ea3-4da4-8414-972efe27cac4/seg_s11_3_3c5e535740.wav",
+    "aigc/aigc_local/671c40b7-2ea3-4da4-8414-972efe27cac4/seg_s12_4_94588a17a6.wav",
+    "aigc/aigc_local/671c40b7-2ea3-4da4-8414-972efe27cac4/seg_s13_5_2ecefac818.wav",
+    "aigc/aigc_local/671c40b7-2ea3-4da4-8414-972efe27cac4/seg_s14_6_0c529be0a4.wav"
   ],
   "audio_config": [
     {

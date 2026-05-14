@@ -165,6 +165,63 @@ def build_video_analysis_task_detail(row: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def build_video_match_job_task_detail(row: Dict[str, Any]) -> Dict[str, Any]:
+    """由 video_match_job 行合成「口播转写 / 解析」阶段的任务看板 HTTP 明细。"""
+    ps = (row.get("parse_status") or "").strip().lower()
+    duration_ms = _duration_ms_created_updated(row)
+    script = row.get("script") or ""
+    preview = str(script)[:8000] if script else ""
+    req_body: Dict[str, Any] = {
+        "job_id": row.get("id"),
+        "script_preview": preview or None,
+        "topic": row.get("topic"),
+        "title": row.get("title"),
+        "car_model": row.get("car_model"),
+        "workspace": row.get("workspace"),
+    }
+    resp_body: Dict[str, Any] = {
+        "parse_status": row.get("parse_status"),
+        "parse_error": row.get("parse_error"),
+        "search_status": row.get("search_status"),
+        "search_error": row.get("search_error"),
+    }
+    if ps == "done":
+        label = "成功"
+        ok = True
+    elif ps == "failed":
+        label = "失败"
+        ok = False
+    elif ps in ("running", "pending"):
+        label = "进行中"
+        ok = False
+    else:
+        label = row.get("parse_status") or "—"
+        ok = False
+    return {
+        "id": row.get("id"),
+        "taskId": row.get("id"),
+        "traceId": None,
+        "parentTraceId": None,
+        "serviceName": "my_bot_advance",
+        "methodName": "POST /video-match/jobs",
+        "httpMethod": "POST",
+        "businessType": "VIDEO_MATCH_PARSE",
+        "requestUrl": "/video-match/jobs",
+        "statusCode": 200 if ok else 500,
+        "durationMs": duration_ms,
+        "businessSuccess": ok,
+        "businessStatusLabel": label,
+        "errorMessage": row.get("parse_error"),
+        "createdAt": _iso(row.get("created_at")),
+        "updatedAt": _iso(row.get("updated_at")),
+        "requestHeaders": {},
+        "requestBody": req_body,
+        "responseHeaders": {},
+        "responseBody": resp_body,
+        "note": "当前为根据 video_match_job 字段推断的合成详情；有 request_id 时合并 http_request_traces。",
+    }
+
+
 def build_video_match_shot_search_task_detail(
     *,
     job_id: str,

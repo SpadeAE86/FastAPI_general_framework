@@ -5,6 +5,7 @@ import time
 import uuid
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy import delete, func, update
 from sqlmodel import select
 
 from infra.logging.logger import logger as log
@@ -287,6 +288,162 @@ async def get_shot_match_detail(job_id: str, shot_row_id: int) -> Optional[Dict[
     trace = await http_request_trace_service.get_dict(rid) if rid else None
     detail = merge_http_trace_into_detail(base, trace)
     return {"success": True, "detail": detail, "shot": shot_api}
+
+
+async def rematch_video_match_shot(job_id: str, shot_row_id: int) -> Dict[str, Any]:
+    """
+    单条分镜重新跑 OpenSearch 匹配（需 job 已有 search_strategy_snapshot，通常需先成功跑过整 job 匹配）。
+    """
+    jid = (job_id or "").strip()
+    try:
+        sid = int(shot_row_id)
+    except (TypeError, ValueError):
+        sid = 0
+    if not jid or sid <= 0:
+        return {"success": False, "error": "invalid id"}
+
+    async with mysql_connector.session_scope() as session:
+        job = await session.get(VideoMatchJob, jid)
+        if job is None:
+            return {"success": False, "error": "job not found"}
+        if job.parse_status != "done":
+            return {"success": False, "error": "parse not completed"}
+        snap = job.search_strategy_snapshot
+        if not isinstance(snap, dict) or not str(snap.get("name") or "").strip():
+            return {
+                "success": False,
+                "error": "缺少检索策略快照，请先在视频匹配工作台完成一次整 job 素材匹配",
+            }
+        strategy_name = str(snap.get("name")).strip()
+        row = await session.get(VideoMatchShotRow, sid)
+        if row is None or str(row.job_id) != jid:
+            return {"success": False, "error": "shot not found"}
+        if not (row.tags_json or {}):
+            return {"success": False, "error": "分镜缺少标签，无法检索"}
+        row.search_status = "running"
+        row.search_request_id = None
+        session.add(row)
+        await session.commit()
+
+        seg = dict(row.tags_json or {})
+        ws = (job.workspace or "v1").strip()
+        shot_ver = "v2" if ws == "v2" else "v1"
+
+    strategy = await _load_strategy_by_name(strategy_name)
+    if strategy is None:
+        async with mysql_connector.session_scope() as session:
+            row2 = await session.get(VideoMatchShotRow, sid)
+            if row2:
+                row2.search_status = "failed"
+                session.add(row2)
+                await session.commit()
+        return {"success": False, "error": f"strategy not found: {strategy_name!r}"}
+
+    bw = float(strategy.bm25_weight or 0.3)
+    vw = float(strategy.vector_weight or 0.7)
+    den = bw + vw or 1.0
+    bm25_f = bw / den
+    vec_f = vw / den
+    mode = "field_aligned_hybrid"
+    top_k = 5
+
+    async def persist_one(_idx: int, m: Dict[str, Any]) -> None:
+        top_hits = m.get("top_hits") or []
+        elapsed = float(m.get("elapsed_ms") or 0)
+        top1 = _best_video_path_from_hits(top_hits)
+        body_for_trace = _truncate_for_trace(
+            {
+                "index": INDEX_NAME,
+                "opensearch_body": m.get("opensearch_body"),
+                "search_params": m.get("search_params"),
+                "query_text": m.get("query_text"),
+                "rematch_single_shot": True,
+            }
+        )
+        trace_rid = await http_request_trace_service.create_initial(
+            request_url=f"/opensearch/{INDEX_NAME}/_search",
+            http_method="POST",
+            method_name="POST /opensearch/_search",
+            business_type="VIDEO_MATCH_SHOT_SEARCH",
+            business_id=str(sid),
+            upstream_task_id=jid,
+            request_body=body_for_trace,
+        )
+        try:
+            async with mysql_connector.session_scope() as session:
+                db_row = await session.get(VideoMatchShotRow, sid)
+                if db_row is None:
+                    await http_request_trace_service.finalize(
+                        trace_rid,
+                        status_code=500,
+                        error_message="shot row missing after search",
+                        business_success=False,
+                    )
+                    return
+                db_row.match_top_hits_json = top_hits
+                db_row.match_elapsed_ms = elapsed
+                db_row.search_status = "done"
+                db_row.top1_obs_url = top1
+                db_row.search_request_id = trace_rid
+                session.add(db_row)
+                await session.commit()
+        except Exception:
+            log.exception("video_match rematch persist DB failed job=%s row=%s", jid, sid)
+            await http_request_trace_service.finalize(
+                trace_rid,
+                status_code=500,
+                error_message="persist rematch database error",
+                business_success=False,
+            )
+            raise
+
+        shot_ord = 0
+        async with mysql_connector.session_scope() as session:
+            rord = await session.get(VideoMatchShotRow, sid)
+            if rord is not None:
+                shot_ord = int(rord.shot_order)
+        resp_summary = {
+            "hit_count": len(top_hits),
+            "top_history_ids": [h.get("history_id") for h in top_hits[:5]],
+            "elapsed_ms": elapsed,
+            "shot_order": shot_ord,
+            "rematch": True,
+        }
+        await http_request_trace_service.finalize(
+            trace_rid,
+            status_code=200,
+            response_body=resp_summary,
+            business_success=True,
+            duration_ms=int(elapsed) if elapsed else None,
+        )
+
+    try:
+        await match_script_tags_segments(
+            [seg],
+            top_k=int(top_k),
+            mode=mode,
+            shot_cards_version=shot_ver,
+            concurrency=1,
+            bm25_factor=bm25_f,
+            vector_factor=vec_f,
+            use_rrf=bool(strategy.use_rrf),
+            with_timings=True,
+            on_segment_done=persist_one,
+        )
+    except Exception as e:
+        log.exception("video_match rematch shot failed: %s", e)
+        async with mysql_connector.session_scope() as session:
+            row3 = await session.get(VideoMatchShotRow, sid)
+            if row3:
+                row3.search_status = "failed"
+                session.add(row3)
+                await session.commit()
+        return {"success": False, "error": str(e)}
+
+    out = await get_shot_match_detail(jid, sid)
+    if out:
+        return out
+    return {"success": False, "error": "rematch ok but failed to load shot detail"}
 
 
 async def _load_strategy_by_name(name: str) -> Optional[VideoAnalysisSearchStrategy]:
@@ -654,6 +811,7 @@ async def list_video_match_jobs(
                 "topic": j.topic,
                 "car_model": j.car_model,
                 "created_at": j.created_at.isoformat() if j.created_at else None,
+                "updated_at": j.updated_at.isoformat() if j.updated_at else None,
                 "request_id": j.request_id,
             }
         )
@@ -702,3 +860,217 @@ async def synthesize_shot_obs_audio(job_id: str, shot_row_id: int) -> Dict[str, 
         payload = shot_row_to_api_dict(row2)
 
     return {"success": True, "shot": payload}
+
+
+async def mark_interrupted_video_match_jobs_failed(reason: str) -> int:
+    """进程重启后：口播解析 / 素材检索仍为进行中的 job 标为失败（search 的 pending 表示未发起匹配，不处理）。"""
+    msg = (reason or "").strip() or "interrupted"
+    n = 0
+    async with mysql_connector.session_scope() as session:
+        res_p = await session.execute(
+            update(VideoMatchJob)
+            .where(
+                func.lower(func.coalesce(VideoMatchJob.parse_status, "")).in_(
+                    ["running", "pending", "processing"]
+                )
+            )
+            .values(parse_status="failed", parse_error=msg)
+        )
+        n += int(res_p.rowcount or 0)
+        res_s = await session.execute(
+            update(VideoMatchJob)
+            .where(
+                func.lower(func.coalesce(VideoMatchJob.search_status, "")).in_(["running", "processing"])
+            )
+            .values(search_status="failed", search_error=msg)
+        )
+        n += int(res_s.rowcount or 0)
+        await session.commit()
+    return n
+
+
+async def schedule_video_match_job_retry(job_id: str) -> Dict[str, Any]:
+    """
+    校验失败任务并占用状态（解析重试会清空分镜行）。
+    返回 { success, kind: 'parse'|'search', strategy_name? }。
+    """
+    jid = (job_id or "").strip()
+    if not jid:
+        return {"success": False, "error": "invalid job_id"}
+    async with mysql_connector.session_scope() as session:
+        job = await session.get(VideoMatchJob, jid)
+        if job is None:
+            return {"success": False, "error": "job not found"}
+        ps = (job.parse_status or "").lower()
+        ss = (job.search_status or "").lower()
+        if ps == "running" or ss == "running" or ps == "processing" or ss == "processing":
+            return {"success": False, "error": "任务仍在执行中，请稍后再试"}
+        if ps == "failed":
+            await session.execute(delete(VideoMatchShotRow).where(VideoMatchShotRow.job_id == jid))
+            job.parse_status = "running"
+            job.parse_error = None
+            job.search_status = "pending"
+            job.search_error = None
+            job.search_total_ms = None
+            job.search_strategy_snapshot = None
+            session.add(job)
+            await session.commit()
+            return {"success": True, "kind": "parse"}
+        if ps == "done" and ss == "failed":
+            snap = job.search_strategy_snapshot
+            name = ""
+            if isinstance(snap, dict):
+                raw = snap.get("name")
+                name = str(raw).strip() if raw else ""
+            if not name:
+                return {
+                    "success": False,
+                    "error": "缺少历史检索策略，请先在视频匹配页成功发起过一次检索后再重试",
+                }
+            job.search_status = "running"
+            job.search_error = None
+            session.add(job)
+            await session.commit()
+            return {"success": True, "kind": "search", "strategy_name": name}
+        return {"success": False, "error": "仅口播转写失败或素材检索失败的任务可重试"}
+
+
+async def run_video_match_retry_background(
+    job_id: str, kind: str, strategy_name: Optional[str] = None
+) -> None:
+    jid = (job_id or "").strip()
+    k = (kind or "").strip()
+    try:
+        if k == "parse":
+            await _reparse_video_match_job_core(jid)
+        elif k == "search" and (strategy_name or "").strip():
+            await run_job_search(
+                jid,
+                strategy_name=str(strategy_name).strip(),
+                mode="field_aligned_hybrid",
+                top_k=5,
+            )
+        else:
+            log.error("video_match retry worker: bad args job=%s kind=%s", jid, k)
+    except Exception:
+        log.exception("video_match retry background failed job=%s", jid)
+
+
+async def _reparse_video_match_job_core(job_id: str) -> None:
+    """假定 job 已 parse_status=running 且分镜行已清空；执行 LLM 转写并落库。"""
+    jid = (job_id or "").strip()
+    if not jid:
+        return
+    async with mysql_connector.session_scope() as session:
+        job0 = await session.get(VideoMatchJob, jid)
+        if job0 is None:
+            return
+        script = (job0.script or "").strip()
+        topic = job0.topic
+        title = job0.title
+        car_model = job0.car_model
+        ws = (job0.workspace or "v1").strip() or "v1"
+    if not script:
+        async with mysql_connector.session_scope() as session:
+            jbad = await session.get(VideoMatchJob, jid)
+            if jbad:
+                jbad.parse_status = "failed"
+                jbad.parse_error = "script is empty"
+                session.add(jbad)
+                await session.commit()
+        return
+
+    parse_rid = await http_request_trace_service.create_initial(
+        request_url="/internal/video-match/parse-retry",
+        http_method="POST",
+        method_name="POST /video-match/jobs/{id}/retry",
+        business_type="VIDEO_MATCH_PARSE",
+        business_id=jid,
+        upstream_task_id=jid,
+        request_body=_truncate_for_trace(
+            {
+                "job_id": jid,
+                "workspace": ws,
+                "retry": True,
+                "script_preview": script[:8000],
+            },
+            max_bytes=32000,
+        ),
+    )
+    async with mysql_connector.session_scope() as session:
+        job_link = await session.get(VideoMatchJob, jid)
+        if job_link:
+            job_link.request_id = parse_rid
+            session.add(job_link)
+            await session.commit()
+
+    t_parse0 = time.perf_counter()
+    try:
+        tts_audio_urls: List[Optional[str]] = []
+        storyboard, tags = await rewrite_script_to_storyboard_and_tags(
+            script,
+            topic=topic,
+            title=title,
+            car_model=car_model,
+            index=0,
+            tts_obs_project_id=jid,
+            out_obs_audio_urls=tts_audio_urls,
+        )
+    except Exception as e:
+        log.exception("video_match parse retry failed: %s", e)
+        await http_request_trace_service.finalize(
+            parse_rid,
+            status_code=500,
+            error_message=str(e)[:2000],
+            response_body={"parse_status": "failed"},
+            business_success=False,
+            duration_ms=int((time.perf_counter() - t_parse0) * 1000),
+        )
+        async with mysql_connector.session_scope() as session:
+            job = await session.get(VideoMatchJob, jid)
+            if job:
+                job.parse_status = "failed"
+                job.parse_error = str(e)
+                session.add(job)
+                await session.commit()
+        return
+
+    async with mysql_connector.session_scope() as session:
+        for order, seg in enumerate(storyboard.storyboard):
+            tag_seg = _resolve_tag_segment(tags, seg.id, order)
+            tj: Optional[Dict[str, Any]]
+            if tag_seg is not None:
+                tj = tag_seg.model_dump(exclude_none=True)
+            else:
+                tj = {}
+            obs_url = tts_audio_urls[order] if order < len(tts_audio_urls) else None
+            row = VideoMatchShotRow(
+                job_id=jid,
+                shot_order=order,
+                storyboard_id=int(seg.id),
+                segment_text=seg.segment_text,
+                duration_sec=float(seg.duration),
+                description=seg.description,
+                tags_json=tj if tj else None,
+                search_status="pending",
+                obs_audio_url=obs_url,
+            )
+            session.add(row)
+        job = await session.get(VideoMatchJob, jid)
+        if job:
+            job.parse_status = "done"
+            job.parse_error = None
+            session.add(job)
+        await session.commit()
+
+    await http_request_trace_service.finalize(
+        parse_rid,
+        status_code=200,
+        response_body={
+            "parse_status": "done",
+            "shot_count": len(storyboard.storyboard),
+            "retry": True,
+        },
+        business_success=True,
+        duration_ms=int((time.perf_counter() - t_parse0) * 1000),
+    )
