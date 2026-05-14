@@ -68,7 +68,7 @@ _FONT_FAMILY_MAP: dict[str, str] = {
     **{k: _strip_style_suffix(k) for k in _F2F},
     **{
         "Alibaba Health Font 2.0 CN 85 B": "Alibaba Health Font 2.0 CN",
-        "PingFang SC Regular": "PingFang SC",
+        "PingFang SC Regular": "PingFang SC",  # fix：映射错误，映射成“PingFang HK”繁体，导致部分简体文字缺失
         "TsangerShuYuanT W01": "TsangerShuYuanT",
         "TsangerShuYuanT W04": "TsangerShuYuanT",
         "Canger XiaoWanZi": "TsangerXWZ",
@@ -113,17 +113,35 @@ def create_subtitle_png(
     """
     resolved_font = _FONT_FAMILY_MAP.get(font_name, font_name)
     result = render_text_to_png(
-
         text=texts,
+        
+        wrap_width = 4096 * 10,
+        # fix:前端无主动换行，有多长就多长，居中。同前端表现。
+        
         font_name=resolved_font,
         anchor_x=anchor_x,
         anchor_y=anchor_y,
-        font_size=int(font_size * 720 / min(png_height, png_width)) if (png_width > png_height) else font_size,
-        # fix：横屏视频文字大小，前端显示和实际产物不一致。横屏时转换回原始fontsize
+        
+        # font_size=font_size,
+        font_size=max(1, (int(font_size * 2 * png_height / png_width) if (png_width > png_height) else font_size * 2) - 2),
+        # fix:前端、后端透传，算法端向前端展示的大小映射。
+        # fix:横屏视频文字大小，前端显示和实际产物不一致。横屏时转换回原始fontsize。
+        
         font_color=font_color,
+        
+        font_weight=350,
+        # fix:前端默认400，后端不传，算法端向前端展示的大小映射。
+        
         stroke_color=outline_color,
-        stroke_width=outline_width,
-        line_spacing=line_spacing,
+        
+        #stroke_width=outline_width,
+        stroke_width=outline_width * 4,
+        # fix:前端0-100对应0-5px。当前端使用100时，前端传5，后端传5，对应到skia中需要*4，才能和前端基本一致。
+        
+        # line_spacing=line_spacing,
+        line_spacing= -1,
+        # fix:前端默认不传，后端以前约定默认传10。对应到skia中需要处理成-1，才能和前端基本一致。
+        
         background_style=background_style,
         background_color=background_color,
         background_fill_width=float(background_pad),
@@ -133,7 +151,10 @@ def create_subtitle_png(
         save_path=Path(save_path) if save_path is not None else None,
         scale=scale,
         rotation=rot,
-        letter_spacing=letter_spacing,
+        
+        # letter_spacing=letter_spacing,
+        letter_spacing=-1, 
+        # fix:前端默认不传，后端以前约定默认传2。对应到skia中需要处理成-1，才能和前端基本一致。
     )
     # 兼容旧版 PIL：调用方（ffmpeg cmd 拼接）期望字幕 png 路径是 str，而不是 Path
     if isinstance(result, Path):
@@ -166,4 +187,4 @@ if __name__ == "__main__":
     #     )
     # print(f'{time.perf_counter()-t0 = }s')
     # exit()
-    print(_strip_style_suffix("TsangerShuYuanT W04"))
+    _strip_style_suffix("Songti SC Regular")

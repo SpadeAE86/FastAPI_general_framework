@@ -19,7 +19,7 @@ import platform
 # 模块级别定义常量，避免重复构造对象
 _BASE_DIR = Path(__file__).resolve().parent
 # 字体目录固定指向项目的 src/fonts（与 utils 同级）
-_FONT_DIR = _BASE_DIR.parent/"fonts"
+_FONT_DIR = _BASE_DIR.parent / "fonts"
 
 def _create_gl_context() -> moderngl.Context | None:
     """创建可用于无头环境的 ModernGL 上下文，失败时返回 None。"""
@@ -145,8 +145,6 @@ _surface_cache: OrderedDict[tuple[int, int], skia.Surface] = OrderedDict()
 # 因此这里直接使用项目字体目录对应的 FontMgr 作为默认字体源（字幕字体都在 src/fonts）。
 _FONT_COLLECTION = skia.textlayout.FontCollection()
 _FONT_COLLECTION.setDefaultFontManager(_LOCAL_FONT_MGR)
-# # Paragraph 布局宽度：固定足够大的值，避免字幕文字意外换行，同时使缓存 key 与输出分辨率无关
-# _PARAGRAPH_MAX_WIDTH = 16384
 # 字体样式映射，避免在热路径中重复创建 FontStyle 对象
 _FONT_STYLE_MAP: dict[str, skia.FontStyle] = {
     'normal': skia.FontStyle.Normal(),
@@ -247,9 +245,16 @@ def _build_paragraph_cached(
         is_stroke: bool,
         stroke_width: float,
         layout_width: int,
+        font_weight: int,
 ) -> skia.textlayout.Paragraph:
     """构建并缓存 Paragraph 对象，相同参数直接复用，避免重复 build 的高开销。"""
-    font_style_obj = _FONT_STYLE_MAP.get(font_style_key, _DEFAULT_FONT_STYLE)
+    base = _FONT_STYLE_MAP.get(font_style_key, _DEFAULT_FONT_STYLE)
+    is_italic = base.slant() != skia.FontStyle.Slant.kUpright_Slant
+    font_style_obj = skia.FontStyle(
+        font_weight,
+        skia.FontStyle.kNormal_Width,
+        skia.FontStyle.Slant.kItalic_Slant if is_italic else skia.FontStyle.Slant.kUpright_Slant,
+    )
 
     paint = skia.Paint(AntiAlias=True)
     if is_stroke:
@@ -286,9 +291,16 @@ def _get_font_for_codepoint_styled(
         family_names: tuple[str, ...],
         font_size: float,
         font_style_key: str,
+        font_weight: int,
 ) -> skia.Font:
     """按码点、字体族、字号和样式获取 Font，结果缓存，供弯曲文字逐字渲染使用。"""
-    style = _FONT_STYLE_MAP.get(font_style_key, _DEFAULT_FONT_STYLE)
+    base = _FONT_STYLE_MAP.get(font_style_key, _DEFAULT_FONT_STYLE)
+    is_italic = base.slant() != skia.FontStyle.Slant.kUpright_Slant
+    style = skia.FontStyle(
+        font_weight,
+        skia.FontStyle.kNormal_Width,
+        skia.FontStyle.Slant.kItalic_Slant if is_italic else skia.FontStyle.Slant.kUpright_Slant,
+    )
     for mgr in (_LOCAL_FONT_MGR, _SYS_FONT_MGR):
         for family in family_names:
             typeface = mgr.matchFamilyStyle(family, style)
@@ -318,6 +330,7 @@ def _render_curved_text(
         curve_degree: float,
         cx: float,
         cy: float,
+        font_weight: int,
 ) -> None:
     """沿圆弧逐字渲染文字。
 
@@ -327,7 +340,7 @@ def _render_curved_text(
     """
     char_data: list[tuple[str, float, skia.Font]] = []
     for char in text:
-        font = _get_font_for_codepoint_styled(ord(char), family_names, font_size, font_style_key)
+        font = _get_font_for_codepoint_styled(ord(char), family_names, font_size, font_style_key,font_weight)
         advance = font.measureText(char)
         char_data.append((char, advance, font))
 
@@ -405,6 +418,7 @@ def _render_to_surface(
         font_name: str = 'Songti SC',
         font_size: float = 20.0,
         font_color: int | tuple = 0x00000000,
+        font_weight: int = 400,
         letter_spacing: float = 0.0,
         text_style: str = 'normal',
 
@@ -514,7 +528,7 @@ def _render_to_surface(
         _render_curved_text(
             canvas, text, family_names, font_size, text_style, letter_spacing,
             _font_color_int, _need_draw_stroke, stroke_width, _stroke_color_int,
-            curve_degree, anchor_x, anchor_y,
+            curve_degree, anchor_x, anchor_y,font_weight
         )
         if _need_transform:
             canvas.restore()
@@ -546,7 +560,7 @@ def _render_to_surface(
 
         paragraph = _build_paragraph_cached(
             line, family_names, font_size, letter_spacing, text_style,
-            _font_color_int, False, 0.0, _layout_width)
+            _font_color_int, False, 0.0, _layout_width, font_weight)
         paragraphs.append(paragraph)
         # 换行时取实际排版后最长行宽
         line_widths.append(paragraph.LongestLine)
@@ -555,7 +569,7 @@ def _render_to_surface(
         if _need_draw_stroke:
             stroke_paragraphs.append(_build_paragraph_cached(
                 line, family_names, font_size, letter_spacing, text_style,
-                _stroke_color_int, True, stroke_width, _layout_width))
+                _stroke_color_int, True, stroke_width, _layout_width, font_weight))
         else:
             stroke_paragraphs.append(None)
 
@@ -704,6 +718,7 @@ def render_text_to_png(
         font_name: str = 'Songti SC',
         font_size: float = 20.0,
         font_color: int | tuple = 0x00000000,
+        font_weight:int = 400,
         letter_spacing: float = 0.0,
         text_style: str = 'normal',
 
@@ -742,7 +757,7 @@ def render_text_to_png(
     surface = _render_to_surface(
         text=text, curve_degree=curve_degree, wrap_width=wrap_width,
         text_transform=text_transform, font_name=font_name, font_size=font_size,
-        font_color=font_color, letter_spacing=letter_spacing, text_style=text_style,
+        font_color=font_color, font_weight=font_weight, letter_spacing=letter_spacing, text_style=text_style,
         stroke_width=stroke_width, stroke_color=stroke_color,
         background_style=background_style, background_color=background_color,
         background_fill_width=background_fill_width, background_fill_height=background_fill_height,
