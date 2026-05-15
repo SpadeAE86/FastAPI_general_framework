@@ -18,7 +18,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException, Query, BackgroundTasks
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from models.pydantic.video_analysis_request import (
     HistorySaveRequest,
@@ -40,6 +40,15 @@ from models.pydantic.opensearch_index.base_index import (
     get_index_name, get_vector_fields, get_searchable_fields, get_field_weights, get_vector_weights,
 )
 from services.script_match_recall import ensure_hybrid_pipeline, ensure_rrf_pipeline
+from services.token_join_template_service import (
+    TOKEN_JOIN_TERM_FIELDS_V2,
+    create_template,
+    delete_template,
+    get_default_and_fields,
+    list_templates,
+    set_default_template,
+    update_template,
+)
 from utils.search_utils import reciprocal_rank_fuse
 from core.workspace import list_workspaces, DEFAULT_WORKSPACE_KEY
 
@@ -193,6 +202,80 @@ async def delete_search_strategy(strategy_id: int):
             raise e
             
     return {"success": True}
+
+
+# ---------------- Token AND 模板（转写 / 检索 term filter） ----------------
+
+
+class TokenJoinTemplateCreate(BaseModel):
+    name: str
+    workspace: str = "v2"
+    and_segment_fields: List[str] = Field(default_factory=list)
+    is_default: bool = False
+
+
+class TokenJoinTemplateUpdate(BaseModel):
+    name: Optional[str] = None
+    and_segment_fields: Optional[List[str]] = None
+    is_default: Optional[bool] = None
+
+
+@video_analysis_router.get("/token-join-templates/allowed-fields")
+async def token_join_allowed_fields():
+    """可作 AND term filter 的 v2 索引 keyword 字段（与 segment 字段名一致）。"""
+    return {"success": True, "fields": sorted(TOKEN_JOIN_TERM_FIELDS_V2)}
+
+
+@video_analysis_router.get("/token-join-templates/default-fields")
+async def token_join_default_fields(workspace: str = Query("v2")):
+    fields = await get_default_and_fields(workspace)
+    return {"success": True, "workspace": (workspace or "v2").strip() or "v2", "and_segment_fields": fields}
+
+
+@video_analysis_router.get("/token-join-templates")
+async def token_join_templates_list(workspace: Optional[str] = Query(None)):
+    rows = await list_templates(workspace=workspace)
+    return {"success": True, "templates": rows}
+
+
+@video_analysis_router.post("/token-join-templates")
+async def token_join_templates_create(req: TokenJoinTemplateCreate):
+    row = await create_template(
+        name=req.name,
+        workspace=req.workspace,
+        and_segment_fields=req.and_segment_fields,
+        is_default=req.is_default,
+    )
+    return {"success": True, "template": row.model_dump()}
+
+
+@video_analysis_router.put("/token-join-templates/{template_id}")
+async def token_join_templates_put(template_id: int, req: TokenJoinTemplateUpdate):
+    row = await update_template(
+        template_id,
+        name=req.name,
+        and_segment_fields=req.and_segment_fields,
+        is_default=req.is_default,
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="template not found")
+    return {"success": True, "template": row.model_dump()}
+
+
+@video_analysis_router.delete("/token-join-templates/{template_id}")
+async def token_join_templates_delete(template_id: int):
+    ok = await delete_template(template_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="template not found")
+    return {"success": True}
+
+
+@video_analysis_router.post("/token-join-templates/{template_id}/set-default")
+async def token_join_templates_set_default_route(template_id: int):
+    row = await set_default_template(template_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="template not found")
+    return {"success": True, "template": row.model_dump()}
 
 
 # ---------------- 历史记录接口 ----------------
@@ -413,10 +496,16 @@ async def get_cards(
     return {"success": True, "cards": item.get("cards", []), "shot_cards_version": ver}
 
 class VideoAnalysisSearchToken(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     text: str
     join: Optional[str] = "AND"
     not_: bool = Field(False, alias="not")
     type: Optional[str] = "keyword"
+    source_field: Optional[str] = Field(
+        default=None,
+        description="对应 segment / v2 索引 keyword 字段名；AND 时用于 term filter",
+    )
 
 class VideoAnalysisSearchRequest(BaseModel):
     tokens: List[VideoAnalysisSearchToken] = Field(default_factory=list)
@@ -429,6 +518,69 @@ class VideoAnalysisSearchRequest(BaseModel):
     text_weights: Optional[dict] = Field(default=None, description="文本字段权重")
     vector_weights: Optional[dict] = Field(default=None, description="向量字段权重")
     use_rrf: bool = Field(default=False, description="模糊检索时使用 RRF（关闭则用 min_max+加权平均融合）")
+
+
+def _video_analysis_split_tokens(
+    raw_tokens: List[VideoAnalysisSearchToken],
+    *,
+    index_is_v2: bool,
+) -> tuple[str, List[dict], List[str]]:
+    allowed = TOKEN_JOIN_TERM_FIELDS_V2 if index_is_v2 else frozenset()
+    term_filters: List[dict] = []
+    rel_parts: List[str] = []
+    must_not_texts: List[str] = []
+
+    for tok in raw_tokens or []:
+        text = (tok.text or "").strip()
+        if not text or text == "未知":
+            continue
+        if tok.not_:
+            must_not_texts.append(text)
+            continue
+        join = (tok.join or "AND").strip().upper()
+        is_and = join == "AND"
+        sf = (tok.source_field or "").strip()
+        if is_and and sf and sf in allowed:
+            term_filters.append({"term": {sf: text}})
+        else:
+            rel_parts.append(text)
+
+    query_text = " ".join(rel_parts).strip()
+    if not query_text:
+        query_text = "素材"
+    return query_text, term_filters, must_not_texts
+
+
+def _must_not_clauses_from_texts(texts: List[str], weighted_fields: List[str]) -> List[dict]:
+    out: List[dict] = []
+    for t in texts:
+        tt = (t or "").strip()
+        if not tt:
+            continue
+        out.append(
+            {"multi_match": {"query": tt, "fields": weighted_fields, "type": "best_fields"}}
+        )
+    return out
+
+
+def _wrap_bool_query(
+    inner: dict,
+    *,
+    history_prefix: Optional[str],
+    term_filters: List[dict],
+    must_not: Optional[List[dict]] = None,
+) -> dict:
+    filt = list(term_filters)
+    if history_prefix:
+        filt.append({"prefix": {"id": history_prefix}})
+    if not filt and not must_not:
+        return inner
+    b: dict = {"must": [inner]}
+    if filt:
+        b["filter"] = filt
+    if must_not:
+        b["must_not"] = must_not
+    return {"bool": b}
 
 def _parse_doc_id(doc_id: str) -> Optional[tuple[str, int]]:
     """
@@ -461,6 +613,8 @@ async def _video_analysis_client_rrf_hits(
     text_weights: Optional[dict],
     size: int,
     history_id: str,
+    extra_term_filters: Optional[List[dict]] = None,
+    must_not_multi_matches: Optional[List[dict]] = None,
 ) -> List[dict]:
     """
     When active KNN routes exceed OpenSearch hybrid cap, run BM25 + one KNN search per field
@@ -469,15 +623,22 @@ async def _video_analysis_client_rrf_hits(
     import json
 
     recall = min(500, max(size * 5, 100))
-    prefix = ""
-    if history_id and history_id != "__all__":
-        prefix = f"{history_id}_"
+    hist_prefix = f"{history_id}_" if history_id and history_id != "__all__" else ""
+    hist_prefix_opt = hist_prefix if hist_prefix else None
 
     text_fields = get_searchable_fields(IndexModel)
     weights = get_field_weights(IndexModel).copy()
     if text_weights:
         weights.update(text_weights)
     weighted_fields = [f"{f}^{weights.get(f, 1.0)}" for f in text_fields]
+
+    def wrap_clause(inner: dict) -> dict:
+        return _wrap_bool_query(
+            inner,
+            history_prefix=hist_prefix_opt,
+            term_filters=list(extra_term_filters or []),
+            must_not=must_not_multi_matches if must_not_multi_matches else None,
+        )
 
     mm = {
         "multi_match": {
@@ -487,10 +648,7 @@ async def _video_analysis_client_rrf_hits(
             "_name": "bm25_text_match",
         }
     }
-    if prefix:
-        bm25_query: dict = {"bool": {"must": [mm], "filter": [{"prefix": {"id": prefix}}]}}
-    else:
-        bm25_query = mm
+    bm25_query = wrap_clause(mm)
     bm25_body = {"size": recall, "query": bm25_query, "_source": False}
 
     knn_bodies: List[dict] = []
@@ -505,10 +663,7 @@ async def _video_analysis_client_rrf_hits(
                 },
             },
         }
-        if prefix:
-            knn_q = {"bool": {"must": [knn_clause], "filter": [{"prefix": {"id": prefix}}]}}
-        else:
-            knn_q = knn_clause
+        knn_q = wrap_clause(knn_clause)
         knn_bodies.append({"size": recall, "query": knn_q, "_source": False})
 
     nd_parts: List[str] = []
@@ -545,39 +700,59 @@ async def search_cards(req: VideoAnalysisSearchRequest):
     Returns full ShotCard payloads from DB (source of truth) ordered by OpenSearch score.
     精准匹配(fuzzy=False): BM25 only  /  模糊匹配(fuzzy=True): BM25 + KNN hybrid
     （可选 use_rrf：RRF 排名融合；宏观 bm25_weight/vector_weight 不参与，仅以字段级权重推导子路权重）
+
+    AND + ``source_field``（v2 keyword 白名单）在 OpenSearch 中作 term filter；
+    OR（及无 source_field 的 AND）进入 ``query_text`` 相关性；``not`` → must_not。
     """
-    tokens = [t.text.strip() for t in (req.tokens or []) if t.text and t.text.strip()]
-    if not tokens:
+    raw_tokens = [t for t in (req.tokens or []) if (t.text or "").strip()]
+    if not raw_tokens:
         return {"success": True, "cards": []}
 
-    query_text = " ".join(tokens)
     size = max(1, min(int(req.size or 50), 200))
     ws = (req.workspace or "").strip() or "default"
     history_id = (req.history_id or "").strip()
+    index_is_v2 = ws == "v2"
 
-    token_texts = [t.text for t in (req.tokens or [])[:10]]
-    log.info(
-        f"[search] query={query_text!r}  fuzzy={req.fuzzy}  use_rrf={req.use_rrf}  size={size}"
-        f"  workspace={ws}  history={history_id or '*'}  tokens={token_texts}"
+    query_text, term_filters, must_not_texts = _video_analysis_split_tokens(
+        raw_tokens, index_is_v2=index_is_v2
     )
 
-    IndexModel = CarInteriorAnalysisV2 if ws == "v2" else CarInteriorAnalysis
+    hist_prefix = f"{history_id}_" if history_id and history_id != "__all__" else ""
+    hist_prefix_opt = hist_prefix if hist_prefix else None
+
+    token_texts = [t.text for t in raw_tokens[:10]]
+    log.info(
+        "[search] query=%r fuzzy=%s use_rrf=%s size=%s workspace=%s history=%s term_filters=%s tokens=%s",
+        query_text,
+        req.fuzzy,
+        req.use_rrf,
+        size,
+        ws,
+        history_id or "*",
+        term_filters,
+        token_texts,
+    )
+
+    IndexModel = CarInteriorAnalysisV2 if index_is_v2 else CarInteriorAnalysis
 
     await opensearch_connector.ensure_init()
     client = await opensearch_connector.get_client()
 
     vec_fields = get_vector_fields(IndexModel)
+    text_fields = get_searchable_fields(IndexModel)
+    weights = get_field_weights(IndexModel).copy()
+    if req.text_weights:
+        weights.update(req.text_weights)
+    weighted_fields = [f"{f}^{weights.get(f, 1.0)}" for f in text_fields]
+    must_not_mm = _must_not_clauses_from_texts(must_not_texts, weighted_fields)
+    must_not_opt = must_not_mm if must_not_mm else None
+
     body: Optional[dict] = None
     pipeline_param: Optional[str] = None
     hits: Optional[List[dict]] = None
     search_mode = "precise"
 
     if not req.fuzzy:
-        text_fields = get_searchable_fields(IndexModel)
-        weights = get_field_weights(IndexModel)
-        if req.text_weights:
-            weights.update(req.text_weights)
-        weighted_fields = [f"{f}^{weights.get(f, 1.0)}" for f in text_fields]
         body = {
             "size": size,
             "query": {
@@ -621,6 +796,8 @@ async def search_cards(req: VideoAnalysisSearchRequest):
                     text_weights=req.text_weights,
                     size=size,
                     history_id=history_id,
+                    extra_term_filters=term_filters,
+                    must_not_multi_matches=must_not_opt,
                 )
                 search_mode = "fuzzy_rrf"
             except Exception as e:
@@ -671,10 +848,14 @@ async def search_cards(req: VideoAnalysisSearchRequest):
     ]
 
     if body is not None:
-        if history_id and history_id != "__all__":
-            prefix = f"{history_id}_"
-            q = body.get("query") or {}
-            body["query"] = {"bool": {"must": [q], "filter": [{"prefix": {"id": prefix}}]}}
+        inner_q = body.get("query")
+        if inner_q is not None:
+            body["query"] = _wrap_bool_query(
+                inner_q,
+                history_prefix=hist_prefix_opt,
+                term_filters=term_filters,
+                must_not=must_not_opt,
+            )
         body["highlight"] = {
             "pre_tags": ["<em>"],
             "post_tags": ["</em>"],
@@ -726,7 +907,8 @@ async def search_cards(req: VideoAnalysisSearchRequest):
     if not keys_in_order:
         return {"success": True, "cards": [], "search_mode": search_mode}
 
-    cards = await video_analysis_db_service.get_cards_by_keys(keys_in_order, shot_cards_version="v2")
+    shot_ver = "v2" if index_is_v2 else "v1"
+    cards = await video_analysis_db_service.get_cards_by_keys(keys_in_order, shot_cards_version=shot_ver)
     by_key = {(c.get("history_id"), int(c.get("scene_id") or 0)): c for c in (cards or [])}
     ordered = []
     for k in keys_in_order:

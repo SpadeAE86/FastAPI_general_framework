@@ -1,0 +1,22 @@
+[
+  {
+    "id": "20260424_111246_c33e0878",
+    "name": "20250527-车内视角-四轮全爆-1.mp4",
+    "time": "2026-04-24T11:12:52",
+    "cards": [
+      {
+        "scene_id": 1,
+        "start_time": 0.0,
+        "end_time": 4.0,
+        "duration_seconds": 4.0,
+        "thumbnail": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/ai_picture/video_analysis/20260424_111246_c33e0878/scene_001_frame_000000.webp/scene_001_frame_000000.webp",
+        "frame_urls": [
+          "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/ai_picture/video_analysis/20260424_111246_c33e0878/scene_001_frame_000000.webp/scene_001_frame_000000.webp",
+          "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/ai_picture/video_analysis/20260424_111246_c33e0878/scene_001_frame_000060.webp/scene_001_frame_000060.webp",
+          "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/ai_picture/video_analysis/20260424_111246_c33e0878/scene_001_frame_000119.webp/scene_001_frame_000119.webp"
+        ],
+        "error": "豆包返回为空"
+      }
+    ]
+  }
+]

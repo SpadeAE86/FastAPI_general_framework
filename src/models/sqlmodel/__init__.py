@@ -14,6 +14,7 @@ from .video_analysis import (  # noqa: F401
     VideoAnalysisShotCard,
     VideoAnalysisShotCardSharedFields,
     VideoAnalysisShotCardV2,
+    VideoAnalysisTokenJoinTemplate,
     VideoAnalysisVideoV2,
 )
 from .video_upload_cache import VideoSourceUploadCache  # noqa: F401

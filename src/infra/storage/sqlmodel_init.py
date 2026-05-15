@@ -310,3 +310,10 @@ async def create_tables_if_not_exists() -> None:
     await _ensure_video_mix_compose_job_columns()
     await _ensure_mix_video_overall_time_table()
 
+    from services.token_join_template_service import seed_token_join_templates_if_empty
+
+    try:
+        await seed_token_join_templates_if_empty()
+    except Exception as e:
+        log.warning("token_join_template seed skipped: %s", e)
+

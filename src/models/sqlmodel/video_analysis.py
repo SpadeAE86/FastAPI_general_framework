@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Optional, TypedDict
 
 from sqlmodel import SQLModel, Field
-from sqlalchemy import Column, DateTime, Text, func, BigInteger, Integer
+from sqlalchemy import Column, DateTime, Text, func, BigInteger, Integer, UniqueConstraint
 from sqlalchemy.dialects.mysql import JSON as MySQLJSON, VARCHAR
 from sqlalchemy import String
 
@@ -33,6 +33,34 @@ class VideoAnalysisSearchStrategy(SQLModel, table=True):
     
     is_default: bool = Field(default=False, nullable=False)
     
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    )
+
+
+class VideoAnalysisTokenJoinTemplate(SQLModel, table=True):
+    """
+    视频分析：从 segment 生成 SearchToken 时，哪些 segment 字段标为 AND（并在 /search 中映射为 term filter）。
+    """
+
+    __tablename__ = "video_analysis_token_join_template"
+    __table_args__ = (UniqueConstraint("name", "workspace", name="uq_va_token_join_name_ws"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(sa_column=Column(VARCHAR(128), nullable=False))
+    workspace: str = Field(
+        default="v2",
+        sa_column=Column(VARCHAR(32), nullable=False, server_default="v2"),
+    )
+    is_default: bool = Field(default=False, nullable=False)
+    and_segment_fields: List[str] = Field(
+        default_factory=list,
+        sa_column=Column(MySQLJSON, nullable=False),
+    )
+
     created_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     )
