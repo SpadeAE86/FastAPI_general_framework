@@ -20,6 +20,9 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException, Query, BackgroundTasks
 from pydantic import BaseModel, Field, ConfigDict
 
+from infra.storage.mysql_connector import mysql_connector
+from models.sqlmodel.video_material_match import VideoMaterialMatchHistory
+
 from models.pydantic.video_analysis_request import (
     HistorySaveRequest,
     HistoryUpdateRequest,
@@ -41,6 +44,7 @@ from models.pydantic.opensearch_index.base_index import (
     get_index_name, get_vector_fields, get_searchable_fields, get_field_weights, get_vector_weights,
 )
 from services.script_match_recall import ensure_hybrid_pipeline, ensure_rrf_pipeline
+from services.video_match_http_trace import trace_response_top_hits_with_explain
 from services.token_join_template_service import (
     TOKEN_JOIN_TERM_FIELDS_V2,
     normalize_v2_term_filter_value,
@@ -69,6 +73,33 @@ _video_analysis_slot = asyncio.BoundedSemaphore(_video_analysis_max_concurrent)
 
 # 内存任务状态（与 DB 并存；上传/重试入口均会写入 PENDING）
 video_task_status: Dict[str, Dict[str, Any]] = {}
+
+
+def _va_ordered_cards_to_trace_hits(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """与分镜素材检索 trace 同源字段，供 trace_response_top_hits_with_explain 写入 HTTP 记录。"""
+    out: List[Dict[str, Any]] = []
+    for c in cards:
+        if not isinstance(c, dict):
+            continue
+        hid = c.get("history_id")
+        sid = c.get("scene_id")
+        doc_id: Optional[str] = None
+        if hid is not None and sid is not None:
+            try:
+                doc_id = f"{hid}_{int(sid)}"
+            except (TypeError, ValueError):
+                doc_id = f"{hid}_{sid}"
+        vp = str(c.get("obs_video_url") or c.get("thumbnail") or c.get("video_url") or "").strip()
+        out.append(
+            {
+                "_id": doc_id or c.get("_id"),
+                "_score": c.get("_score"),
+                "history_id": hid,
+                "video_path": vp[:512] if vp else None,
+                "_explanation": c.get("_explanation"),
+            }
+        )
+    return out
 
 
 def _append_chunk_to_disk(f: Any, md5_hash: Any, chunk: bytes) -> None:
@@ -100,7 +131,9 @@ async def get_index_fields(workspace: str = Query("v2")):
     return {
         "success": True,
         "text_fields": text_fields,
-        "vector_fields": vector_fields
+        "vector_fields": vector_fields,
+        "text_field_weights": get_field_weights(IndexModel),
+        "vector_field_weights": get_vector_weights(IndexModel),
     }
 
 class SearchStrategyCreate(BaseModel):
@@ -525,6 +558,28 @@ class VideoAnalysisSearchRequest(BaseModel):
     use_rrf: bool = Field(default=False, description="模糊检索时使用 RRF（关闭则用 min_max+加权平均融合）")
 
 
+def _va_tokens_for_storage(tokens: List[VideoAnalysisSearchToken]) -> List[Dict[str, Any]]:
+    """完整入参 token 列表，供 material history / HTTP 审计还原标签（含 join、not、type、source_field）。"""
+    out: List[Dict[str, Any]] = []
+    for t in tokens:
+        text = (t.text or "").strip()
+        if not text:
+            continue
+        join_raw = (t.join or "AND").strip().upper()
+        join = join_raw if join_raw in ("AND", "OR") else "AND"
+        d: Dict[str, Any] = {
+            "text": text,
+            "join": join,
+            "not": bool(t.not_),
+            "type": (t.type or "keyword").strip() or "keyword",
+        }
+        sf = (t.source_field or "").strip()
+        if sf:
+            d["source_field"] = sf
+        out.append(d)
+    return out
+
+
 def _video_analysis_split_tokens(
     raw_tokens: List[VideoAnalysisSearchToken],
     *,
@@ -768,6 +823,106 @@ async def search_cards(req: VideoAnalysisSearchRequest):
         f"term_filters={term_filters!r} tokens={token_texts!r}"
     )
 
+    t_search0 = time.perf_counter()
+    token_payload = _va_tokens_for_storage(raw_tokens)
+    audit_body: Dict[str, Any] = {
+        "workspace": ws,
+        "fuzzy": req.fuzzy,
+        "use_rrf": req.use_rrf,
+        "size": size,
+        "query_text": query_text,
+        "token_count": len(raw_tokens),
+        "tokens": token_payload,
+        "history_id": history_id or None,
+        "bm25_weight": req.bm25_weight,
+        "vector_weight": req.vector_weight,
+    }
+    trace_rid = await http_request_trace_service.create_initial(
+        request_url="/video-analysis/search",
+        method_name="POST /video-analysis/search",
+        business_type="VIDEO_ANALYSIS_CARD_SEARCH",
+        request_body=audit_body,
+    )
+    match_hist_id = str(uuid.uuid4())
+
+    async def _audit_va_search_finish(
+        *,
+        api_ok: bool,
+        search_mode_final: str,
+        cards_result: Optional[List[Dict[str, Any]]] = None,
+        err_msg: Optional[str] = None,
+    ) -> None:
+        elapsed_ms = int((time.perf_counter() - t_search0) * 1000)
+        cards = cards_result or []
+        hit_n = len(cards)
+        top1: Optional[str] = None
+        if cards:
+            c0 = cards[0]
+            if isinstance(c0, dict):
+                top1 = (
+                    str(
+                        c0.get("obs_video_url")
+                        or c0.get("thumbnail")
+                        or c0.get("video_url")
+                        or ""
+                    ).strip()[:2048]
+                    or None
+                )
+        st_snap: Dict[str, Any] = {
+            "bm25_weight": req.bm25_weight,
+            "vector_weight": req.vector_weight,
+            "use_rrf": req.use_rrf,
+            "fuzzy": req.fuzzy,
+            "text_weights": req.text_weights,
+            "vector_weights": req.vector_weights,
+            "search_tokens": token_payload,
+        }
+        trace_hit_payload: Any = None
+        if api_ok and cards:
+            trace_hit_payload = trace_response_top_hits_with_explain(
+                _va_ordered_cards_to_trace_hits(cards)
+            )
+        resp_trace: Dict[str, Any] = {
+            "hit_count": hit_n,
+            "search_mode": search_mode_final,
+            "success": api_ok,
+            "match_history_id": match_hist_id,
+        }
+        if trace_hit_payload is not None:
+            resp_trace["top_hits_explain"] = trace_hit_payload
+        try:
+            await http_request_trace_service.finalize(
+                trace_rid,
+                status_code=200 if api_ok else 500,
+                response_body=resp_trace if api_ok else {"success": False, "error": err_msg},
+                error_message=err_msg if not api_ok else None,
+                business_success=api_ok,
+                duration_ms=elapsed_ms,
+            )
+        except Exception as ex:
+            log.warning("va search trace finalize failed: %s", ex)
+        try:
+            async with mysql_connector.session_scope() as session:
+                hist = VideoMaterialMatchHistory(
+                    id=match_hist_id,
+                    request_id=trace_rid,
+                    source="video_analysis_search",
+                    workspace=ws if ws and ws != "default" else None,
+                    status="done" if api_ok else "failed",
+                    va_context_history_id=history_id or None,
+                    query_preview=(query_text or "")[:512] or None,
+                    search_mode=search_mode_final,
+                    hit_count=hit_n,
+                    top1_obs_url=top1,
+                    elapsed_ms=float(elapsed_ms),
+                    error_message=err_msg if not api_ok else None,
+                    strategy_snapshot=st_snap,
+                )
+                session.add(hist)
+                await session.commit()
+        except Exception as ex:
+            log.warning("va search material history persist failed: %s", ex)
+
     IndexModel = CarInteriorAnalysisV2 if index_is_v2 else CarInteriorAnalysis
 
     await opensearch_connector.ensure_init()
@@ -837,7 +992,15 @@ async def search_cards(req: VideoAnalysisSearchRequest):
                 search_mode = "fuzzy_rrf"
             except Exception as e:
                 log.error(f"video-analysis client RRF search failed: {e}")
-                return {"success": False, "error": str(e), "cards": []}
+                await _audit_va_search_finish(
+                    api_ok=False, search_mode_final="fuzzy_rrf", err_msg=str(e)
+                )
+                return {
+                    "success": False,
+                    "error": str(e),
+                    "cards": [],
+                    "match_history_id": match_hist_id,
+                }
         else:
             top_vecs = ordered_vecs if use_rrf else ordered_vecs[:HYBRID_MAX_KNN]
             body = query_builder.build_dynamic_hybrid_search(
@@ -916,7 +1079,13 @@ async def search_cards(req: VideoAnalysisSearchRequest):
             hits = ((resp.get("hits") or {}).get("hits") or [])
     except Exception as e:
         log.error(f"video-analysis search failed: {e}")
-        return {"success": False, "error": str(e), "cards": []}
+        await _audit_va_search_finish(api_ok=False, search_mode_final=search_mode, err_msg=str(e))
+        return {
+            "success": False,
+            "error": str(e),
+            "cards": [],
+            "match_history_id": match_hist_id,
+        }
 
     assert hits is not None
     top5 = [
@@ -948,7 +1117,13 @@ async def search_cards(req: VideoAnalysisSearchRequest):
             meta_by_key[k] = meta
 
     if not keys_in_order:
-        return {"success": True, "cards": [], "search_mode": search_mode}
+        await _audit_va_search_finish(api_ok=True, search_mode_final=search_mode, cards_result=[])
+        return {
+            "success": True,
+            "cards": [],
+            "search_mode": search_mode,
+            "match_history_id": match_hist_id,
+        }
 
     shot_ver = "v2" if index_is_v2 else "v1"
     cards = await video_analysis_db_service.get_cards_by_keys(keys_in_order, shot_cards_version=shot_ver)
@@ -960,7 +1135,13 @@ async def search_cards(req: VideoAnalysisSearchRequest):
         card = dict(by_key[k])
         card.update(meta_by_key.get(k) or {})
         ordered.append(card)
-    return {"success": True, "cards": ordered, "search_mode": search_mode}
+    await _audit_va_search_finish(api_ok=True, search_mode_final=search_mode, cards_result=ordered)
+    return {
+        "success": True,
+        "cards": ordered,
+        "search_mode": search_mode,
+        "match_history_id": match_hist_id,
+    }
 
 class VideoAnalysisReindexRequest(BaseModel):
     history_id: str

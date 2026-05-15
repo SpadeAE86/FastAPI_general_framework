@@ -131,6 +131,11 @@ def _merge_and_cap_global(segments: List[Dict[str, Any]]) -> Dict[str, Any]:
     return cap_global_merged_lists(merged)
 
 
+def _query_body_is_hybrid(body: Dict[str, Any]) -> bool:
+    q0 = body.get("query") or {}
+    return isinstance(q0, dict) and "hybrid" in q0 and isinstance(q0.get("hybrid"), dict)
+
+
 def _inner_seg_mode(outer_mode: str) -> str:
     if outer_mode == "global_then_segment":
         return "lite"
@@ -284,9 +289,21 @@ async def _match_one_segment(
     elif pipeline_base:
         params = {"search_pipeline": pipeline_base}
 
+    # RRF hybrid 与 explain 不兼容；普通 hybrid / BM25 请求 explain（与 video_analysis 搜索一致）
+    explain_requested = not (use_rrf and _query_body_is_hybrid(body))
+    if explain_requested:
+        body["explain"] = True
+
     resp = await c.search(index=INDEX_NAME, body=body, params=params)
     hits = (((resp or {}).get("hits") or {}).get("hits") or [])
-    top = [{"_id": h.get("_id"), "_score": h.get("_score")} for h in hits[: int(top_k)]]
+    top: List[Dict[str, Any]] = []
+    for h in hits[: int(top_k)]:
+        item: Dict[str, Any] = {"_id": h.get("_id"), "_score": h.get("_score")}
+        if explain_requested:
+            ex = h.get("_explanation")
+            if ex is not None:
+                item["_explanation"] = ex
+        top.append(item)
 
     history_ids = [history_id_from_doc_id(t.get("_id") or "") for t in top]
     path_map = await _fetch_video_paths(history_ids, shot_cards_version)

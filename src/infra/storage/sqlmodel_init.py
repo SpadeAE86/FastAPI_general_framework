@@ -189,6 +189,7 @@ async def _ensure_video_match_columns() -> None:
         "ALTER TABLE video_match_shot_row ADD COLUMN search_request_id VARCHAR(36) NULL",
         "ALTER TABLE video_match_job ADD COLUMN frame_size VARCHAR(32) NULL",
         "ALTER TABLE video_match_job ADD COLUMN frame_orientation VARCHAR(32) NULL",
+        "ALTER TABLE video_match_shot_row ADD COLUMN match_id VARCHAR(36) NULL",
     ]
     async with engine.begin() as conn:
         for sql in stmts:
@@ -201,6 +202,71 @@ async def _ensure_video_match_columns() -> None:
                     log.debug("video_match column exists, skip: %s", sql[:72])
                     continue
                 log.warning("video_match column migration failed: %s", e)
+
+
+async def _backfill_video_material_match_history() -> None:
+    """旧分镜行仅有 search_request_id 时，补齐 video_material_match_history 与 match_id。"""
+    import uuid
+
+    from sqlalchemy import or_
+
+    from infra.storage.mysql_connector import mysql_connector
+    from models.sqlmodel.video_material_match import VideoMaterialMatchHistory
+    from models.sqlmodel.video_match import VideoMatchJob, VideoMatchShotRow
+    from sqlmodel import select
+
+    try:
+        async with mysql_connector.session_scope() as session:
+            res = await session.execute(
+                select(VideoMatchShotRow, VideoMatchJob)
+                .join(VideoMatchJob, VideoMatchShotRow.job_id == VideoMatchJob.id)
+                .where(VideoMatchShotRow.search_request_id.isnot(None))
+                .where(VideoMatchShotRow.search_request_id != "")
+                .where(
+                    or_(
+                        VideoMatchShotRow.match_id.is_(None),
+                        VideoMatchShotRow.match_id == "",
+                    )
+                )
+                .limit(500)
+            )
+            pairs = list(res.all())
+        for row, job in pairs:
+            job_ws = job.workspace if job else None
+            rid = (row.search_request_id or "").strip()
+            if not rid:
+                continue
+            hist_id = str(uuid.uuid4())
+            hits = row.match_top_hits_json
+            hit_n = len(hits) if isinstance(hits, list) else 0
+            st = (row.search_status or "").lower()
+            hist_status = "done" if st == "done" else ("failed" if st == "failed" else "done")
+            preview = (row.segment_text or "").strip()[:512] or None
+            async with mysql_connector.session_scope() as session:
+                session.add(
+                    VideoMaterialMatchHistory(
+                        id=hist_id,
+                        request_id=rid,
+                        source="video_match_shot",
+                        workspace=(job_ws or None),
+                        status=hist_status,
+                        video_match_job_id=row.job_id,
+                        video_match_shot_row_id=row.id,
+                        hit_count=hit_n,
+                        top1_obs_url=row.top1_obs_url,
+                        elapsed_ms=row.match_elapsed_ms,
+                        query_preview=preview,
+                    )
+                )
+                row2 = await session.get(VideoMatchShotRow, row.id)
+                if row2:
+                    row2.match_id = hist_id
+                    session.add(row2)
+                await session.commit()
+        if pairs:
+            log.info("Backfilled video_material_match_history for {} shot rows (batch max 500)", len(pairs))
+    except Exception as e:
+        log.warning("video_material_match backfill skipped or partial: %s", e)
 
 
 async def _ensure_video_source_upload_cache_transcode_columns() -> None:
@@ -307,6 +373,7 @@ async def create_tables_if_not_exists() -> None:
     await _ensure_video_analysis_history_extras()
     await _ensure_image_history_extras()
     await _ensure_video_match_columns()
+    await _backfill_video_material_match_history()
     await _ensure_video_source_upload_cache_transcode_columns()
     await _ensure_video_mix_compose_job_columns()
     await _ensure_mix_video_overall_time_table()

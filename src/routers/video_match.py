@@ -13,7 +13,9 @@ from services.http_request_trace_service import http_request_trace_service
 from services.video_match_service import (
     create_job_and_parse,
     get_job_payload,
+    get_material_match_board_detail,
     get_shot_match_detail,
+    list_material_match_histories,
     list_video_match_jobs,
     rematch_video_match_shot,
     run_job_search,
@@ -59,6 +61,26 @@ class MixComposeFromJobBody(BaseModel):
 
 
 video_match_router = APIRouter(prefix="/video-match", tags=["video-match"])
+
+
+@video_match_router.get("/material-matches")
+async def list_material_matches_route(
+    workspace: Optional[str] = None,
+    source: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 100,
+):
+    return await list_material_match_histories(
+        workspace=workspace, source=source, status=status, limit=limit
+    )
+
+
+@video_match_router.get("/material-matches/{match_id}/detail")
+async def get_material_match_board_detail_route(match_id: str):
+    detail = await get_material_match_board_detail(match_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="material match not found")
+    return {"success": True, "detail": detail}
 
 
 @video_match_router.get("/jobs")

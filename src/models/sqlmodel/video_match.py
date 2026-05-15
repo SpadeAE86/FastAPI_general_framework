@@ -93,6 +93,17 @@ class VideoMatchShotRow(SQLModel, table=True):
     # 联表 http_request_traces.id：本分镜 OpenSearch 匹配阶段请求记录
     search_request_id: Optional[str] = Field(default=None, sa_column=Column(VARCHAR(36), nullable=True, index=True))
 
+    # 联表 video_material_match_history.id：当前/最近一次素材检索履历（任务看板素材匹配）
+    match_id: Optional[str] = Field(
+        default=None,
+        sa_column=Column(
+            VARCHAR(36),
+            ForeignKey("video_material_match_history.id", ondelete="SET NULL"),
+            nullable=True,
+            index=True,
+        ),
+    )
+
     created_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     )

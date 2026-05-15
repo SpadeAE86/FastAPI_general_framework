@@ -264,6 +264,76 @@ def build_video_match_shot_search_task_detail(
     }
 
 
+def build_video_material_match_task_detail(row: Dict[str, Any]) -> Dict[str, Any]:
+    """由 video_material_match_history 行合成占位详情；有 request_id 时合并 http_request_traces。"""
+    st = (row.get("status") or "").strip().lower()
+    src = (row.get("source") or "").strip()
+    duration_ms = _duration_ms_created_updated(row)
+    if st == "done":
+        label = "成功"
+        ok = True
+    elif st == "failed":
+        label = "失败"
+        ok = False
+    elif st in ("running", "pending"):
+        label = "进行中"
+        ok = False
+    else:
+        label = row.get("status") or "—"
+        ok = False
+    bt = (
+        "VIDEO_ANALYSIS_CARD_SEARCH"
+        if src == "video_analysis_search"
+        else "VIDEO_MATCH_SHOT_SEARCH"
+    )
+    req_body: Dict[str, Any] = {
+        "material_match_id": row.get("id"),
+        "source": src,
+        "workspace": row.get("workspace"),
+        "video_match_job_id": row.get("video_match_job_id"),
+        "video_match_shot_row_id": row.get("video_match_shot_row_id"),
+        "va_context_history_id": row.get("va_context_history_id"),
+        "query_preview": row.get("query_preview"),
+        "hit_count": row.get("hit_count"),
+        "search_mode": row.get("search_mode"),
+        "strategy_snapshot": row.get("strategy_snapshot"),
+    }
+    resp_body: Dict[str, Any] = {
+        "status": row.get("status"),
+        "hit_count": row.get("hit_count"),
+        "top1_obs_url": row.get("top1_obs_url"),
+        "elapsed_ms": row.get("elapsed_ms"),
+        "error_message": row.get("error_message"),
+    }
+    return {
+        "id": row.get("id"),
+        "taskId": row.get("id"),
+        "traceId": None,
+        "parentTraceId": None,
+        "serviceName": "my_bot_advance",
+        "methodName": "POST /video-analysis/search"
+        if src == "video_analysis_search"
+        else "POST /internal/opensearch/_search",
+        "httpMethod": "POST",
+        "businessType": bt,
+        "requestUrl": "/video-analysis/search"
+        if src == "video_analysis_search"
+        else "/opensearch/car_interior_analysis_v2/_search",
+        "statusCode": 200 if ok else 500,
+        "durationMs": duration_ms,
+        "businessSuccess": ok,
+        "businessStatusLabel": label,
+        "errorMessage": row.get("error_message"),
+        "createdAt": _iso(row.get("created_at")),
+        "updatedAt": _iso(row.get("updated_at")),
+        "requestHeaders": {},
+        "requestBody": req_body,
+        "responseHeaders": {},
+        "responseBody": resp_body,
+        "note": "素材匹配履历；有 request_id 时合并 http_request_traces。",
+    }
+
+
 def merge_http_trace_into_detail(
     base: Dict[str, Any],
     trace: Optional[Dict[str, Any]],

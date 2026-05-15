@@ -12,11 +12,18 @@ from infra.logging.logger import logger as log
 from infra.storage.mysql_connector import mysql_connector
 from models.pydantic.model_output_schema.seedtext_script_segments_schema import SeedtextIndexTagsEnvelope
 from models.sqlmodel.video_analysis import VideoAnalysisSearchStrategy
+from models.sqlmodel.video_material_match import VideoMaterialMatchHistory
 from models.sqlmodel.video_match import VideoMatchJob, VideoMatchShotRow
 from services.http_request_trace_service import http_request_trace_service
 from services.script_match_query_builder import INDEX_NAME
 from services.script_match_service import match_script_tags_segments
 from services.video_analysis_db_service import video_analysis_db_service
+from services.video_match_http_trace import (
+    hits_for_db_with_truncated_explain,
+    trace_request_body_for_shot_search,
+    trace_response_top_hits_with_explain,
+    truncate_for_trace,
+)
 from services.script_rewrite_service import (
     rewrite_script_to_storyboard_and_tags,
     synthesize_text_to_obs_wav,
@@ -25,55 +32,6 @@ from utils.frame_orientation import infer_frame_orientation
 
 # 后续「每分镜 OpenSearch 匹配」时在此使用 asyncio.Semaphore 限制并发
 MATCH_CONCURRENCY = 4
-
-
-def _truncate_for_trace(obj: Any, max_bytes: int = 28000) -> Any:
-    """避免 request_body 撑爆 JSON 列；尽量保留结构，超长时改为预览字符串。"""
-    try:
-        s = json.dumps(obj, ensure_ascii=False)
-    except (TypeError, ValueError):
-        return {"_error": "non_json_serializable"}
-    b = s.encode("utf-8")
-    if len(b) <= max_bytes:
-        return obj
-    cut = max_bytes - 120
-    pref = s[:cut] if cut > 0 else ""
-    return {"_truncated": True, "utf8_preview": pref + "…"}
-
-
-def _strip_large_numeric_vectors(obj: Any, *, max_list_len: int = 48) -> Any:
-    """
-    OpenSearch hybrid / KNN 请求体里的向量动辄数千维；写入 http_request_traces 前替换为占位，
-    保留可读的 query 结构与短前缀，避免整条变成无法解析的 utf8 裁剪串。
-    注意：业务重试匹配由 match_script_tags_segments(tags_json) 重新构造请求，从不反序列化本条入库体。
-    """
-    if isinstance(obj, list):
-        if len(obj) > max_list_len:
-            head_len = min(8, len(obj))
-            head = obj[:head_len]
-            if head and all(isinstance(x, (int, float)) for x in head):
-                return {
-                    "_omitted": "numeric_vector",
-                    "length": len(obj),
-                    "head_preview": [round(float(x), 6) for x in head],
-                }
-        return [_strip_large_numeric_vectors(x, max_list_len=max_list_len) for x in obj]
-    if isinstance(obj, dict):
-        return {str(k): _strip_large_numeric_vectors(v, max_list_len=max_list_len) for k, v in obj.items()}
-    return obj
-
-
-def _trace_request_body_for_shot_search(m: Dict[str, Any], **extra: Any) -> Any:
-    """分镜检索阶段写入 HTTP trace 的 request_body（已向量压缩 + 字节截断）。"""
-    payload: Dict[str, Any] = {
-        "index": INDEX_NAME,
-        "opensearch_body": m.get("opensearch_body"),
-        "search_params": m.get("search_params"),
-        "query_text": m.get("query_text"),
-    }
-    payload.update({k: v for k, v in extra.items() if v is not None})
-    compact = _strip_large_numeric_vectors(payload)
-    return _truncate_for_trace(compact)
 
 
 def _tags_by_seg_id(tags: SeedtextIndexTagsEnvelope) -> Dict[int, Any]:
@@ -211,6 +169,7 @@ def shot_row_to_api_dict(row: VideoMatchShotRow) -> Dict[str, Any]:
         "match_elapsed_ms": row.match_elapsed_ms,
         "match_hit_count": len(hits) if isinstance(hits, list) else 0,
         "search_request_id": row.search_request_id,
+        "match_id": row.match_id,
     }
 
 
@@ -313,6 +272,7 @@ def _mock_response_payload() -> Dict[str, Any]:
             "match_elapsed_ms": None,
             "match_hit_count": 0,
             "search_request_id": None,
+            "match_id": None,
         },
         {
             "id": None,
@@ -342,6 +302,7 @@ def _mock_response_payload() -> Dict[str, Any]:
             "match_elapsed_ms": None,
             "match_hit_count": 0,
             "search_request_id": None,
+            "match_id": None,
         },
         {
             "id": None,
@@ -371,6 +332,7 @@ def _mock_response_payload() -> Dict[str, Any]:
             "match_elapsed_ms": None,
             "match_hit_count": 0,
             "search_request_id": None,
+            "match_id": None,
         },
     ]
     for s in shots:
@@ -503,6 +465,7 @@ async def rematch_video_match_shot(job_id: str, shot_row_id: int) -> Dict[str, A
             return {"success": False, "error": "分镜缺少标签，无法检索"}
         row.search_status = "running"
         row.search_request_id = None
+        row.match_id = None
         row.top1_obs_url = None
         row.match_top_hits_json = None
         row.match_elapsed_ms = None
@@ -534,11 +497,12 @@ async def rematch_video_match_shot(job_id: str, shot_row_id: int) -> Dict[str, A
     async def persist_one(_idx: int, m: Dict[str, Any]) -> None:
         top_hits_raw = m.get("top_hits") or []
         enriched = await _enrich_hits_with_resolved_urls(top_hits_raw, shot_ver)
+        to_store = hits_for_db_with_truncated_explain(enriched)
         urls5 = _top5_video_urls_from_hits(enriched)
         match_ok = bool(urls5)
         top1 = urls5[0] if urls5 else None
         elapsed = float(m.get("elapsed_ms") or 0)
-        body_for_trace = _trace_request_body_for_shot_search(m, rematch_single_shot=True)
+        body_for_trace = trace_request_body_for_shot_search(m, rematch_single_shot=True)
         trace_rid = await http_request_trace_service.create_initial(
             request_url=f"/opensearch/{INDEX_NAME}/_search",
             http_method="POST",
@@ -548,6 +512,7 @@ async def rematch_video_match_shot(job_id: str, shot_row_id: int) -> Dict[str, A
             upstream_task_id=jid,
             request_body=body_for_trace,
         )
+        match_hist_id = str(uuid.uuid4())
         try:
             async with mysql_connector.session_scope() as session:
                 db_row = await session.get(VideoMatchShotRow, sid)
@@ -559,11 +524,25 @@ async def rematch_video_match_shot(job_id: str, shot_row_id: int) -> Dict[str, A
                         business_success=False,
                     )
                     return
-                db_row.match_top_hits_json = enriched
+                seg_preview = (db_row.segment_text or "").strip()[:512] or None
+                hist = VideoMaterialMatchHistory(
+                    id=match_hist_id,
+                    request_id=trace_rid,
+                    source="video_match_shot",
+                    workspace=ws or None,
+                    status="running",
+                    video_match_job_id=jid,
+                    video_match_shot_row_id=sid,
+                    query_preview=seg_preview,
+                    strategy_snapshot=snap if isinstance(snap, dict) else None,
+                )
+                session.add(hist)
+                db_row.match_top_hits_json = to_store
                 db_row.match_elapsed_ms = elapsed
                 db_row.search_status = "done" if match_ok else "failed"
                 db_row.top1_obs_url = top1
                 db_row.search_request_id = trace_rid
+                db_row.match_id = match_hist_id
                 session.add(db_row)
                 await session.commit()
         except Exception:
@@ -589,14 +568,28 @@ async def rematch_video_match_shot(job_id: str, shot_row_id: int) -> Dict[str, A
             "rematch": True,
             "match_ok": match_ok,
             "top5_nonempty": match_ok,
+            "top_hits_explain": trace_response_top_hits_with_explain(enriched),
         }
         await http_request_trace_service.finalize(
             trace_rid,
             status_code=200,
-            response_body=resp_summary,
+            response_body=truncate_for_trace(resp_summary, max_bytes=200_000),
             business_success=match_ok,
             duration_ms=int(elapsed) if elapsed else None,
         )
+        try:
+            async with mysql_connector.session_scope() as session:
+                h = await session.get(VideoMaterialMatchHistory, match_hist_id)
+                if h:
+                    h.status = "done" if match_ok else "failed"
+                    h.hit_count = len(top_hits_raw)
+                    h.top1_obs_url = top1
+                    h.elapsed_ms = elapsed
+                    h.error_message = None if match_ok else "无有效命中或无法解析视频地址"
+                    session.add(h)
+                    await session.commit()
+        except Exception:
+            log.warning("video_match rematch finalize material_match_history failed id={}", match_hist_id)
         log.info(
             "video_match shot_search rematch job={} shot_order={} row_id={} hit_count={} match_ok={} top1={} top5_urls={} elapsed_ms={}",
             jid,
@@ -716,6 +709,7 @@ async def run_job_search(
         row_ids = [int(r.id) for r in rows]
         ws = (job.workspace or "v1").strip()
         shot_ver = "v2" if ws == "v2" else "v1"
+        job_workspace_for_hist = ws
 
         job.search_status = "running"
         job.search_error = None
@@ -727,6 +721,7 @@ async def run_job_search(
             r.match_top_hits_json = None
             r.match_elapsed_ms = None
             r.search_request_id = None
+            r.match_id = None
             session.add(r)
         session.add(job)
         await session.commit()
@@ -749,12 +744,13 @@ async def run_job_search(
         shot_ord = rows[idx].shot_order
         top_hits_raw = m.get("top_hits") or []
         enriched = await _enrich_hits_with_resolved_urls(top_hits_raw, shot_ver)
+        to_store = hits_for_db_with_truncated_explain(enriched)
         urls5 = _top5_video_urls_from_hits(enriched)
         match_ok = bool(urls5)
         top1 = urls5[0] if urls5 else None
         elapsed = float(m.get("elapsed_ms") or 0)
 
-        body_for_trace = _trace_request_body_for_shot_search(m)
+        body_for_trace = trace_request_body_for_shot_search(m)
         trace_rid = await http_request_trace_service.create_initial(
             request_url=f"/opensearch/{INDEX_NAME}/_search",
             http_method="POST",
@@ -764,6 +760,8 @@ async def run_job_search(
             upstream_task_id=job_id,
             request_body=body_for_trace,
         )
+        match_hist_id = str(uuid.uuid4())
+        seg_preview = (rows[idx].segment_text or "").strip()[:512] or None
         try:
             async with mysql_connector.session_scope() as session:
                 row = await session.get(VideoMatchShotRow, row_id)
@@ -775,11 +773,24 @@ async def run_job_search(
                         business_success=False,
                     )
                     return
-                row.match_top_hits_json = enriched
+                hist = VideoMaterialMatchHistory(
+                    id=match_hist_id,
+                    request_id=trace_rid,
+                    source="video_match_shot",
+                    workspace=job_workspace_for_hist or None,
+                    status="running",
+                    video_match_job_id=job_id,
+                    video_match_shot_row_id=row_id,
+                    query_preview=seg_preview,
+                    strategy_snapshot=snapshot,
+                )
+                session.add(hist)
+                row.match_top_hits_json = to_store
                 row.match_elapsed_ms = elapsed
                 row.search_status = "done" if match_ok else "failed"
                 row.top1_obs_url = top1
                 row.search_request_id = trace_rid
+                row.match_id = match_hist_id
                 session.add(row)
                 await session.commit()
         except Exception:
@@ -799,14 +810,28 @@ async def run_job_search(
             "shot_order": shot_ord,
             "match_ok": match_ok,
             "top5_nonempty": match_ok,
+            "top_hits_explain": trace_response_top_hits_with_explain(enriched),
         }
         await http_request_trace_service.finalize(
             trace_rid,
             status_code=200,
-            response_body=resp_summary,
+            response_body=truncate_for_trace(resp_summary, max_bytes=200_000),
             business_success=match_ok,
             duration_ms=int(elapsed) if elapsed else None,
         )
+        try:
+            async with mysql_connector.session_scope() as session:
+                h = await session.get(VideoMaterialMatchHistory, match_hist_id)
+                if h:
+                    h.status = "done" if match_ok else "failed"
+                    h.hit_count = len(top_hits_raw)
+                    h.top1_obs_url = top1
+                    h.elapsed_ms = elapsed
+                    h.error_message = None if match_ok else "无有效命中或无法解析视频地址"
+                    session.add(h)
+                    await session.commit()
+        except Exception:
+            log.warning("video_match finalize material_match_history failed id={}", match_hist_id)
         log.info(
             "video_match shot_search job={} shot_order={} row_id={} hit_count={} match_ok={} top1={} top5_urls={} elapsed_ms={}",
             job_id,
@@ -929,7 +954,7 @@ async def create_job_and_parse(
         business_type="VIDEO_MATCH_PARSE",
         business_id=job_id,
         upstream_task_id=job_id,
-        request_body=_truncate_for_trace(
+        request_body=truncate_for_trace(
             {
                 "job_id": job_id,
                 "workspace": ws,
@@ -1073,6 +1098,94 @@ async def list_video_match_jobs(
             }
         )
     return {"success": True, "jobs": items}
+
+
+async def list_material_match_histories(
+    *,
+    workspace: Optional[str] = None,
+    source: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 100,
+) -> Dict[str, Any]:
+    """素材匹配看板列表（视频匹配分镜检索 + 视频分析搜索栏）。"""
+    lim = max(1, min(int(limit or 100), 200))
+    async with mysql_connector.session_scope() as session:
+        stmt = select(VideoMaterialMatchHistory).order_by(
+            VideoMaterialMatchHistory.created_at.desc()
+        ).limit(lim)
+        ws = (workspace or "").strip()
+        if ws:
+            stmt = stmt.where(VideoMaterialMatchHistory.workspace == ws)
+        src = (source or "").strip()
+        if src:
+            stmt = stmt.where(VideoMaterialMatchHistory.source == src)
+        stf = (status or "").strip()
+        if stf:
+            stmt = stmt.where(VideoMaterialMatchHistory.status == stf)
+        res = await session.execute(stmt)
+        rows = list(res.scalars().all())
+    items: List[Dict[str, Any]] = []
+    for h in rows:
+        items.append(
+            {
+                "id": h.id,
+                "request_id": h.request_id,
+                "source": h.source,
+                "workspace": h.workspace,
+                "status": h.status,
+                "error_message": h.error_message,
+                "video_match_job_id": h.video_match_job_id,
+                "video_match_shot_row_id": h.video_match_shot_row_id,
+                "va_context_history_id": h.va_context_history_id,
+                "hit_count": h.hit_count,
+                "top1_obs_url": h.top1_obs_url,
+                "elapsed_ms": h.elapsed_ms,
+                "query_preview": h.query_preview,
+                "search_mode": h.search_mode,
+                "strategy_snapshot": h.strategy_snapshot,
+                "created_at": h.created_at.isoformat() if h.created_at else None,
+                "updated_at": h.updated_at.isoformat() if h.updated_at else None,
+            }
+        )
+    return {"success": True, "matches": items}
+
+
+async def get_material_match_board_detail(match_id: str) -> Optional[Dict[str, Any]]:
+    """任务看板：单条素材匹配履历 HTTP 详情。"""
+    from services.task_detail_service import (
+        build_video_material_match_task_detail,
+        merge_http_trace_into_detail,
+    )
+
+    mid = (match_id or "").strip()
+    if not mid:
+        return None
+    async with mysql_connector.session_scope() as session:
+        row = await session.get(VideoMaterialMatchHistory, mid)
+    if row is None:
+        return None
+    d: Dict[str, Any] = {
+        "id": row.id,
+        "status": row.status,
+        "source": row.source,
+        "workspace": row.workspace,
+        "error_message": row.error_message,
+        "video_match_job_id": row.video_match_job_id,
+        "video_match_shot_row_id": row.video_match_shot_row_id,
+        "va_context_history_id": row.va_context_history_id,
+        "hit_count": row.hit_count,
+        "top1_obs_url": row.top1_obs_url,
+        "elapsed_ms": row.elapsed_ms,
+        "query_preview": row.query_preview,
+        "search_mode": row.search_mode,
+        "strategy_snapshot": row.strategy_snapshot,
+        "created_at": row.created_at,
+        "updated_at": row.updated_at,
+    }
+    base = build_video_material_match_task_detail(d)
+    rid = (row.request_id or "").strip()
+    trace_dict = await http_request_trace_service.get_dict(str(rid)) if rid else None
+    return merge_http_trace_into_detail(base, trace_dict)
 
 
 async def synthesize_shot_obs_audio(job_id: str, shot_row_id: int) -> Dict[str, Any]:
@@ -1246,7 +1359,7 @@ async def _reparse_video_match_job_core(job_id: str) -> None:
         business_type="VIDEO_MATCH_PARSE",
         business_id=jid,
         upstream_task_id=jid,
-        request_body=_truncate_for_trace(
+        request_body=truncate_for_trace(
             {
                 "job_id": jid,
                 "workspace": ws,
