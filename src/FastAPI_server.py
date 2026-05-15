@@ -11,12 +11,11 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from routers import *
 from infra.logging.logger import logger as log
-from services.analysis_video import get_embedding_model
+from services.analysis_video import start_embedding_warmup_background
 # from utils.obs_utils import *
 
 from config.config import *
 from contextlib import asynccontextmanager
-from concurrent.futures import ThreadPoolExecutor
 from exceptions.infra import ServiceException
 # init connectors and tables
 from infra.connector_loader import connector_loader
@@ -37,7 +36,7 @@ async def lifespan(app: FastAPI):
     log.info("FastAPI started")
     # 不要用 loop.set_default_executor 替换 Uvicorn/asyncio 的默认线程池：
     # 在 Windows 上曾出现「Application startup complete 后仍像完全收不到 HTTP」的现象，
-    # 可能与默认执行器被替换后部分 IO/回调无法调度有关。向量模型改由独立池加载（见下）。
+    # 可能与默认执行器被替换后部分 IO/回调无法调度有关。向量模型改由独立池加载（见 analysis_video._EMBED_EXECUTOR）。
 
     try:
         # Initialize infra connectors (mysql/redis/rabbitmq/opensearch)
@@ -52,20 +51,9 @@ async def lifespan(app: FastAPI):
         except Exception as _e:
             log.warning("启动时标记中断任务失败（可忽略若表未就绪）: %s", _e)
 
-        # # --- 模型预热（后台）：须先 yield 后才开始接 HTTP；原先在 yield 前 await 会卡住整条事件循环，
-        # # 导致 /health、/docs 在预热完成前一律无响应（本地常需 30–90s，看起来像「服务挂死」）。
-        # async def _warmup_embedding() -> None:
-        #     log.info("开始预热向量模型 (SentenceTransformer)，后台任务...")
-        #     try:
-        #         loop = asyncio.get_running_loop()
-        #         with ThreadPoolExecutor(max_workers=1, thread_name_prefix="st_embed") as pool:
-        #             await loop.run_in_executor(pool, get_embedding_model)
-        #         log.info("向量模型预热完成。")
-        #     except Exception as e:
-        #         log.error(f"向量模型预热失败: {e}")
-        #
-        # warmup_task = asyncio.create_task(_warmup_embedding())
-        # log.info("Lifespan 核心初始化完成，即将对外接受 HTTP（向量模型仍在后台加载）。")
+        # 模型预热（后台 task，不 await）：yield 后 HTTP 立即可用；OpenSearch 入库前会 await ensure_embedding_model_ready 等待同一加载任务。
+        warmup_task = start_embedding_warmup_background()
+        log.info("已向后台派发向量模型预热；HTTP 即将就绪（向量化入库前会等待预热完成）。")
         yield
     finally:
         if warmup_task is not None and not warmup_task.done():

@@ -16,6 +16,7 @@ from models.sqlmodel.video_match import VideoMatchJob, VideoMatchShotRow
 from services.http_request_trace_service import http_request_trace_service
 from services.script_match_query_builder import INDEX_NAME
 from services.script_match_service import match_script_tags_segments
+from services.video_analysis_db_service import video_analysis_db_service
 from services.script_rewrite_service import (
     rewrite_script_to_storyboard_and_tags,
     synthesize_text_to_obs_wav,
@@ -91,16 +92,34 @@ def _resolve_tag_segment(
     return None
 
 
+def _merge_job_constraints_into_segment_tags(
+    base: Dict[str, Any],
+    *,
+    car_model: Optional[str],
+    frame_size: Optional[str],
+) -> Dict[str, Any]:
+    """任务表单约束：写入每镜 tags_json，检索时 frame_size / car_model 参与 bool.filter（AND）。"""
+    out = dict(base) if base else {}
+    cm = (car_model or "").strip()
+    if cm:
+        out["car_model"] = cm
+    fs = (frame_size or "").strip()
+    if fs and fs != "未知":
+        out["frame_size"] = fs
+    return out
+
+
 def _best_video_path_from_hits(hits: Any) -> Optional[str]:
-    """按检索排序取第一个能解析到 OBS 的命中（避免 Top1 文档无 video_url 时整行显示为 —）。"""
+    """从检索命中取可播放地址（兼容 video_path / video_url 等列）。"""
     if not isinstance(hits, list):
         return None
     for h in hits:
         if not isinstance(h, dict):
             continue
-        u = str(h.get("video_path") or "").strip()
-        if u:
-            return u
+        for key in ("video_path", "video_url", "url", "obs_video_url"):
+            u = str(h.get(key) or "").strip()
+            if u:
+                return u
     return None
 
 
@@ -114,11 +133,42 @@ def _top5_video_urls_from_hits(hits: Any) -> List[str]:
             break
         if not isinstance(h, dict):
             continue
-        u = str(h.get("video_path") or "").strip()
+        u = ""
+        for key in ("video_path", "video_url", "url", "obs_video_url"):
+            u = str(h.get(key) or "").strip()
+            if u:
+                break
         if u and u not in seen:
             seen.add(u)
             urls.append(u)
     return urls
+
+
+async def _enrich_hits_with_resolved_urls(top_hits: Any, shot_cards_version: str) -> List[Dict[str, Any]]:
+    """
+    将 OpenSearch 命中里的 history_id 解析为可播放地址并写回各 hit 的 video_path，
+    便于落库与 Top5 判定（与 get_job_payload 中的 hydrate 同源逻辑）。
+    """
+    if not isinstance(top_hits, list) or not top_hits:
+        return []
+    ver: Any = "v2" if (shot_cards_version or "v1").strip() == "v2" else "v1"
+    out: List[Dict[str, Any]] = []
+    for h in top_hits:
+        if not isinstance(h, dict):
+            continue
+        nh = dict(h)
+        if not str(
+            nh.get("video_path", "") or nh.get("video_url", "") or nh.get("url", "") or nh.get("obs_video_url", "") or ""
+        ).strip():
+            hid = str(nh.get("history_id") or "").strip()
+            if hid:
+                url = await video_analysis_db_service.resolve_source_video_url_for_index_key(
+                    hid, shot_cards_version=ver
+                )
+                if url:
+                    nh["video_path"] = url
+        out.append(nh)
+    return out
 
 
 def shot_row_to_api_dict(row: VideoMatchShotRow) -> Dict[str, Any]:
@@ -148,9 +198,57 @@ def shot_row_to_api_dict(row: VideoMatchShotRow) -> Dict[str, Any]:
     }
 
 
+async def _hydrate_shot_match_urls_for_response(
+    shot: Dict[str, Any],
+    *,
+    shot_cards_version: str,
+) -> None:
+    """
+    读取任务时补全展示字段：库内 ``top1_obs_url`` 可能因历史 bug 为空，但 ``match_top_hits_json``
+    里仍有 ``history_id``。用 ``resolve_source_video_url_for_index_key`` 再解析一次（含纯数字 video 键）。
+    """
+    if str(shot.get("top1_obs_url") or "").strip():
+        return
+    if str(shot.get("search_status") or "").lower() != "done":
+        return
+    hits = shot.get("match_top_hits_json")
+    if not isinstance(hits, list) or not hits:
+        return
+    ver: Any = "v2" if (shot_cards_version or "v1").strip() == "v2" else "v1"
+    new_hits: List[Any] = []
+    for h in hits:
+        if not isinstance(h, dict):
+            new_hits.append(h)
+            continue
+        nh = dict(h)
+        if not str(
+            nh.get("video_path") or nh.get("video_url") or nh.get("url") or nh.get("obs_video_url") or ""
+        ).strip():
+            hid = str(nh.get("history_id") or "").strip()
+            if hid:
+                url = await video_analysis_db_service.resolve_source_video_url_for_index_key(
+                    hid, shot_cards_version=ver
+                )
+                if url:
+                    nh["video_path"] = url
+        new_hits.append(nh)
+    t1 = _best_video_path_from_hits(new_hits)
+    if not t1:
+        log.debug(
+            "video_match hydrate: shot_order={} still no top1 (hits={})",
+            shot.get("shot_order"),
+            len(new_hits),
+        )
+        return
+    shot["match_top_hits_json"] = new_hits
+    shot["top1_obs_url"] = t1
+    shot["top5_video_urls"] = _top5_video_urls_from_hits(new_hits)
+    shot["match_hit_count"] = len(new_hits)
+
+
 def _tags_summary_from_json(tj: Dict[str, Any]) -> str:
     parts: List[str] = []
-    for key in ("subject", "footage_type", "movement", "product_status_scene"):
+    for key in ("car_model", "frame_size", "subject", "footage_type", "movement", "product_status_scene"):
         v = tj.get(key)
         if v and isinstance(v, str) and v.strip() and v != "未知":
             parts.append(v.strip())
@@ -258,6 +356,11 @@ def _mock_response_payload() -> Dict[str, Any]:
         "mock": True,
         "job_id": "00000000-0000-0000-0000-00000000mock",
         "request_id": None,
+        "script": "",
+        "topic": None,
+        "title": None,
+        "car_model": None,
+        "frame_size": None,
         "parse_status": "done",
         "search_status": "pending",
         "search_total_ms": None,
@@ -278,11 +381,20 @@ async def get_job_payload(job_id: str) -> Optional[Dict[str, Any]]:
             .order_by(VideoMatchShotRow.shot_order)
         )
         rows = list(res.scalars().all())
+    ws_ver = "v2" if str(job.workspace or "v1").strip() == "v2" else "v1"
+    shots = [shot_row_to_api_dict(r) for r in rows]
+    for s in shots:
+        await _hydrate_shot_match_urls_for_response(s, shot_cards_version=ws_ver)
     return {
         "success": True,
         "mock": False,
         "job_id": job.id,
         "request_id": job.request_id,
+        "script": job.script,
+        "topic": job.topic,
+        "title": job.title,
+        "car_model": job.car_model,
+        "frame_size": job.frame_size,
         "parse_status": job.parse_status,
         "parse_error": job.parse_error,
         "workspace": job.workspace,
@@ -290,7 +402,7 @@ async def get_job_payload(job_id: str) -> Optional[Dict[str, Any]]:
         "search_total_ms": job.search_total_ms,
         "search_error": job.search_error,
         "search_strategy_snapshot": job.search_strategy_snapshot,
-        "shots": [shot_row_to_api_dict(r) for r in rows],
+        "shots": shots,
     }
 
 
@@ -308,10 +420,18 @@ async def get_shot_match_detail(job_id: str, shot_row_id: int) -> Optional[Dict[
         row = await session.get(VideoMatchShotRow, shot_row_id)
         if row is None or str(row.job_id) != jid:
             return None
+        job_row = await session.get(VideoMatchJob, jid)
+        ws_ver = (
+            "v2"
+            if job_row is not None and str(job_row.workspace or "v1").strip() == "v2"
+            else "v1"
+        )
         rid = (row.search_request_id or "").strip()
         shot_order = int(row.shot_order)
         seg_text = row.segment_text or ""
         shot_api = shot_row_to_api_dict(row)
+
+    await _hydrate_shot_match_urls_for_response(shot_api, shot_cards_version=ws_ver)
 
     base = build_video_match_shot_search_task_detail(
         job_id=jid,
@@ -357,6 +477,9 @@ async def rematch_video_match_shot(job_id: str, shot_row_id: int) -> Dict[str, A
             return {"success": False, "error": "分镜缺少标签，无法检索"}
         row.search_status = "running"
         row.search_request_id = None
+        row.top1_obs_url = None
+        row.match_top_hits_json = None
+        row.match_elapsed_ms = None
         session.add(row)
         await session.commit()
 
@@ -383,9 +506,12 @@ async def rematch_video_match_shot(job_id: str, shot_row_id: int) -> Dict[str, A
     top_k = 5
 
     async def persist_one(_idx: int, m: Dict[str, Any]) -> None:
-        top_hits = m.get("top_hits") or []
+        top_hits_raw = m.get("top_hits") or []
+        enriched = await _enrich_hits_with_resolved_urls(top_hits_raw, shot_ver)
+        urls5 = _top5_video_urls_from_hits(enriched)
+        match_ok = bool(urls5)
+        top1 = urls5[0] if urls5 else None
         elapsed = float(m.get("elapsed_ms") or 0)
-        top1 = _best_video_path_from_hits(top_hits)
         body_for_trace = _trace_request_body_for_shot_search(m, rematch_single_shot=True)
         trace_rid = await http_request_trace_service.create_initial(
             request_url=f"/opensearch/{INDEX_NAME}/_search",
@@ -407,15 +533,15 @@ async def rematch_video_match_shot(job_id: str, shot_row_id: int) -> Dict[str, A
                         business_success=False,
                     )
                     return
-                db_row.match_top_hits_json = top_hits
+                db_row.match_top_hits_json = enriched
                 db_row.match_elapsed_ms = elapsed
-                db_row.search_status = "done"
+                db_row.search_status = "done" if match_ok else "failed"
                 db_row.top1_obs_url = top1
                 db_row.search_request_id = trace_rid
                 session.add(db_row)
                 await session.commit()
         except Exception:
-            log.exception("video_match rematch persist DB failed job=%s row=%s", jid, sid)
+            log.exception("video_match rematch persist DB failed job={} row={}", jid, sid)
             await http_request_trace_service.finalize(
                 trace_rid,
                 status_code=500,
@@ -430,18 +556,31 @@ async def rematch_video_match_shot(job_id: str, shot_row_id: int) -> Dict[str, A
             if rord is not None:
                 shot_ord = int(rord.shot_order)
         resp_summary = {
-            "hit_count": len(top_hits),
-            "top_history_ids": [h.get("history_id") for h in top_hits[:5]],
+            "hit_count": len(top_hits_raw),
+            "top_history_ids": [h.get("history_id") for h in top_hits_raw[:5]],
             "elapsed_ms": elapsed,
             "shot_order": shot_ord,
             "rematch": True,
+            "match_ok": match_ok,
+            "top5_nonempty": match_ok,
         }
         await http_request_trace_service.finalize(
             trace_rid,
             status_code=200,
             response_body=resp_summary,
-            business_success=True,
+            business_success=match_ok,
             duration_ms=int(elapsed) if elapsed else None,
+        )
+        log.info(
+            "video_match shot_search rematch job={} shot_order={} row_id={} hit_count={} match_ok={} top1={} top5_urls={} elapsed_ms={}",
+            jid,
+            shot_ord,
+            sid,
+            len(top_hits_raw),
+            match_ok,
+            top1,
+            urls5,
+            elapsed,
         )
 
     try:
@@ -458,7 +597,7 @@ async def rematch_video_match_shot(job_id: str, shot_row_id: int) -> Dict[str, A
             on_segment_done=persist_one,
         )
     except Exception as e:
-        log.exception("video_match rematch shot failed: %s", e)
+        log.exception("video_match rematch shot failed: {}", e)
         async with mysql_connector.session_scope() as session:
             row3 = await session.get(VideoMatchShotRow, sid)
             if row3:
@@ -469,6 +608,10 @@ async def rematch_video_match_shot(job_id: str, shot_row_id: int) -> Dict[str, A
 
     out = await get_shot_match_detail(jid, sid)
     if out:
+        shot = out.get("shot")
+        if isinstance(shot, dict) and (shot.get("search_status") or "").lower() == "failed":
+            out["success"] = False
+            out["error"] = "本分镜无有效素材命中（Top5 为空或无法解析视频地址）"
         return out
     return {"success": False, "error": "rematch ok but failed to load shot detail"}
 
@@ -515,7 +658,7 @@ async def run_job_search(
     }
     if strategy.text_weights or strategy.vector_weights:
         log.info(
-            "video_match search: strategy %r has field-level weights; script_match uses macro bm25/vector only for now",
+            "video_match search: strategy {} has field-level weights; script_match uses macro bm25/vector only for now",
             strategy.name,
         )
 
@@ -551,8 +694,25 @@ async def run_job_search(
         job.search_status = "running"
         job.search_error = None
         job.search_strategy_snapshot = snapshot
+        # 整 job 重跑匹配：所有分镜进入「匹配中」，并清空上轮结果，避免前端仍显示旧 Top5/成功态
+        for r in rows:
+            r.search_status = "running"
+            r.top1_obs_url = None
+            r.match_top_hits_json = None
+            r.match_elapsed_ms = None
+            r.search_request_id = None
+            session.add(r)
         session.add(job)
         await session.commit()
+
+    log.info(
+        "video_match search start job={} shot_count={} strategy={} top_k={} shot_cards_version={}",
+        job_id,
+        len(rows),
+        strategy_name,
+        top_k,
+        shot_ver,
+    )
 
     segments = [dict(r.tags_json or {}) for r in rows]
 
@@ -561,9 +721,12 @@ async def run_job_search(
             return
         row_id = row_ids[idx]
         shot_ord = rows[idx].shot_order
-        top_hits = m.get("top_hits") or []
+        top_hits_raw = m.get("top_hits") or []
+        enriched = await _enrich_hits_with_resolved_urls(top_hits_raw, shot_ver)
+        urls5 = _top5_video_urls_from_hits(enriched)
+        match_ok = bool(urls5)
+        top1 = urls5[0] if urls5 else None
         elapsed = float(m.get("elapsed_ms") or 0)
-        top1 = _best_video_path_from_hits(top_hits)
 
         body_for_trace = _trace_request_body_for_shot_search(m)
         trace_rid = await http_request_trace_service.create_initial(
@@ -586,15 +749,15 @@ async def run_job_search(
                         business_success=False,
                     )
                     return
-                row.match_top_hits_json = top_hits
+                row.match_top_hits_json = enriched
                 row.match_elapsed_ms = elapsed
-                row.search_status = "done"
+                row.search_status = "done" if match_ok else "failed"
                 row.top1_obs_url = top1
                 row.search_request_id = trace_rid
                 session.add(row)
                 await session.commit()
         except Exception:
-            log.exception("video_match persist_shot DB failed job=%s row=%s", job_id, row_id)
+            log.exception("video_match persist_shot DB failed job={} row={}", job_id, row_id)
             await http_request_trace_service.finalize(
                 trace_rid,
                 status_code=500,
@@ -604,17 +767,30 @@ async def run_job_search(
             raise
 
         resp_summary = {
-            "hit_count": len(top_hits),
-            "top_history_ids": [h.get("history_id") for h in top_hits[:5]],
+            "hit_count": len(top_hits_raw),
+            "top_history_ids": [h.get("history_id") for h in top_hits_raw[:5]],
             "elapsed_ms": elapsed,
             "shot_order": shot_ord,
+            "match_ok": match_ok,
+            "top5_nonempty": match_ok,
         }
         await http_request_trace_service.finalize(
             trace_rid,
             status_code=200,
             response_body=resp_summary,
-            business_success=True,
+            business_success=match_ok,
             duration_ms=int(elapsed) if elapsed else None,
+        )
+        log.info(
+            "video_match shot_search job={} shot_order={} row_id={} hit_count={} match_ok={} top1={} top5_urls={} elapsed_ms={}",
+            job_id,
+            shot_ord,
+            row_id,
+            len(top_hits_raw),
+            match_ok,
+            top1,
+            urls5,
+            elapsed,
         )
 
     t_wall0 = time.perf_counter()
@@ -632,7 +808,7 @@ async def run_job_search(
             on_segment_done=persist_shot,
         )
     except Exception as e:
-        log.exception("video_match search failed: %s", e)
+        log.exception("video_match search failed: {}", e)
         async with mysql_connector.session_scope() as session:
             job = await session.get(VideoMatchJob, job_id)
             if job:
@@ -645,21 +821,37 @@ async def run_job_search(
     total_ms = round((time.perf_counter() - t_wall0) * 1000, 3)
 
     if len(matches) != len(rows):
-        log.warning("video_match: match count %s != rows %s", len(matches), len(rows))
+        log.warning("video_match: match count {} != rows {}", len(matches), len(rows))
+
+    log.info("video_match search finished job={} wall_ms={} segments={}", job_id, total_ms, len(rows))
 
     async with mysql_connector.session_scope() as session:
         job = await session.get(VideoMatchJob, job_id)
+        res_sr = await session.execute(
+            select(VideoMatchShotRow).where(VideoMatchShotRow.job_id == job_id)
+        )
+        shot_rows = list(res_sr.scalars().all())
+        n_fail = sum(1 for sr in shot_rows if (sr.search_status or "").lower() == "failed")
         if job:
-            job.search_status = "done"
+            if n_fail:
+                job.search_status = "failed"
+                job.search_error = (
+                    f"{n_fail} 条分镜素材匹配失败（无 OpenSearch 命中或无法解析出有效视频地址 / Top5 为空）"
+                )
+            else:
+                job.search_status = "done"
+                job.search_error = None
             job.search_total_ms = total_ms
-            job.search_error = None
             session.add(job)
         await session.commit()
 
     out = await get_job_payload(job_id)
     if out is None:
         return {"success": False, "error": "job not found after search"}
-    out["success"] = True
+    job_failed = (out.get("search_status") or "").lower() == "failed"
+    out["success"] = not job_failed
+    if job_failed:
+        out["error"] = out.get("search_error") or "部分或全部分镜匹配失败"
     out["search_total_ms"] = total_ms
     return out
 
@@ -670,6 +862,7 @@ async def create_job_and_parse(
     topic: Optional[str] = None,
     title: Optional[str] = None,
     car_model: Optional[str] = None,
+    frame_size: Optional[str] = None,
     workspace: Optional[str] = "v1",
     mock: bool = False,
 ) -> Dict[str, Any]:
@@ -683,6 +876,8 @@ async def create_job_and_parse(
     job_id = str(uuid.uuid4())
     ws = (workspace or "v1").strip() or "v1"
 
+    fs_norm = (frame_size or "").strip() or None
+
     async with mysql_connector.session_scope() as session:
         session.add(
             VideoMatchJob(
@@ -692,6 +887,7 @@ async def create_job_and_parse(
                 topic=topic.strip() if topic else None,
                 title=title.strip() if title else None,
                 car_model=car_model.strip() if car_model else None,
+                frame_size=fs_norm,
                 parse_status="running",
             )
         )
@@ -712,6 +908,7 @@ async def create_job_and_parse(
                 "topic": topic,
                 "title": title,
                 "car_model": car_model,
+                "frame_size": fs_norm,
             },
             max_bytes=32000,
         ),
@@ -736,7 +933,7 @@ async def create_job_and_parse(
             out_obs_audio_urls=tts_audio_urls,
         )
     except Exception as e:
-        log.exception("video_match parse rewrite failed: %s", e)
+        log.exception("video_match parse rewrite failed: {}", e)
         await http_request_trace_service.finalize(
             parse_rid,
             status_code=500,
@@ -762,6 +959,11 @@ async def create_job_and_parse(
                 tj = tag_seg.model_dump(exclude_none=True)
             else:
                 tj = {}
+            tj = _merge_job_constraints_into_segment_tags(
+                tj,
+                car_model=car_model,
+                frame_size=fs_norm,
+            )
             obs_url = tts_audio_urls[order] if order < len(tts_audio_urls) else None
             row = VideoMatchShotRow(
                 job_id=job_id,
@@ -830,6 +1032,7 @@ async def list_video_match_jobs(
                 "title": j.title,
                 "topic": j.topic,
                 "car_model": j.car_model,
+                "frame_size": j.frame_size,
                 "created_at": j.created_at.isoformat() if j.created_at else None,
                 "updated_at": j.updated_at.isoformat() if j.updated_at else None,
                 "request_id": j.request_id,
@@ -862,7 +1065,7 @@ async def synthesize_shot_obs_audio(job_id: str, shot_row_id: int) -> Dict[str, 
             tts_tid_suffix=f"s{shot_row_id}_{order_hint}",
         )
     except Exception as e:
-        log.exception("synthesize_shot_obs_audio: TTS failed job=%s shot=%s", jid, shot_row_id)
+        log.exception("synthesize_shot_obs_audio: TTS failed job={} shot={}", jid, shot_row_id)
         return {"success": False, "error": str(e)}
 
     if not url:
@@ -971,9 +1174,9 @@ async def run_video_match_retry_background(
                 top_k=5,
             )
         else:
-            log.error("video_match retry worker: bad args job=%s kind=%s", jid, k)
+            log.error("video_match retry worker: bad args job={} kind={}", jid, k)
     except Exception:
-        log.exception("video_match retry background failed job=%s", jid)
+        log.exception("video_match retry background failed job={}", jid)
 
 
 async def _reparse_video_match_job_core(job_id: str) -> None:
@@ -989,6 +1192,7 @@ async def _reparse_video_match_job_core(job_id: str) -> None:
         topic = job0.topic
         title = job0.title
         car_model = job0.car_model
+        frame_size_job = (job0.frame_size or "").strip() or None
         ws = (job0.workspace or "v1").strip() or "v1"
     if not script:
         async with mysql_connector.session_scope() as session:
@@ -1013,6 +1217,8 @@ async def _reparse_video_match_job_core(job_id: str) -> None:
                 "workspace": ws,
                 "retry": True,
                 "script_preview": script[:8000],
+                "car_model": car_model,
+                "frame_size": frame_size_job,
             },
             max_bytes=32000,
         ),
@@ -1037,7 +1243,7 @@ async def _reparse_video_match_job_core(job_id: str) -> None:
             out_obs_audio_urls=tts_audio_urls,
         )
     except Exception as e:
-        log.exception("video_match parse retry failed: %s", e)
+        log.exception("video_match parse retry failed: {}", e)
         await http_request_trace_service.finalize(
             parse_rid,
             status_code=500,
@@ -1063,6 +1269,11 @@ async def _reparse_video_match_job_core(job_id: str) -> None:
                 tj = tag_seg.model_dump(exclude_none=True)
             else:
                 tj = {}
+            tj = _merge_job_constraints_into_segment_tags(
+                tj,
+                car_model=car_model,
+                frame_size=frame_size_job,
+            )
             obs_url = tts_audio_urls[order] if order < len(tts_audio_urls) else None
             row = VideoMatchShotRow(
                 job_id=jid,

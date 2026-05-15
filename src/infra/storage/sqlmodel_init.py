@@ -187,6 +187,7 @@ async def _ensure_video_match_columns() -> None:
         "ALTER TABLE video_match_shot_row ADD COLUMN obs_audio_url TEXT NULL",
         "ALTER TABLE video_match_job ADD COLUMN request_id VARCHAR(36) NULL",
         "ALTER TABLE video_match_shot_row ADD COLUMN search_request_id VARCHAR(36) NULL",
+        "ALTER TABLE video_match_job ADD COLUMN frame_size VARCHAR(32) NULL",
     ]
     async with engine.begin() as conn:
         for sql in stmts:
@@ -221,6 +222,26 @@ async def _ensure_video_source_upload_cache_transcode_columns() -> None:
                     log.debug("upload cache column exists, skip: %s", sql[:72])
                     continue
                 log.warning("video_source_upload_cache migration failed: %s", e)
+
+
+async def _ensure_video_mix_compose_job_columns() -> None:
+    """video_mix_compose_job：SRT 外链路开关与生成结果文本。"""
+    engine = await mysql_connector.get_engine()
+    stmts = [
+        "ALTER TABLE video_mix_compose_job ADD COLUMN prefer_srt TINYINT(1) NOT NULL DEFAULT 0",
+        "ALTER TABLE video_mix_compose_job ADD COLUMN result_srt_text MEDIUMTEXT NULL",
+    ]
+    async with engine.begin() as conn:
+        for sql in stmts:
+            try:
+                await conn.execute(text(sql))
+                log.info("Applied video_mix_compose_job column migration: %s", sql[:88])
+            except Exception as e:
+                msg = str(e).lower()
+                if "duplicate" in msg or "1060" in msg:
+                    log.debug("video_mix_compose_job column exists, skip: %s", sql[:72])
+                    continue
+                log.warning("video_mix_compose_job column migration failed: %s", e)
 
 
 async def _ensure_mix_video_overall_time_table() -> None:
@@ -286,5 +307,6 @@ async def create_tables_if_not_exists() -> None:
     await _ensure_image_history_extras()
     await _ensure_video_match_columns()
     await _ensure_video_source_upload_cache_transcode_columns()
+    await _ensure_video_mix_compose_job_columns()
     await _ensure_mix_video_overall_time_table()
 

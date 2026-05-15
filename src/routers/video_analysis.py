@@ -7,15 +7,15 @@
 
 import asyncio
 import functools
+import hashlib
 import os
 import sys
-import uuid
-import hashlib
 import time
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+import uuid
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException, Query, BackgroundTasks
 from pydantic import BaseModel, Field
@@ -55,6 +55,15 @@ UPLOAD_TMP_DIR = os.path.join(
 # 全局并发：超出时在后台任务内排队，配合 DB 中 PENDING → RUNNING
 _video_analysis_max_concurrent = max(1, min(32, int(os.getenv("VIDEO_ANALYSIS_MAX_CONCURRENT", "3"))))
 _video_analysis_slot = asyncio.BoundedSemaphore(_video_analysis_max_concurrent)
+
+# 内存任务状态（与 DB 并存；上传/重试入口均会写入 PENDING）
+video_task_status: Dict[str, Dict[str, Any]] = {}
+
+
+def _append_chunk_to_disk(f: Any, md5_hash: Any, chunk: bytes) -> None:
+    """大块同步磁盘写入；须经 asyncio.to_thread 调用，避免阻塞事件循环。"""
+    f.write(chunk)
+    md5_hash.update(chunk)
 
 
 # ---------------- Workspace 接口 ----------------
@@ -216,6 +225,158 @@ async def get_history_task_detail(history_id: str):
     if rid:
         trace_dict = await http_request_trace_service.get_dict(str(rid))
     return {"success": True, "detail": merge_http_trace_into_detail(base, trace_dict)}
+
+
+def _parse_retry_params_from_trace_body(body: Any) -> Dict[str, Any]:
+    """从首次分析的 http_request_traces.request_body 还原参数；缺省与 POST /video-analysis 表单默认一致。"""
+    out: Dict[str, Any] = {
+        "frame_interval": 2.0,
+        "threshold": 30.0,
+        "custom_prompt": None,
+        "split_scenes": True,
+    }
+    if not isinstance(body, dict):
+        return out
+    fi = body.get("frame_interval")
+    if isinstance(fi, (int, float)):
+        out["frame_interval"] = float(fi)
+    th = body.get("threshold")
+    if isinstance(th, (int, float)):
+        out["threshold"] = float(th)
+    cp = body.get("custom_prompt")
+    if isinstance(cp, str):
+        t = cp.strip()
+        out["custom_prompt"] = t or None
+    elif cp is not None:
+        out["custom_prompt"] = str(cp)
+    ss = body.get("split_scenes")
+    if isinstance(ss, bool):
+        out["split_scenes"] = ss
+    return out
+
+
+async def _local_video_path_for_retry(video_url: str, file_name: str) -> str:
+    """从 OBS/CDN 等 URL 拉取到临时路径，供 ``_bg_analyze_video`` 使用（结束后由该函数删除）。"""
+    from utils.obs_utils import download_url_to_file
+
+    safe_base = (file_name or "video.mp4").replace("\\", "/").split("/")[-1] or "video.mp4"
+    if "." not in safe_base:
+        safe_base = f"{safe_base}.mp4"
+    local_path = os.path.join(UPLOAD_TMP_DIR, f"retry_{uuid.uuid4().hex[:12]}_{safe_base}")
+    os.makedirs(UPLOAD_TMP_DIR, exist_ok=True)
+    await download_url_to_file(str(video_url).strip(), local_path)
+    return local_path
+
+
+async def _bg_retry_video_analysis(
+    history_id: str,
+    video_url: str,
+    file_name: str,
+    frame_interval: float,
+    threshold: float,
+    custom_prompt: Optional[str],
+    split_scenes: bool,
+    workspace: str,
+    car_model: Optional[str],
+    http_trace_id: str,
+) -> None:
+    local_path = await _local_video_path_for_retry(video_url, file_name)
+    await _bg_analyze_video(
+        history_id,
+        local_path,
+        file_name,
+        frame_interval,
+        threshold,
+        custom_prompt,
+        split_scenes,
+        workspace,
+        car_model,
+        video_url,
+        http_trace_id,
+        remove_local_after=True,
+    )
+
+
+@video_analysis_router.post("/history/{history_id}/retry")
+async def retry_failed_video_analysis(history_id: str, background_tasks: BackgroundTasks):
+    """仅 FAILED：同一 history id，从 ``video_url`` 拉源并重跑分析（参数优先来自首次 ``request_id`` 追踪体）。"""
+    hid = (history_id or "").strip()
+    if not hid:
+        raise HTTPException(status_code=400, detail="invalid id")
+    row = await video_analysis_db_service.get_history_row(hid)
+    if row is None:
+        raise HTTPException(status_code=404, detail="history not found")
+    st = str(row.get("status") or "").strip().upper()
+    if st != "FAILED":
+        raise HTTPException(status_code=400, detail="仅失败任务可重试")
+    video_url = str(row.get("video_url") or "").strip()
+    if not video_url:
+        raise HTTPException(status_code=400, detail="记录缺少视频地址，无法重试")
+
+    workspace = str(row.get("workspace") or "v1").strip() or "v1"
+    car_model_raw = row.get("car_model")
+    car_model = str(car_model_raw).strip() if car_model_raw is not None else None
+    if car_model == "":
+        car_model = None
+    file_name = str(row.get("name") or "video.mp4").strip() or "video.mp4"
+
+    params = {
+        "frame_interval": 2.0,
+        "threshold": 30.0,
+        "custom_prompt": None,
+        "split_scenes": True,
+    }
+    old_rid = row.get("request_id")
+    if old_rid:
+        tr = await http_request_trace_service.get_dict(str(old_rid))
+        if tr:
+            params.update(_parse_retry_params_from_trace_body(tr.get("request_body")))
+
+    retry_trace_id = await http_request_trace_service.create_initial(
+        request_url=f"/video-analysis/history/{hid}/retry",
+        http_method="POST",
+        request_body={
+            "retry_of": hid,
+            "video_url": video_url,
+            "workspace": workspace,
+            "car_model": car_model,
+            **params,
+        },
+        business_type="VIDEO_ANALYSIS",
+        method_name="POST /video-analysis/history/retry",
+        upstream_task_id=hid,
+    )
+
+    await video_analysis_db_service.upsert_history_item(
+        {
+            "id": hid,
+            "name": file_name,
+            "time": datetime.now().isoformat(timespec="seconds"),
+            "video_url": video_url,
+            "workspace": workspace,
+            "status": "PENDING",
+            "request_id": retry_trace_id,
+            "car_model": car_model,
+            "error_msg": None,
+        },
+        shot_cards_version=workspace,
+    )
+    video_task_status[hid] = {"status": "PENDING"}
+
+    background_tasks.add_task(
+        _bg_retry_video_analysis,
+        hid,
+        video_url,
+        file_name,
+        float(params["frame_interval"]),
+        float(params["threshold"]),
+        params.get("custom_prompt"),
+        bool(params.get("split_scenes", True)),
+        workspace,
+        car_model,
+        retry_trace_id,
+    )
+    return {"success": True, "task_id": hid}
 
 
 @video_analysis_router.get("/history/{history_id}")
@@ -672,6 +833,10 @@ class RewriteScriptRequest(BaseModel):
     topic: Optional[str] = None
     title: Optional[str] = None
     car_model: Optional[str] = None
+    frame_size: Optional[str] = Field(
+        default=None,
+        description="与索引 frame_size 一致：横版16:9 / 竖版9:16；写入每段标签并参与搜索 must",
+    )
 
 @video_analysis_router.post("/rewrite-script")
 async def rewrite_script_endpoint(req: RewriteScriptRequest):
@@ -679,7 +844,10 @@ async def rewrite_script_endpoint(req: RewriteScriptRequest):
     调用大模型将自然语言脚本提取为结构化的检索标签。
     直接返回 SeedtextIndexTagsEnvelope 格式的字典。
     """
-    log.info(f"[rewrite-script] received request: script={req.script!r} topic={req.topic!r} title={req.title!r} car_model={req.car_model!r}")
+    log.info(
+        f"[rewrite-script] received request: script={req.script!r} topic={req.topic!r} "
+        f"title={req.title!r} car_model={req.car_model!r} frame_size={req.frame_size!r}"
+    )
     if not req.script.strip():
         return {"success": False, "error": "script cannot be empty"}
     
@@ -692,14 +860,21 @@ async def rewrite_script_endpoint(req: RewriteScriptRequest):
             car_model=req.car_model,
             index=0
         )
-        return {"success": True, "tags": tags.model_dump(exclude_none=True)}
+        tags_dump = tags.model_dump(exclude_none=True)
+        for item in tags_dump.get("segment_result") or []:
+            if not isinstance(item, dict):
+                continue
+            cm = (req.car_model or "").strip()
+            if cm:
+                item["car_model"] = cm
+            fs = (req.frame_size or "").strip()
+            if fs and fs != "未知":
+                item["frame_size"] = fs
+        return {"success": True, "tags": tags_dump}
     except Exception as e:
         log.error(f"rewrite_script failed: {e}")
         return {"success": False, "error": str(e)}
 
-
-# 全局变量存储任务状态 (临时, 后续可持久化到 Redis/DB)
-video_task_status: Dict[str, Dict[str, Any]] = {}
 
 @video_analysis_router.get("/status/{task_id}")
 async def get_video_status(task_id: str):
@@ -875,8 +1050,7 @@ async def analyze_video_endpoint(
         md5_hash = hashlib.md5()
         with open(local_path, "wb") as f:
             while chunk := await file.read(1024 * 1024):
-                f.write(chunk)
-                md5_hash.update(chunk)
+                await asyncio.to_thread(_append_chunk_to_disk, f, md5_hash, chunk)
         project_id = md5_hash.hexdigest()[:16]
     except Exception as e:
         if os.path.exists(local_path): os.remove(local_path)

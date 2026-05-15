@@ -18,6 +18,7 @@ from models.pydantic.model_output_schema.seedtext_script_segments_schema import 
 from utils.call_model_utils import call_doubao_seedtext
 from utils.alivoice_utils import AliTTS
 from infra.logging.logger import logger as log
+from services.zhiji_product_context import build_script_stage1_selling_appendix
 
 try:
     from pymediainfo import MediaInfo
@@ -115,6 +116,14 @@ F) camera_movement（运镜）与 shot_style 区分：
    - shot_style 表示拍摄机位/方式（如车内POV/跟拍），不要把“推/拉/摇”写进 shot_style
 
 """.strip()
+
+
+def system_prompt_stage1_for_car_model(car_model: str | None) -> str:
+    """Stage1 系统提示 + 智己官方卖点附录（仅 LS6/LS9）。"""
+    extra = build_script_stage1_selling_appendix(car_model)
+    if not extra:
+        return SYSTEM_PROMPT_STAGE1
+    return SYSTEM_PROMPT_STAGE1 + "\n\n" + extra
 
 
 async def _call_seedtext_with_fallback(
@@ -314,7 +323,7 @@ async def rewrite_script_to_storyboard_and_tags(
 
     stage1_raw = await _call_seedtext_with_fallback(
         prompt=stage1_prompt,
-        system_prompt=SYSTEM_PROMPT_STAGE1,
+        system_prompt=system_prompt_stage1_for_car_model(car_model),
         output_schema=SeedtextStoryboardEnvelope,
     )
     storyboard = SeedtextStoryboardEnvelope.model_validate(json.loads(_extract_json_text(stage1_raw)))

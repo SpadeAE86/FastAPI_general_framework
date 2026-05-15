@@ -20,6 +20,7 @@ from models.sqlmodel.video_match import VideoMatchJob, VideoMatchShotRow
 from models.sqlmodel.video_mix_compose import VideoMixComposeJob
 from services.video_mix_timeline_builder import (
     build_mixed_video_request_from_shots,
+    build_srt_from_match_shots,
     collect_unique_source_obs_urls,
 )
 from services.video_source_transcode_service import ensure_low_high_for_obs_url
@@ -169,11 +170,13 @@ async def _run_compose_pipeline(compose_id: str, mix_mock_override: Optional[boo
         job_id: Optional[str] = None
         biz_id: Optional[str] = None
 
+        prefer_srt_flag = False
         async with mysql_connector.session_scope() as session:
             job_row = await session.get(VideoMixComposeJob, compose_id)
             if job_row is None:
                 log.error("compose pipeline: missing job {}", compose_id)
                 return
+            prefer_srt_flag = bool(job_row.prefer_srt)
             job_row.status = "transcoding"
             session.add(job_row)
             await session.commit()
@@ -239,6 +242,7 @@ async def _run_compose_pipeline(compose_id: str, mix_mock_override: Optional[boo
                 shots,
                 mapping,
                 biz_id=biz_int,
+                include_cap_config=not prefer_srt_flag,
             )
         except Exception as e:
             await _patch_compose_job(compose_id, status="failed", error_message=f"timeline build: {e!s}"[:2000])
@@ -312,11 +316,19 @@ async def _run_compose_pipeline(compose_id: str, mix_mock_override: Optional[boo
         while waited <= timeout:
             url = await fetch_mix_result_obs_url(biz_id)
             if url:
+                srt_out: Optional[str] = None
+                if prefer_srt_flag:
+                    try:
+                        srt_out = build_srt_from_match_shots(shots)
+                    except Exception as e:
+                        log.warning("build_srt_from_match_shots failed: {}", e)
+                        srt_out = ""
                 await _patch_compose_job(
                     compose_id,
                     status="done",
                     result_obs_url=url,
                     error_message=None,
+                    result_srt_text=srt_out,
                 )
                 return
             await asyncio.sleep(interval)
@@ -336,7 +348,12 @@ async def _run_compose_pipeline(compose_id: str, mix_mock_override: Optional[boo
         )
 
 
-async def start_mix_compose_for_job(job_id: str, mix_mock: Optional[bool] = None) -> Dict[str, Any]:
+async def start_mix_compose_for_job(
+    job_id: str,
+    mix_mock: Optional[bool] = None,
+    *,
+    prefer_srt: bool = False,
+) -> Dict[str, Any]:
     compose_id = str(uuid.uuid4())
 
     async with mysql_connector.session_scope() as session:
@@ -349,12 +366,13 @@ async def start_mix_compose_for_job(job_id: str, mix_mock: Optional[bool] = None
             biz_id=biz_id,
             video_match_job_id=job_id,
             status="pending",
+            prefer_srt=bool(prefer_srt),
         )
         session.add(row)
         await session.commit()
 
     asyncio.create_task(_run_compose_pipeline(compose_id, mix_mock_override=mix_mock))
-    return {"compose_id": compose_id, "biz_id": int(biz_id), "status": "pending"}
+    return {"compose_id": compose_id, "biz_id": int(biz_id), "status": "pending", "prefer_srt": bool(prefer_srt)}
 
 
 async def get_mix_compose_job(compose_id: str) -> Optional[Dict[str, Any]]:
@@ -371,6 +389,8 @@ async def get_mix_compose_job(compose_id: str) -> Optional[Dict[str, Any]]:
             "status": row.status,
             "error_message": row.error_message,
             "result_obs_url": row.result_obs_url,
+            "prefer_srt": bool(row.prefer_srt),
+            "result_srt_text": row.result_srt_text,
             "request_json": row.request_json,
             "created_at": row.created_at.isoformat() if row.created_at else None,
             "updated_at": row.updated_at.isoformat() if row.updated_at else None,

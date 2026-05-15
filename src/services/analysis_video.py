@@ -10,8 +10,11 @@ import os
 import json
 import asyncio
 import shutil
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, List, Optional
 
+from models.pydantic.opensearch_index import index_v2_enums
 from utils.video_process_utils import get_video_scenes, get_video_single_scene_frames
 from utils.obs_utils import batch_upload_to_obs
 from utils.call_model_utils import call_doubao_vision
@@ -28,6 +31,10 @@ from infra.storage.mysql_connector import mysql_connector
 from sqlmodel import select
 from utils.cache_utils import get_from_cache, set_to_cache
 from services.video_analysis_db_service import video_analysis_db_service
+from services.zhiji_product_context import (
+    build_v2_vision_selling_appendix,
+    normalize_zhiji_car_key,
+)
 
 
 def _car_model_slug_for_obs(car_model: Optional[str]) -> str:
@@ -185,17 +192,65 @@ async def _cache_scenes_locally(
     except Exception as e:
         log.warning(f"写入本地 TTL 缓存失败: {e}")
 
-DEFAULT_VISION_PROMPT_V2 = """你是一个专业的视频分镜分析师，同时你也了解用户在搜索视频时的习惯。
-请分析这些视频片段里的画面。
-【核心目标】
-提取画面的客观特征、动作、空间、主体以及营销价值点，为视频检索提供高精度的标签。
+def _join_choices(xs: List[str]) -> str:
+    return ", ".join([x for x in (xs or []) if x])
 
-【重要规则】
-1. 描述 (description) 要客观：主体+动作+场景+光影。
-2. 主体 (subject) 要具体：不要只写“车”，写“智己LS6”或“中控大屏”。
-3. 关键词 (key_words) 和 主题 (topic) 必须从给定的枚举中选择。
-4. 营销短句 (marketing_phrases) 要贴合用户搜索习惯，如“后备箱大空间”、“地库一把掉头”。
-"""
+DEFAULT_VISION_PROMPT_V2 = f"""
+你是一个专业的智己汽车视频素材分析师，擅长把“可检索的结构化标签”从画面中抽取出来，支持后续营销脚本混剪检索。
+
+请仅根据这些首帧+2秒间隔的关键帧画面+尾帧的可见信息输出 JSON（必须符合给定 schema），不要输出解释。
+
+关键要求：
+- movement：只写“核心动作”（单值），必须标准化，不带环境词、不带评价。例：掉头/转弯/泊车/充电/静态展示
+- camera_movement：运镜（单值，固定枚举）：{_join_choices(index_v2_enums.CAMERA_MOVEMENT_CHOICES)}。与 shot_style（车内POV/跟拍等拍摄方式）区分；无明确推拉摇移跟随环绕则填 未知
+- generic_hq_road_run：boolean。仅当画面为高质量展示路跑外观的镜头（稳定、清晰、可作无主题兜底）时为 true；否则 false
+- footage_type：画面类型（固定枚举）：{_join_choices(index_v2_enums.FOOTAGE_TYPE_CHOICES)}
+- shot_style：镜头风格/拍摄方式（固定枚举）：{_join_choices(index_v2_enums.SHOT_STYLE_CHOICES)}
+- shot_type：镜头景幅/景别（固定枚举）：{_join_choices(index_v2_enums.SHOT_TYPE_CHOICES)}
+- scene_location：画面场景/路况/空间类型（1-6 个），短词名词化，如：地库/公路/冰雪/现代城区/赛道/展厅 等
+- car_color：车色（枚举）
+- product_status_scene：产品状态场景（标准化），如：静态内饰/路跑外观/发布会现场 等
+- has_presenter：是否包含出镜讲解员/达人/主持人（boolean）
+- person_detail：人物细分标签（枚举，可多值）：无人物/老人/小孩/男性/女性/多人。无人物时只填 无人物；多人时可同时填多个（如 男性+女性、小孩+女性）。
+- weather/time：天气/时间（均为固定枚举）
+- video_usage：素材用途（枚举列表）。尽量只写 1 个；如确实同时满足多个方向且都有用，才写多个（最多 3 个）。
+- object：只允许车与乘客相关（车身/轮毂/轮胎/天窗/座椅/中控屏/方向盘/驾驶员/乘客等），不要写环境（树木/建筑/天空/湖水/道路等）。控制 1-4 个。
+- design_adjectives / function_adjectives：两组形容词列表，各 2-4 个；前者偏外观/质感，后者偏性能/体验；每组内部语义尽量靠拢，避免“舒适/大屏”等跨组重复。
+- design_selling_points / function_selling_points：两组卖点列表，各 2-4 个；前者偏实体部件/可见结构，后者偏能力模块/特殊功能；每组内部语义尽量靠拢，不要混入环境/动作。
+- scenario_a / scenario_b：两组生活/用车场景列表，各 1-4 个；A 内部语义尽量靠拢，B 与 A 尽量不同。
+- marketing_phrases：营销短句/口播式检索短语（1-6 个），贴近用户语言，不要用“演示/展示”。例：雨夜看得清、堵车跟车不累、地库一把掉头、停车一把进
+- topic：视频所属的大致主题（枚举，单值）。只能从:{_join_choices(index_v2_enums.TOPIC_CHOICES)} 范围里选，比如：节能快充属于电池，麋鹿测试属于恶劣路况天气，转向属于操作性，路跑属于外观
+- text：画面关键文字与数值（列表）。尽量收集屏幕/UI/字幕里出现的关键词与数值：NOA/Auto Park/800V/15分钟/310公里/1500km/4.79米/27.1英寸/5K 等。
+- key_words：重要关键字（枚举列表，可多值），没有看到对应的要素就不要填，只能从给定的枚举范围里选：{_join_choices(index_v2_enums.KEY_WORDS_CHOICES)}
+
+禁止：
+- 不要编造画面看不到的具体数值参数（如续航km、电池kWh等）
+
+一致性提示（用于避免语义涣散）：
+- design_* 只写“看得见/摸得着”的实体与外观：如 轮毂/车漆/门把手/座椅/中控台/屏幕/灯组/线条/材质
+- function_* 只写“能力/功能/算法/性能”：如 一键AI泊车/雨夜模式/NOA/爆胎稳定控制/四轮转向/快充/主动降噪
+- 同一个词不要同时出现在 design_* 与 function_*（必要时放到更匹配的一侧）
+- 对于画面观感上的描述，比如画风，氛围，情绪等，不要混入设计/功能卖点和形容词里，直接放在description里 里（例：沉稳大气、科技感满满、未来感十足、年轻活力）
+
+规范化与纠错（必须遵守）：
+A) shot_type vs shot_style 不可混用：
+   - 如果你要输出的值属于景别（{_join_choices(index_v2_enums.SHOT_TYPE_CHOICES)}），只能写入 shot_type。
+   - shot_style 必须输出拍摄方式（{_join_choices(index_v2_enums.SHOT_STYLE_CHOICES)}），禁止输出“特写/中景/远景”等景别词。
+B) weather vs time 不可混用：
+   - time 只能从：{_join_choices(index_v2_enums.TIME_CHOICES)}
+   - weather 只能从：{_join_choices(index_v2_enums.WEATHER_CHOICES)}
+   - 禁止把“白天/夜晚/黄昏/室内”写进 weather；禁止把“雨天/雪天/阴天/晴天/极寒”等写进 time。
+C) car_color 归一化（禁止输出同义变体）：
+   - car_color 必须严格从：{_join_choices(index_v2_enums.CAR_COLOR_CHOICES)}
+   - 禁止输出“黑色/白色/蓝色/银色/绿色”等带“色”或不在枚举里的值；颜色细节若很关键请写进 description 或 text。
+D) video_usage 归一化（只允许标准枚举）：
+   - video_usage(list) 必须从：{_join_choices(index_v2_enums.VIDEO_USAGE_CHOICES)}
+   - 同义归并：品牌传达/品牌形象传达 -> 品牌/形象传达；权益说明 -> 权益/价格说明；路跑场景展示 -> 使用场景展示。
+E) product_status_scene 不允许带括号备注：
+   - product_status_scene 必须从：{_join_choices(index_v2_enums.PRODUCT_STATUS_SCENE_CHOICES)}
+   - 像“含动态灯语/充电状态/节日装饰”等细节，请尽量写进 description 或 text（如果有明确屏幕文案/数字）。
+   
+""".strip()
 
 DEFAULT_VISION_PROMPT_V1 = """你是一个专业的视频分镜分析师。
 请分析视频片段，提取 object、search_tags 并进行商业价值评估。
@@ -214,20 +269,87 @@ DEFAULT_VISION_PROMPT_V1 = """你是一个专业的视频分镜分析师。
 - 通用适配性：是否容易与其他素材混剪
 """
 
+_DEFAULT_SENTENCE_TRANSFORMER_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
+
 _EMBEDDING_MODEL: Any = None
+_EMBEDDING_MODEL_LOCK = threading.Lock()
+# 单线程池：预热与 ensure 回落路径共用，避免并行重复加载/huggingface 连接风暴
+_EMBED_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="st_embed")
+
+_embedding_warmup_task: Optional[asyncio.Task[None]] = None
+
 
 def get_embedding_model():
     """
     Singleton SentenceTransformer model loader.
     Loads once per process; subsequent calls reuse the same instance to avoid
     repeated "Loading weights" overhead on every reindex/search.
+
+    Env:
+        SENTENCE_TRANSFORMER_MODEL — 可选。设为本地模型目录的绝对路径，或 Hugging Face 模型 ID。
+        默认会从网络解析/下载 ``paraphrase-multilingual-MiniLM-L12-v2``；若 SSL 连不上 huggingface.co，
+        请预下载模型后指到本地目录，或使用 HF_ENDPOINT 等镜像（见 Hugging Face 文档）。
     """
     global _EMBEDDING_MODEL
     if _EMBEDDING_MODEL is not None:
         return _EMBEDDING_MODEL
-    from sentence_transformers import SentenceTransformer
-    _EMBEDDING_MODEL = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-    return _EMBEDDING_MODEL
+    with _EMBEDDING_MODEL_LOCK:
+        if _EMBEDDING_MODEL is not None:
+            return _EMBEDDING_MODEL
+        from sentence_transformers import SentenceTransformer
+
+        model_id = (os.environ.get("SENTENCE_TRANSFORMER_MODEL") or "").strip() or _DEFAULT_SENTENCE_TRANSFORMER_MODEL
+        try:
+            _EMBEDDING_MODEL = SentenceTransformer(model_id)
+        except Exception as e:
+            log.error(
+                "SentenceTransformer 加载失败，OpenSearch 向量入库会一并失败。"
+                "常见原因：首次运行需访问 huggingface.co 下载权重，当前环境 SSL/网络不通。"
+                "处理：1) 先把模型下载到本地，设置环境变量 SENTENCE_TRANSFORMER_MODEL=本地目录；"
+                "2) 或配置 HF_ENDPOINT 镜像；3) 在无网机器上从已缓存环境复制 ~/.cache/huggingface 。"
+                "model_id={} 原始错误: {}",
+                model_id,
+                e,
+            )
+            raise
+        return _EMBEDDING_MODEL
+
+
+def start_embedding_warmup_background() -> asyncio.Task[None]:
+    """
+    在应用 lifespan 中尽早 create_task：不阻塞 yield，HTTP 可先就绪；
+    向量模型在线程池加载。入库前须 await ensure_embedding_model_ready()，以等待本任务完成而非另起加载。
+    """
+    global _embedding_warmup_task
+    if _embedding_warmup_task is not None:
+        return _embedding_warmup_task
+
+    async def _run() -> None:
+        loop = asyncio.get_running_loop()
+        log.info("开始后台预热向量模型 (SentenceTransformer)...")
+        try:
+            await loop.run_in_executor(_EMBED_EXECUTOR, get_embedding_model)
+            log.info("向量模型预热完成。")
+        except Exception as e:
+            log.error("向量模型预热失败: {}", e)
+            raise
+
+    _embedding_warmup_task = asyncio.create_task(_run())
+    return _embedding_warmup_task
+
+
+async def ensure_embedding_model_ready() -> None:
+    """OpenSearch 向量化前调用：若启动时已暖机则等待暖机结束，避免与主线程重复抢载。"""
+    if _EMBEDDING_MODEL is not None:
+        return
+    if _embedding_warmup_task is not None:
+        await _embedding_warmup_task
+        if _EMBEDDING_MODEL is None:
+            raise RuntimeError("向量模型未就绪：预热已结束但未成功加载，请查看日志中的 SentenceTransformer 错误")
+        return
+    loop = asyncio.get_running_loop()
+    log.info("未检测到后台预热任务，在线程池加载向量模型...")
+    await loop.run_in_executor(_EMBED_EXECUTOR, get_embedding_model)
 
 
 async def _upload_scene_frames(scene: SceneSplitResult, obs_key_prefix: str) -> List[str]:
@@ -330,6 +452,45 @@ async def _analyze_single_scene(
 import cv2
 import math
 
+
+def _probe_video_metadata(local_video_path: str, project_id: str) -> tuple[float, str, str]:
+    """
+    OpenCV 同步读媒体信息。须在 asyncio.to_thread 中调用，
+    避免批量视频分析时阻塞事件循环（否则 /health 与其它 API 一起卡死）。
+    """
+    try:
+        cap = cv2.VideoCapture(local_video_path)
+        try:
+            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        finally:
+            cap.release()
+
+        resolution = f"{width}x{height}" if width and height else "未知"
+        video_duration = frame_count / fps if fps and fps > 0 else 0.0
+
+        def get_aspect_ratio(w: int, h: int) -> str:
+            if w == 0 or h == 0:
+                return "未知"
+            g = math.gcd(w, h)
+            rw, rh = w // g, h // g
+            if rw == 8 and rh == 9:
+                return "16:9"
+            return f"{rw}:{rh}"
+
+        frame_size = get_aspect_ratio(width, height)
+        if width == 1920 and height == 1080:
+            frame_size = "16:9"
+        elif width == 1080 and height == 1920:
+            frame_size = "9:16"
+        return video_duration, resolution, frame_size
+    except Exception as e:
+        log.warning(f"[{project_id}] 获取视频媒体信息失败: {e}")
+        return 0.0, "未知", "未知"
+
+
 async def analyze_video(
     local_video_path: str,
     project_id: str,
@@ -358,44 +519,43 @@ async def analyze_video(
     if not os.path.exists(local_video_path):
         raise FileNotFoundError(f"视频文件不存在: {local_video_path}")
 
-    # 获取视频媒体信息
-    try:
-        cap = cv2.VideoCapture(local_video_path)
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        cap.release()
-        
-        resolution = f"{width}x{height}" if width and height else "未知"
-        video_duration = frame_count / fps if fps > 0 else 0.0
-        
-        def get_aspect_ratio(w, h):
-            if w == 0 or h == 0: return "未知"
-            gcd = math.gcd(w, h)
-            rw, rh = w//gcd, h//gcd
-            if rw == 8 and rh == 9: return "16:9" # 近似 1920x1080 等
-            return f"{rw}:{rh}"
-            
-        frame_size = get_aspect_ratio(width, height)
-        if width == 1920 and height == 1080: frame_size = "16:9"
-        elif width == 1080 and height == 1920: frame_size = "9:16"
-    except Exception as e:
-        log.warning(f"[{project_id}] 获取视频媒体信息失败: {e}")
-        resolution = "未知"
-        video_duration = 0.0
-        frame_size = "未知"
+    basename = os.path.basename(local_video_path)
+    user_car = (car_model or "").strip()
+    # 卖点词表仅按用户在表单中选择的车型注入（与 _get_or_upload_source_video 使用同一 car_model）
+    car_key_for_glossary = normalize_zhiji_car_key(car_model)
+
+    video_duration, resolution, frame_size = await asyncio.to_thread(
+        _probe_video_metadata, local_video_path, project_id
+    )
 
     workspace_dir = workspace_dir or f"./video_analysis_workspace/{project_id}"
     obs_key_prefix = f"ai_picture/video_analysis/{project_id}"
-    
+
+    appendix = ""
     if custom_prompt:
         prompt = custom_prompt
     else:
         prompt = DEFAULT_VISION_PROMPT_V2 if workspace == "v2" else DEFAULT_VISION_PROMPT_V1
+        if workspace == "v2":
+            appendix = build_v2_vision_selling_appendix(car_key_for_glossary)
+            if appendix:
+                prompt = f"{prompt}\n\n{appendix}"
+            prompt = f"{prompt}\n\n可以额外参考视频文件名（辅助卖点/语境，仍以画面为准）：{basename}"
+            log.info(
+                f"[{project_id}] v2 vision 提示元数据: form_car_model={user_car!r} "
+                f"car_key_for_glossary={car_key_for_glossary!r} appendix_chars={len(appendix)} basename={basename}"
+            )
+
+    log.info(
+        "[{}] vision 提示词总长 {} 字符 workspace={} custom_prompt={}",
+        project_id,
+        len(prompt),
+        workspace,
+        bool(custom_prompt),
+    )
+    log.info("[{}] vision 提示词全文:\n{}", project_id, prompt)
 
     # Step 1: 分镜检测 + 抽帧 (CPU 密集, 放到线程池)
-    basename = os.path.basename(local_video_path)
     
     # 尝试从缓存中获取（跳过 CPU 抽帧和上传 OBS）
     cached_scenes = await _get_cached_scenes(
@@ -446,7 +606,11 @@ async def analyze_video(
             
         card = await _analyze_single_scene(
             scene, frame_urls, prompt, workspace,
-            car_model=car_model, resolution=resolution, frame_size=frame_size, video_duration=video_duration, project_id=project_id
+            car_model=(user_car or None),
+            resolution=resolution,
+            frame_size=frame_size,
+            video_duration=video_duration,
+            project_id=project_id,
         )
         log.info(f"[{project_id}] scene {scene.scene_id} 豆包分析完成")
         return card
@@ -567,6 +731,7 @@ async def index_shotcards_to_opensearch(
     - bulk index into `car_interior_analysis`
     """
     if embedding_model is None:
+        await ensure_embedding_model_ready()
         embedding_model = get_embedding_model()
 
     docs = await map_shotcards_to_car_interior_docs(cards, embedding_model=embedding_model, id_prefix=id_prefix, workspace=workspace)

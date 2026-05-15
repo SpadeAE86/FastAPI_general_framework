@@ -14,6 +14,10 @@ class MixComposeBody(BaseModel):
         default=None,
         description="覆盖 mix_compose.mock；null 则读配置文件",
     )
+    prefer_srt: bool = Field(
+        default=False,
+        description="true 时混剪请求体不含 cap_config，完成后返回 result_srt_text",
+    )
 
 
 video_mix_router = APIRouter(prefix="/video-mix", tags=["video-mix"])
@@ -22,7 +26,7 @@ video_mix_router = APIRouter(prefix="/video-mix", tags=["video-mix"])
 @video_mix_router.post("/compose")
 async def create_mix_compose(body: MixComposeBody):
     try:
-        return await start_mix_compose_for_job(body.job_id, mix_mock=body.mock)
+        return await start_mix_compose_for_job(body.job_id, mix_mock=body.mock, prefer_srt=body.prefer_srt)
     except ValueError as e:
         msg = str(e)
         if msg == "job not found":

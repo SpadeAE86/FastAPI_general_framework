@@ -20,9 +20,10 @@ def _best_video_path_from_hits(hits: Any) -> Optional[str]:
     for h in hits:
         if not isinstance(h, dict):
             continue
-        u = str(h.get("video_path") or "").strip()
-        if u:
-            return u
+        for key in ("video_path", "video_url", "url", "obs_video_url"):
+            u = str(h.get(key) or "").strip()
+            if u:
+                return u
     return None
 
 
@@ -70,12 +71,49 @@ def collect_unique_source_obs_urls(shots: List[VideoMatchShotRow]) -> List[str]:
     return out
 
 
+def format_srt_timestamp(seconds: float) -> str:
+    """SRT 时间轴：HH:MM:SS,mmm"""
+    ms_total = int(round(max(0.0, float(seconds)) * 1000))
+    h, ms_rem = divmod(ms_total, 3600000)
+    m, ms_rem = divmod(ms_rem, 60000)
+    s, ms = divmod(ms_rem, 1000)
+    return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+
+def build_srt_from_match_shots(shots: List[VideoMatchShotRow]) -> str:
+    """
+    与 ``build_mixed_video_request_from_shots`` 同一时间轴：每段口播对应一条字幕，
+    起始时刻为累计视频时间轴上的 offset（与 audio_config.offset 一致）。
+    """
+    ordered = sorted(shots, key=lambda s: s.shot_order)
+    lines: List[str] = []
+    cursor = 0.0
+    idx = 0
+    for row in ordered:
+        cap = (row.segment_text or "").strip()
+        audio_dur = float(row.duration_sec or 0.0)
+        if audio_dur <= 0:
+            continue
+        idx += 1
+        start = cursor
+        end = cursor + audio_dur
+        lines.append(str(idx))
+        lines.append(f"{format_srt_timestamp(start)} --> {format_srt_timestamp(end)}")
+        safe = cap.replace("\r\n", "\n").replace("\r", "\n") if cap else " "
+        lines.append(safe)
+        lines.append("")
+        vis_dur = audio_dur + VIDEO_TAIL_PAUSE_SEC
+        cursor += vis_dur
+    return "\n".join(lines).rstrip() + ("\n" if lines else "")
+
+
 def build_mixed_video_request_from_shots(
     shots: List[VideoMatchShotRow],
     source_obs_to_high_res: Dict[str, str],
     *,
     biz_id: int,
     fps: int = 30,
+    include_cap_config: bool = True,
 ) -> MixedVideoRequest:
     """
     按剪映式时间轴：每镜画面时长 = 口播时长 + ``VIDEO_TAIL_PAUSE_SEC``；音频在时间轴上早于画面结束 0.4s。
@@ -122,28 +160,31 @@ def build_mixed_video_request_from_shots(
         obs_audios.append(audio_u)
         crops.append(CropConfig(start=crop_start, end=crop_end))
         audio_cfgs.append(AudioConfig(start=0.0, end=audio_dur, offset=cursor, volume=1.0))
-        captions.append(
-            Cap(
-                start=cursor,
-                end=cursor + audio_dur,
-                cap=row.segment_text or "",
-                font_size=cap_theme.font_size,
-                font_type=cap_theme.font_type,
-                color=cap_theme.cap_color,
-                outline_color=cap_theme.cap_outline_color,
-                outline_width=cap_theme.cap_outline_width,
+        if include_cap_config:
+            captions.append(
+                Cap(
+                    start=cursor,
+                    end=cursor + audio_dur,
+                    cap=row.segment_text or "",
+                    font_size=cap_theme.font_size,
+                    font_type=cap_theme.font_type,
+                    color=cap_theme.cap_color,
+                    outline_color=cap_theme.cap_outline_color,
+                    outline_width=cap_theme.cap_outline_width,
+                )
             )
-        )
         cursor += vis_dur
 
-    cap_cfg = CapConfig(
-        caption_list=captions,
-        font_size=cap_theme.font_size,
-        font_type=cap_theme.font_type,
-        cap_color=cap_theme.cap_color,
-        cap_outline_color=cap_theme.cap_outline_color,
-        cap_outline_width=cap_theme.cap_outline_width,
-    )
+    cap_cfg: Optional[CapConfig] = None
+    if include_cap_config:
+        cap_cfg = CapConfig(
+            caption_list=captions,
+            font_size=cap_theme.font_size,
+            font_type=cap_theme.font_type,
+            cap_color=cap_theme.cap_color,
+            cap_outline_color=cap_theme.cap_outline_color,
+            cap_outline_width=cap_theme.cap_outline_width,
+        )
 
     return MixedVideoRequest(
         biz_id=biz_id,

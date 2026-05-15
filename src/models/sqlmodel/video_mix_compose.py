@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from sqlmodel import SQLModel, Field
-from sqlalchemy import Column, DateTime, Text, func
+from sqlalchemy import Column, DateTime, Text, Boolean, func
 from sqlalchemy.dialects.mysql import JSON as MySQLJSON, VARCHAR
 
 
@@ -28,6 +28,9 @@ class VideoMixComposeJob(SQLModel, table=True):
     )
     error_message: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
     result_obs_url: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    #: True：请求体不含 cap_config，由服务端生成 SRT（result_srt_text）
+    prefer_srt: bool = Field(default=False, sa_column=Column(Boolean, nullable=False, server_default="0"))
+    result_srt_text: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
     request_json: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(MySQLJSON, nullable=True))
 
     created_at: datetime = Field(

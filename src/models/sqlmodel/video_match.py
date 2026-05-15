@@ -22,6 +22,8 @@ class VideoMatchJob(SQLModel, table=True):
     topic: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
     title: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
     car_model: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    #: 与索引 `frame_size` 对齐：横版16:9 / 竖版9:16；转写后写入每镜 tags_json 并参与检索过滤
+    frame_size: Optional[str] = Field(default=None, sa_column=Column(VARCHAR(32), nullable=True))
 
     parse_status: str = Field(
         default="pending",

@@ -69,6 +69,7 @@ from services.script_match_recall import (
     global_knn_top_k,
 )
 from utils.search_utils import chunks_from_query_parts, rrf_fuse_ranked_lists
+from infra.logging.logger import logger as log
 
 
 # ---------------------------------------------------------------------------
@@ -80,25 +81,43 @@ async def _fetch_video_paths(history_ids: List[str], shot_cards_version: str = "
     out: Dict[str, str] = {}
     ver: str = "v2" if (shot_cards_version or "v1").strip() == "v2" else "v1"
     for hid in [h for h in history_ids if h]:
-        try:
-            item = await video_analysis_db_service.get_history_item(hid, shot_cards_version=ver)  # type: ignore[arg-type]
-            if item and isinstance(item, dict):
-                vp = str(item.get("video_url") or "").strip()
-                if not vp and ver == "v2":
-                    cards = item.get("cards") or []
-                    if isinstance(cards, list):
-                        for c in cards:
-                            if not isinstance(c, dict):
-                                continue
-                            ov = str(c.get("obs_video_url") or "").strip()
-                            if ov:
-                                vp = ov
-                                break
-                if vp:
-                    out[hid] = vp
-        except Exception:
-            continue
+        vp = await video_analysis_db_service.resolve_source_video_url_for_index_key(
+            hid, shot_cards_version=ver  # type: ignore[arg-type]
+        )
+        if vp:
+            out[hid] = vp
     return out
+
+
+def _backfill_top_hits_video_paths_from_filled(result: Dict[str, Any]) -> None:
+    """
+    主检索 ``top_hits`` 的 video_path 来自首轮 path_map；若为空而补时长 ``filled_hits`` 已解析到 URL，
+    按 history_id 回填，避免落库 hits 无 URL、前端「匹配结果 / Top5」全空。
+    """
+    tops = result.get("top_hits")
+    if not isinstance(tops, list) or not tops:
+        return
+    filled = result.get("filled_hits") or []
+    if not isinstance(filled, list) or not filled:
+        return
+    by_hid: Dict[str, str] = {}
+    for h in filled:
+        if not isinstance(h, dict):
+            continue
+        hid = str(h.get("history_id") or "").strip()
+        vp = str(h.get("video_path") or "").strip()
+        if hid and vp:
+            by_hid[hid] = vp
+    if not by_hid:
+        return
+    for h in tops:
+        if not isinstance(h, dict):
+            continue
+        if str(h.get("video_path") or "").strip():
+            continue
+        hid = str(h.get("history_id") or "").strip()
+        if hid and hid in by_hid:
+            h["video_path"] = by_hid[hid]
 
 
 # ---------------------------------------------------------------------------
@@ -295,7 +314,7 @@ async def _match_one_segment(
             {**h, "video_path": merged_paths.get(str(h.get("history_id") or ""), "")} for h in fhs
         ]
 
-    return {
+    out = {
         "segment_id": seg.get("id"),
         "segment_text": seg.get("segment_text"),
         "query_text": q,
@@ -316,6 +335,8 @@ async def _match_one_segment(
         "filled_duration_seconds": float(fill_block.get("filled_duration_seconds") or 0.0),
         "segment_duration_seconds": float(fill_block.get("segment_duration_seconds") or 0.0),
     }
+    _backfill_top_hits_video_paths_from_filled(out)
+    return out
 
 
 # ---------------------------------------------------------------------------

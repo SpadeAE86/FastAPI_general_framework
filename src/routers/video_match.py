@@ -4,8 +4,9 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from fastapi import APIRouter, BackgroundTasks, Body, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Body, HTTPException, Query
 
+from infra.logging.logger import logger as log
 from infra.storage.mysql_connector import mysql_connector
 from models.sqlmodel.video_match import VideoMatchJob
 from services.http_request_trace_service import http_request_trace_service
@@ -28,6 +29,10 @@ class VideoMatchCreateJobBody(BaseModel):
     topic: Optional[str] = None
     title: Optional[str] = None
     car_model: Optional[str] = None
+    frame_size: Optional[str] = Field(
+        default=None,
+        description="画面比例约束，与索引 frame_size 一致：横版16:9 / 竖版9:16；写入每镜检索标签 must",
+    )
     workspace: Optional[str] = Field(default="v1", description="与视频分析 workspace 对齐")
     mock: bool = Field(default=False, description="true 时返回固定分镜，不写库")
 
@@ -42,6 +47,10 @@ class MixComposeFromJobBody(BaseModel):
     mock: Optional[bool] = Field(
         default=None,
         description="true=仅占位写入 mix 表；false=POST 真实混剪；null=使用 config mix_compose.mock",
+    )
+    prefer_srt: bool = Field(
+        default=False,
+        description="true 时请求体不含 cap_config，由服务端生成 SRT，轮询完成后见 result_srt_text",
     )
 
 
@@ -64,6 +73,7 @@ async def create_video_match_job(body: VideoMatchCreateJobBody):
         topic=body.topic,
         title=body.title,
         car_model=body.car_model,
+        frame_size=body.frame_size,
         workspace=body.workspace,
         mock=body.mock,
     )
@@ -87,6 +97,7 @@ async def get_video_match_job_board_detail(job_id: str):
         "topic": job.topic,
         "title": job.title,
         "car_model": job.car_model,
+        "frame_size": job.frame_size,
         "workspace": job.workspace,
         "parse_status": job.parse_status,
         "parse_error": job.parse_error,
@@ -103,10 +114,30 @@ async def get_video_match_job_board_detail(job_id: str):
 
 
 @video_match_router.get("/jobs/{job_id}")
-async def get_video_match_job(job_id: str):
+async def get_video_match_job(job_id: str, verbose: int = Query(0, ge=0, le=1)):
+    """
+    verbose=1 时在服务日志中打印每条分镜的 top1 / 命中数 / 首条 hit 字段，便于排查「匹配成功但 URL 空」。
+    """
     data = await get_job_payload(job_id)
     if data is None:
         raise HTTPException(status_code=404, detail="job not found")
+    if verbose:
+        for s in data.get("shots") or []:
+            if not isinstance(s, dict):
+                continue
+            hits = s.get("match_top_hits_json")
+            fk: list[str] = []
+            if isinstance(hits, list) and hits and isinstance(hits[0], dict):
+                fk = list(hits[0].keys())
+            log.info(
+                "video_match GET job={} shot_order={} search={} top1_non_empty={} hit_count={} first_hit_keys={}",
+                job_id,
+                s.get("shot_order"),
+                s.get("search_status"),
+                bool(str(s.get("top1_obs_url") or "").strip()),
+                s.get("match_hit_count"),
+                fk,
+            )
     return data
 
 
@@ -149,7 +180,7 @@ async def start_mix_compose_from_match_job(
 ):
     """与 ``POST /video-mix/compose`` 等价，仅路径绑定在匹配 job 上。可选 body: ``{ \"mock\": true|false|null }``。"""
     try:
-        return await start_mix_compose_for_job(job_id, mix_mock=body.mock)
+        return await start_mix_compose_for_job(job_id, mix_mock=body.mock, prefer_srt=body.prefer_srt)
     except ValueError as e:
         msg = str(e)
         if msg == "job not found":

@@ -16,6 +16,7 @@ from models.pydantic.request import SEEDREAM_MODEL_MAP, SEEDTEXT_MODEL_MAP, SEED
 import httpx
 import json
 from dotenv import load_dotenv
+from infra.logging.logger import logger as log
 
 load_dotenv()
 # ARK_API_KEY = "a3818169-d25e-49fd-8bf8-dea20197475c" 老的api key
@@ -62,8 +63,20 @@ async def call_doubao_vision(prompt, image_url_list, schema_json = None):
             }
         }
     try:
-        print(f"message: {messages}, format: {response_format}")
-        print("正在调用豆包 API 分析图片...")
+        pt = str(content_list[0].get("text") or "")
+        glossary_hit = "官方功能/卖点参考" in pt
+        js_name = "—"
+        if response_format and isinstance(response_format, dict):
+            js = response_format.get("json_schema")
+            js_name = str(js.get("name") if isinstance(js, dict) else "?")
+        log.info(
+            "doubao_vision: prompt_chars={} images={} glossary_in_prompt={} json_schema={} "
+            "(全文见本轮 analyze_video 的「vision 提示词全文」日志，此处不重复打印)",
+            len(pt),
+            len(image_url_list),
+            glossary_hit,
+            js_name,
+        )
         # 尝试使用 doubao_vision.py 中已有的模型名称，或者是常见的模型名
         # 因为在 doubao_vision.py 中写的是 "doubao-seed-1-6-vision-250815"
         # 我们用它去测试

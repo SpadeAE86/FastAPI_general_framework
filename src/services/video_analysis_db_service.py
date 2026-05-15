@@ -349,6 +349,82 @@ class VideoAnalysisDBService:
                 keys=("created_at", "updated_at"),
             )
 
+    async def resolve_source_video_url_for_index_key(
+        self,
+        key: str,
+        *,
+        shot_cards_version: ShotCardsVersion = "v1",
+    ) -> str:
+        """
+        将素材检索中的「history / 文档 id 前缀」解析为可播放的源视频 OBS URL。
+
+        兼容两类数据：
+        - 前缀即 ``video_analysis_history.id``（多为 project_id UUID）；
+        - 前缀仅为 ``video_analysis_video_v2.id`` 或 ``video_key``（纯数字）：旧版
+          ``get_history_item`` 会直接失败，这里通过 ``source_file_name`` 与
+          ``video_analysis_history.name`` 对齐找回 ``video_url``。
+        """
+        k = (key or "").strip()
+        if not k:
+            return ""
+        ver: ShotCardsVersion = "v2" if (shot_cards_version or "v1").strip() == "v2" else "v1"
+        try:
+            item = await self.get_history_item(k, shot_cards_version=ver)
+            if item and isinstance(item, dict):
+                vp = str(item.get("video_url") or "").strip()
+                if vp:
+                    return vp
+                if ver == "v2":
+                    for c in item.get("cards") or []:
+                        if isinstance(c, dict):
+                            ov = str(c.get("obs_video_url") or "").strip()
+                            if ov:
+                                return ov
+        except Exception as e:
+            log.debug("resolve_source_video_url get_history_item key=%s: %s", k, e)
+        try:
+            row = await self.get_history_row(k)
+            if row and isinstance(row, dict):
+                vp = str(row.get("video_url") or "").strip()
+                if vp:
+                    return vp
+        except Exception as e:
+            log.debug("resolve_source_video_url get_history_row key=%s: %s", k, e)
+        if ver != "v2":
+            return ""
+        try:
+            async with mysql_connector.session_scope() as session:
+                vrow = None
+                if k.isdigit():
+                    r1 = await session.execute(
+                        select(VideoAnalysisVideoV2).where(VideoAnalysisVideoV2.id == int(k))
+                    )
+                    vrow = r1.scalar_one_or_none()
+                if vrow is None:
+                    r2 = await session.execute(
+                        select(VideoAnalysisVideoV2).where(VideoAnalysisVideoV2.video_key == k)
+                    )
+                    vrow = r2.scalar_one_or_none()
+                if vrow is None:
+                    return ""
+                raw_name = (vrow.source_file_name or "").strip()
+                base = os.path.basename(raw_name.replace("\\", "/")) if raw_name else ""
+                if not base:
+                    return ""
+                r3 = await session.execute(
+                    select(VideoAnalysisHistory)
+                    .where(VideoAnalysisHistory.name == base)
+                    .order_by(VideoAnalysisHistory.updated_at.desc())
+                    .limit(5)
+                )
+                for h in r3.scalars().all():
+                    u = str(h.video_url or "").strip()
+                    if u:
+                        return u
+        except Exception as e:
+            log.debug("resolve_source_video_url v2 numeric/key fallback key=%s: %s", k, e)
+        return ""
+
     async def get_history_item(
         self,
         history_id: str,

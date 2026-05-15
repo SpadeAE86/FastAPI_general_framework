@@ -82,6 +82,7 @@ SHOULDBOOST_WEIGHTS: Dict[str, float] = {
     "footage_type": 1.1,
     "car_color": 1.1,
     "car_model": 1.1,
+    "frame_size": 1.0,
     "topic": 1.1,
     "design_adjectives": 1.0,
     "function_adjectives": 1.0,
@@ -300,6 +301,7 @@ def merge_segments_for_global(segments: List[Dict[str, Any]]) -> Dict[str, Any]:
         "footage_type",
         "product_status_scene",
         "camera_movement",
+        "frame_size",
     ]:
         for seg in segments:
             v = seg.get(k)
@@ -370,8 +372,8 @@ def build_filters(seg: Dict[str, Any], *, relax_partitions: bool = False) -> Lis
     relaxed (``relax_partitions=True``): movement + video_usage.
 
     strict (``relax_partitions=False``):
-      (any non-empty subset of {movement, product_status_scene, car_model}) ∨ generic_hq_road_run
-      optionally AND-ed with video_usage terms.
+      (至少命中 movement / product_status_scene / car_model 之一) ∨ generic_hq_road_run；
+      frame_size 仅参与 should 加权，不作硬过滤。
 
     The partition arm uses **whatever terms are available** (1-3), not only when
     all three are present.  Requiring all three caused segments that lack
@@ -390,6 +392,7 @@ def build_filters(seg: Dict[str, Any], *, relax_partitions: bool = False) -> Lis
             vu2 = [str(x).strip() for x in vu if str(x).strip() and str(x).strip() != _UNKNOWN]
             if vu2:
                 filters.append({"terms": {"video_usage": vu2}})
+        # frame_size 只作 should 加权（见 build_should_boosts），不作硬过滤，避免口播侧比例与素材库枚举不一致时整镜 0 命中。
         return filters
 
     mv = str(seg.get("movement") or "").strip()
@@ -404,13 +407,13 @@ def build_filters(seg: Dict[str, Any], *, relax_partitions: bool = False) -> Lis
     if cm and cm != _UNKNOWN:
         partition_terms.append({"term": {"car_model": {"value": cm}}})
 
-    # Build the OR: (available partition terms) OR road_run.
-    # Always include road_run so clips without perfect partition match can still
-    # be retrieved as a last resort.
+    # Build the OR: (any available partition dimension) OR road_run.
+    # 历史上误用 bool.filter 把多 term 连成 AND，与「1～3 个维度任意命中」的意图相反，且 car_model 口径（LS6 vs 智己LS6）易全盘不匹配。
     should_parts: List[Dict[str, Any]] = []
     if partition_terms:
-        # Use whatever partition fields are available — even 1 or 2 is useful.
-        should_parts.append({"bool": {"filter": partition_terms}})
+        should_parts.append(
+            {"bool": {"should": partition_terms, "minimum_should_match": 1}}
+        )
     should_parts.append({"term": {"generic_hq_road_run": True}})
 
     if len(should_parts) == 1:
@@ -418,6 +421,8 @@ def build_filters(seg: Dict[str, Any], *, relax_partitions: bool = False) -> Lis
         filters.append(should_parts[0])
     else:
         filters.append({"bool": {"should": should_parts, "minimum_should_match": 1}})
+
+    # frame_size：同上，仅软约束，避免硬 AND 清空结果集。
 
     # video_usage is intentionally NOT added as a hard filter here.
     # The script-side video_usage ("希望用来做什么") and the index-side video_usage
@@ -454,6 +459,7 @@ def build_should_boosts(seg: Dict[str, Any]) -> List[Dict[str, Any]]:
     add_term("footage_type", str(seg.get("footage_type") or ""), float(w["footage_type"]))
     add_term("car_color", str(seg.get("car_color") or ""), float(w["car_color"]))
     add_term("car_model", str(seg.get("car_model") or ""), float(w["car_model"]))
+    add_term("frame_size", str(seg.get("frame_size") or ""), float(w["frame_size"]))
 
     tp = seg.get("topic")
     if isinstance(tp, str):
