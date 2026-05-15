@@ -17,6 +17,7 @@ TOKEN_JOIN_TERM_FIELDS_V2: frozenset[str] = frozenset(
     {
         "car_model",
         "frame_size",
+        "frame_orientation",
         "resolution",
         "footage_type",
         "shot_style",
@@ -32,6 +33,40 @@ TOKEN_JOIN_TERM_FIELDS_V2: frozenset[str] = frozenset(
 )
 
 DEFAULT_AND_SEGMENT_FIELDS: List[str] = ["car_model", "movement", "product_status_scene"]
+
+
+def normalize_v2_term_filter_value(field: str, value: str) -> str:
+    """
+    将 UI / 脚本侧常用取值映射为 OpenSearch keyword（与入库或派生字段一致）。
+    """
+    f = (field or "").strip()
+    v = (value or "").strip()
+    if not v:
+        return v
+    if f == "frame_size":
+        m = {
+            "竖版9:16": "9:16",
+            "竖屏9:16": "9:16",
+            "横版16:9": "16:9",
+            "横屏16:9": "16:9",
+        }
+        return m.get(v, v)
+    if f == "frame_orientation":
+        alias = {
+            "portrait": "竖屏",
+            "landscape": "横屏",
+            "vertical": "竖屏",
+            "horizontal": "横屏",
+            "竖版": "竖屏",
+            "横版": "横屏",
+        }
+        vl = v.lower()
+        if vl in alias:
+            return alias[vl]
+        if v in alias:
+            return alias[v]
+        return v
+    return v
 
 
 def normalize_and_segment_fields(fields: Optional[Sequence[str]]) -> List[str]:

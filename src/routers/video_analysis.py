@@ -42,6 +42,7 @@ from models.pydantic.opensearch_index.base_index import (
 from services.script_match_recall import ensure_hybrid_pipeline, ensure_rrf_pipeline
 from services.token_join_template_service import (
     TOKEN_JOIN_TERM_FIELDS_V2,
+    normalize_v2_term_filter_value,
     create_template,
     delete_template,
     get_default_and_fields,
@@ -544,7 +545,8 @@ def _video_analysis_split_tokens(
         is_and = join == "AND"
         sf = (tok.source_field or "").strip()
         if is_and and sf and sf in allowed:
-            term_filters.append({"term": {sf: text}})
+            term_val = normalize_v2_term_filter_value(sf, text)
+            term_filters.append({"term": {sf: term_val}})
         else:
             rel_parts.append(text)
 

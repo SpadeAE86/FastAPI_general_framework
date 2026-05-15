@@ -51,6 +51,29 @@ async def lifespan(app: FastAPI):
         except Exception as _e:
             log.warning("启动时标记中断任务失败（可忽略若表未就绪）: %s", _e)
 
+        if os.environ.get("SKIP_FRAME_ORIENTATION_BACKFILL", "").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+        ):
+            log.info("已设置 SKIP_FRAME_ORIENTATION_BACKFILL，跳过 frame_orientation 索引回填")
+        else:
+
+            async def _frame_orientation_backfill_bg() -> None:
+                try:
+                    await asyncio.sleep(2)
+                    from services.frame_orientation_os_backfill import run_frame_orientation_backfill
+
+                    n = await run_frame_orientation_backfill()
+                    log.info("OpenSearch frame_orientation 回填完成，更新文档数: %s", n)
+                except Exception as _fo:
+                    log.warning(
+                        "frame_orientation 回填未执行或失败（可稍后手动: python -m services.frame_orientation_os_backfill）: %s",
+                        _fo,
+                    )
+
+            asyncio.create_task(_frame_orientation_backfill_bg())
+
         # 模型预热（后台 task，不 await）：yield 后 HTTP 立即可用；OpenSearch 入库前会 await ensure_embedding_model_ready 等待同一加载任务。
         warmup_task = start_embedding_warmup_background()
         log.info("已向后台派发向量模型预热；HTTP 即将就绪（向量化入库前会等待预热完成）。")

@@ -4,6 +4,8 @@ from typing import Annotated, List, Optional
 
 from pydantic import Field
 
+from utils.frame_orientation import infer_frame_orientation
+
 from .base_index import BaseIndex
 from .markers import Boolean, Keyword, Text, Vector, Float
 from . import index_v2_enums
@@ -44,6 +46,10 @@ class CarInteriorAnalysisV2(BaseIndex):
     # --- Deterministic / metadata fields (mostly filterable) ---
     car_model: Annotated[str, Keyword(1.0)] = Field("未知", description="车型（外部标签，默认未知）")
     frame_size: Annotated[str, Keyword(1.0)] = Field("未知", description="尺寸/比例（由帧宽高计算）")
+    frame_orientation: Annotated[str, Keyword(1.1)] = Field(
+        "未知",
+        description="横屏/竖屏/未知，由 frame_size 派生；供转写模板 AND 与检索，无需穷举所有比例写法。",
+    )
     resolution: Annotated[str, Keyword(0.7)] = Field(
         "未知", description="分辨率（如 1920x1080；由帧宽高计算，用于区分素材质量）"
     )
@@ -200,6 +206,7 @@ class CarInteriorAnalysisV2(BaseIndex):
             id=analysis_result.get("id"),
             car_model=analysis_result.get("car_model", "未知"),
             frame_size=analysis_result.get("frame_size", "未知"),
+            frame_orientation=infer_frame_orientation(str(analysis_result.get("frame_size") or "")),
             resolution=analysis_result.get("resolution", "未知"),
             video_duration=float(analysis_result.get("video_duration", 0.0) or 0.0),
             start_time=float(analysis_result.get("start_time", 0.0) or 0.0),
