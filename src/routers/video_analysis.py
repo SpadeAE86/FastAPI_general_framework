@@ -510,7 +510,10 @@ class VideoAnalysisSearchToken(BaseModel):
 class VideoAnalysisSearchRequest(BaseModel):
     tokens: List[VideoAnalysisSearchToken] = Field(default_factory=list)
     fuzzy: bool = False
-    history_id: Optional[str] = None
+    history_id: Optional[str] = Field(
+        default=None,
+        description="已忽略：搜索不按历史收窄，仅在 workspace 对应索引内全量检索；保留字段仅为兼容旧客户端。",
+    )
     size: int = 50
     workspace: Optional[str] = None  # "v1" | "v2"
     bm25_weight: float = Field(default=0.3, description="BM25 搜索权重")
@@ -647,7 +650,7 @@ async def _video_analysis_client_rrf_hits(
     vec_weight_map: dict,
     text_weights: Optional[dict],
     size: int,
-    history_id: str,
+    hist_prefix_opt: Optional[str],
     extra_term_filters: Optional[List[dict]] = None,
     must_not_multi_matches: Optional[List[dict]] = None,
 ) -> List[dict]:
@@ -658,8 +661,6 @@ async def _video_analysis_client_rrf_hits(
     import json
 
     recall = min(500, max(size * 5, 100))
-    hist_prefix = f"{history_id}_" if history_id and history_id != "__all__" else ""
-    hist_prefix_opt = hist_prefix if hist_prefix else None
 
     text_fields = get_searchable_fields(IndexModel)
     weights = get_field_weights(IndexModel).copy()
@@ -738,6 +739,9 @@ async def search_cards(req: VideoAnalysisSearchRequest):
 
     AND + ``source_field``（v2 keyword 白名单）在 OpenSearch 中作 term filter；
     OR（及无 source_field 的 AND）进入 ``query_text`` 相关性；``not`` → must_not。
+
+    检索范围：仅由 ``workspace`` 决定索引（v1/v2 模型）；**不按** ``history_id`` 收窄文档，
+    即在当前 workspace 对应索引内全量匹配（与视频匹配页一致的全库召回语义）。
     """
     raw_tokens = [t for t in (req.tokens or []) if (t.text or "").strip()]
     if not raw_tokens:
@@ -752,20 +756,13 @@ async def search_cards(req: VideoAnalysisSearchRequest):
         raw_tokens, index_is_v2=index_is_v2
     )
 
-    hist_prefix = f"{history_id}_" if history_id and history_id != "__all__" else ""
-    hist_prefix_opt = hist_prefix if hist_prefix else None
+    hist_prefix_opt: Optional[str] = None
 
     token_texts = [t.text for t in raw_tokens[:10]]
     log.info(
-        "[search] query=%r fuzzy=%s use_rrf=%s size=%s workspace=%s history=%s term_filters=%s tokens=%s",
-        query_text,
-        req.fuzzy,
-        req.use_rrf,
-        size,
-        ws,
-        history_id or "*",
-        term_filters,
-        token_texts,
+        f"[search] query={query_text!r} fuzzy={req.fuzzy} use_rrf={req.use_rrf} size={size} "
+        f"workspace={ws!r} history_id_param={history_id or '*'} (ignored for scope) "
+        f"term_filters={term_filters!r} tokens={token_texts!r}"
     )
 
     IndexModel = CarInteriorAnalysisV2 if index_is_v2 else CarInteriorAnalysis
@@ -830,7 +827,7 @@ async def search_cards(req: VideoAnalysisSearchRequest):
                     vec_weight_map=vec_weight_map,
                     text_weights=req.text_weights,
                     size=size,
-                    history_id=history_id,
+                    hist_prefix_opt=hist_prefix_opt,
                     extra_term_filters=term_filters,
                     must_not_multi_matches=must_not_opt,
                 )
@@ -1231,7 +1228,7 @@ async def _bg_analyze_video(
                     shot_cards_version=workspace,
                 )
             except Exception as _db_e:
-                log.warning("persist FAILED video history: %s", _db_e)
+                log.warning(f"persist FAILED video history: {_db_e}")
             try:
                 await http_request_trace_service.finalize(
                     http_trace_id,
@@ -1242,7 +1239,7 @@ async def _bg_analyze_video(
                     business_success=False,
                 )
             except Exception as _fe:
-                log.warning("finalize http trace: %s", _fe)
+                log.warning(f"finalize http trace: {_fe}")
     finally:
         _video_analysis_slot.release()
         if remove_local_after and os.path.exists(local_path):
