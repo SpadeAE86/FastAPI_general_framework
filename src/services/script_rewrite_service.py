@@ -295,6 +295,8 @@ async def rewrite_script_to_storyboard_and_tags(
     topic: str | None = None,
     title: str | None = None,
     car_model: str | None = None,
+    frame_size: str | None = None,
+    frame_orientation: str | None = None,
     index: int = 0,
     tts_obs_project_id: Optional[str] = None,
     out_obs_audio_urls: Optional[List[Optional[str]]] = None,
@@ -317,6 +319,18 @@ async def rewrite_script_to_storyboard_and_tags(
         ctx_lines.append(f"【标题】{title.strip()}")
     if isinstance(car_model, str) and car_model.strip():
         ctx_lines.append(f"【车型】{car_model.strip()}")
+    fs_ctx = (frame_size or "").strip() if isinstance(frame_size, str) else ""
+    fo_ctx = (frame_orientation or "").strip() if isinstance(frame_orientation, str) else ""
+    if fs_ctx and fs_ctx != "未知":
+        ctx_lines.append(
+            f"【硬性约束·画面比例】素材索引 frame_size 须为「{fs_ctx}」。"
+            f"Stage1 分镜描述与镜头规划应优先适合该比例；Stage2 输出每条 segment 的 frame_size 亦须与此一致。"
+        )
+    if fo_ctx in ("横屏", "竖屏"):
+        ctx_lines.append(
+            f"【硬性约束·横竖屏】素材索引 frame_orientation keyword 须为「{fo_ctx}」。"
+            f"Stage1/Stage2 全部分镜须按{fo_ctx}构图与表述习惯规划（勿当作「未知」）。"
+        )
     ctx_lines.append("【口播脚本】")
     ctx_lines.append(script)
     stage1_prompt = "\n".join(ctx_lines).strip()
@@ -347,9 +361,22 @@ async def rewrite_script_to_storyboard_and_tags(
     elif out_obs_audio_urls is not None:
         out_obs_audio_urls.clear()
 
+    stage2_tail: List[str] = []
+    if fs_ctx and fs_ctx != "未知":
+        stage2_tail.append(f"每条 segment 的 frame_size 必须为「{fs_ctx}」。")
+    if fo_ctx in ("横屏", "竖屏"):
+        stage2_tail.append(
+            f"每条 segment 须在输出 JSON 中包含 frame_orientation 字段且值为「{fo_ctx}」（与索引 keyword 一致）。"
+        )
+    stage2_extra = ""
+    if stage2_tail:
+        stage2_extra = "\n\n除 schema 与 Stage1 对齐外还须满足：\n" + "\n".join(
+            f"- {line}" for line in stage2_tail
+        )
     stage2_prompt = (
         "下面是 Stage1 生成的 storyboard JSON，请基于它输出 Stage2 的严格标签。\n\n"
         + json.dumps(storyboard.model_dump(), ensure_ascii=False)
+        + stage2_extra
     )
     stage2_raw = await _call_seedtext_with_fallback(
         prompt=stage2_prompt,

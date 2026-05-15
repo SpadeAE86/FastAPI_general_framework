@@ -243,6 +243,21 @@ class SeedtextIndexTagsSegment(BaseModel):
         ),
     )
 
+    frame_size: Optional[str] = Field(
+        default=None,
+        description=(
+            "画幅比例 keyword，与索引 frame_size 一致（如 横版16:9 / 竖版9:16）。"
+            "仅当 Stage1 前序约束或画面明显需要时填写；无约束可省略。"
+        ),
+    )
+    frame_orientation: Optional[str] = Field(
+        default=None,
+        description=(
+            "横竖屏 keyword（横屏 / 竖屏 / 未知），与索引 frame_orientation 一致。"
+            "若 Stage1 硬性约束指定横屏或竖屏，每条必须与该值一致且勿填未知。"
+        ),
+    )
+
     extra_tags: Optional[List[str]] = Field(
         default=None,
         description="无法归类但可能有助检索的额外短标签（鼓励有想象力，尽量 3-10 个；短词）。",

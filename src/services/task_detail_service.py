@@ -177,6 +177,8 @@ def build_video_match_job_task_detail(row: Dict[str, Any]) -> Dict[str, Any]:
         "topic": row.get("topic"),
         "title": row.get("title"),
         "car_model": row.get("car_model"),
+        "frame_size": row.get("frame_size"),
+        "frame_orientation": row.get("frame_orientation"),
         "workspace": row.get("workspace"),
     }
     resp_body: Dict[str, Any] = {

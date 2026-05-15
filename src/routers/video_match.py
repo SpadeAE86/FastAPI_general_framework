@@ -33,6 +33,10 @@ class VideoMatchCreateJobBody(BaseModel):
         default=None,
         description="画面比例约束，与索引 frame_size 一致：横版16:9 / 竖版9:16；写入每镜检索标签 must",
     )
+    frame_orientation: Optional[str] = Field(
+        default=None,
+        description="横竖屏约束，与索引 frame_orientation 一致：横屏 / 竖屏；可不选具体比例；写入每镜 tags_json",
+    )
     workspace: Optional[str] = Field(default="v1", description="与视频分析 workspace 对齐")
     mock: bool = Field(default=False, description="true 时返回固定分镜，不写库")
 
@@ -74,6 +78,7 @@ async def create_video_match_job(body: VideoMatchCreateJobBody):
         title=body.title,
         car_model=body.car_model,
         frame_size=body.frame_size,
+        frame_orientation=body.frame_orientation,
         workspace=body.workspace,
         mock=body.mock,
     )
@@ -98,6 +103,7 @@ async def get_video_match_job_board_detail(job_id: str):
         "title": job.title,
         "car_model": job.car_model,
         "frame_size": job.frame_size,
+        "frame_orientation": job.frame_orientation,
         "workspace": job.workspace,
         "parse_status": job.parse_status,
         "parse_error": job.parse_error,

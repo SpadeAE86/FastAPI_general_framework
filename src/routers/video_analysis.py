@@ -29,6 +29,7 @@ from models.pydantic.video_analysis_request import (
 from models.pydantic.model_output_schema.seedtext_script_segments_schema import SeedtextIndexTagsEnvelope
 from services.analysis_video import analyze_video, index_shotcards_to_opensearch
 from services.script_rewrite_service import rewrite_script_to_storyboard_and_tags
+from utils.frame_orientation import infer_frame_orientation
 from services.video_analysis_db_service import video_analysis_db_service
 from services.http_request_trace_service import http_request_trace_service
 from infra.logging.logger import logger as log
@@ -1061,6 +1062,10 @@ class RewriteScriptRequest(BaseModel):
         default=None,
         description="与索引 frame_size 一致：横版16:9 / 竖版9:16；写入每段标签并参与搜索 must",
     )
+    frame_orientation: Optional[str] = Field(
+        default=None,
+        description="与索引 frame_orientation 一致：横屏 / 竖屏；可不指定具体比例",
+    )
 
 @video_analysis_router.post("/rewrite-script")
 async def rewrite_script_endpoint(req: RewriteScriptRequest):
@@ -1070,7 +1075,8 @@ async def rewrite_script_endpoint(req: RewriteScriptRequest):
     """
     log.info(
         f"[rewrite-script] received request: script={req.script!r} topic={req.topic!r} "
-        f"title={req.title!r} car_model={req.car_model!r} frame_size={req.frame_size!r}"
+        f"title={req.title!r} car_model={req.car_model!r} frame_size={req.frame_size!r} "
+        f"frame_orientation={req.frame_orientation!r}"
     )
     if not req.script.strip():
         return {"success": False, "error": "script cannot be empty"}
@@ -1082,7 +1088,9 @@ async def rewrite_script_endpoint(req: RewriteScriptRequest):
             topic=req.topic,
             title=req.title,
             car_model=req.car_model,
-            index=0
+            frame_size=(req.frame_size or "").strip() or None,
+            frame_orientation=(req.frame_orientation or "").strip() or None,
+            index=0,
         )
         tags_dump = tags.model_dump(exclude_none=True)
         for item in tags_dump.get("segment_result") or []:
@@ -1094,6 +1102,13 @@ async def rewrite_script_endpoint(req: RewriteScriptRequest):
             fs = (req.frame_size or "").strip()
             if fs and fs != "未知":
                 item["frame_size"] = fs
+            fo = (req.frame_orientation or "").strip()
+            if fo in ("横屏", "竖屏"):
+                item["frame_orientation"] = fo
+            elif not fo and fs:
+                inf = infer_frame_orientation(fs)
+                if inf and inf != "未知":
+                    item["frame_orientation"] = inf
         return {"success": True, "tags": tags_dump}
     except Exception as e:
         log.error(f"rewrite_script failed: {e}")

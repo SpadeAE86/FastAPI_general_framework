@@ -21,6 +21,7 @@ from services.script_rewrite_service import (
     rewrite_script_to_storyboard_and_tags,
     synthesize_text_to_obs_wav,
 )
+from utils.frame_orientation import infer_frame_orientation
 
 # 后续「每分镜 OpenSearch 匹配」时在此使用 asyncio.Semaphore 限制并发
 MATCH_CONCURRENCY = 4
@@ -92,13 +93,21 @@ def _resolve_tag_segment(
     return None
 
 
+def _norm_job_frame_orientation(val: Optional[str]) -> Optional[str]:
+    s = (val or "").strip()
+    if s in ("横屏", "竖屏"):
+        return s
+    return None
+
+
 def _merge_job_constraints_into_segment_tags(
     base: Dict[str, Any],
     *,
     car_model: Optional[str],
     frame_size: Optional[str],
+    frame_orientation: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """任务表单约束：写入每镜 tags_json，检索时 frame_size / car_model 参与 bool.filter（AND）。"""
+    """任务表单约束：写入每镜 tags_json，检索时 frame_size / frame_orientation / car_model 参与 bool.filter（AND）。"""
     out = dict(base) if base else {}
     cm = (car_model or "").strip()
     if cm:
@@ -106,6 +115,13 @@ def _merge_job_constraints_into_segment_tags(
     fs = (frame_size or "").strip()
     if fs and fs != "未知":
         out["frame_size"] = fs
+    fo = _norm_job_frame_orientation(frame_orientation)
+    if fo:
+        out["frame_orientation"] = fo
+    elif fs and fs != "未知":
+        inf = infer_frame_orientation(fs)
+        if inf and inf != "未知":
+            out["frame_orientation"] = inf
     return out
 
 
@@ -248,7 +264,15 @@ async def _hydrate_shot_match_urls_for_response(
 
 def _tags_summary_from_json(tj: Dict[str, Any]) -> str:
     parts: List[str] = []
-    for key in ("car_model", "frame_size", "subject", "footage_type", "movement", "product_status_scene"):
+    for key in (
+        "car_model",
+        "frame_size",
+        "frame_orientation",
+        "subject",
+        "footage_type",
+        "movement",
+        "product_status_scene",
+    ):
         v = tj.get(key)
         if v and isinstance(v, str) and v.strip() and v != "未知":
             parts.append(v.strip())
@@ -361,6 +385,7 @@ def _mock_response_payload() -> Dict[str, Any]:
         "title": None,
         "car_model": None,
         "frame_size": None,
+        "frame_orientation": None,
         "parse_status": "done",
         "search_status": "pending",
         "search_total_ms": None,
@@ -395,6 +420,7 @@ async def get_job_payload(job_id: str) -> Optional[Dict[str, Any]]:
         "title": job.title,
         "car_model": job.car_model,
         "frame_size": job.frame_size,
+        "frame_orientation": job.frame_orientation,
         "parse_status": job.parse_status,
         "parse_error": job.parse_error,
         "workspace": job.workspace,
@@ -863,6 +889,7 @@ async def create_job_and_parse(
     title: Optional[str] = None,
     car_model: Optional[str] = None,
     frame_size: Optional[str] = None,
+    frame_orientation: Optional[str] = None,
     workspace: Optional[str] = "v1",
     mock: bool = False,
 ) -> Dict[str, Any]:
@@ -877,6 +904,7 @@ async def create_job_and_parse(
     ws = (workspace or "v1").strip() or "v1"
 
     fs_norm = (frame_size or "").strip() or None
+    fo_norm = _norm_job_frame_orientation(frame_orientation)
 
     async with mysql_connector.session_scope() as session:
         session.add(
@@ -888,6 +916,7 @@ async def create_job_and_parse(
                 title=title.strip() if title else None,
                 car_model=car_model.strip() if car_model else None,
                 frame_size=fs_norm,
+                frame_orientation=fo_norm,
                 parse_status="running",
             )
         )
@@ -909,6 +938,7 @@ async def create_job_and_parse(
                 "title": title,
                 "car_model": car_model,
                 "frame_size": fs_norm,
+                "frame_orientation": fo_norm,
             },
             max_bytes=32000,
         ),
@@ -928,6 +958,8 @@ async def create_job_and_parse(
             topic=topic,
             title=title,
             car_model=car_model,
+            frame_size=fs_norm,
+            frame_orientation=fo_norm,
             index=0,
             tts_obs_project_id=job_id,
             out_obs_audio_urls=tts_audio_urls,
@@ -963,6 +995,7 @@ async def create_job_and_parse(
                 tj,
                 car_model=car_model,
                 frame_size=fs_norm,
+                frame_orientation=fo_norm,
             )
             obs_url = tts_audio_urls[order] if order < len(tts_audio_urls) else None
             row = VideoMatchShotRow(
@@ -1033,6 +1066,7 @@ async def list_video_match_jobs(
                 "topic": j.topic,
                 "car_model": j.car_model,
                 "frame_size": j.frame_size,
+                "frame_orientation": j.frame_orientation,
                 "created_at": j.created_at.isoformat() if j.created_at else None,
                 "updated_at": j.updated_at.isoformat() if j.updated_at else None,
                 "request_id": j.request_id,
@@ -1193,6 +1227,7 @@ async def _reparse_video_match_job_core(job_id: str) -> None:
         title = job0.title
         car_model = job0.car_model
         frame_size_job = (job0.frame_size or "").strip() or None
+        frame_orientation_job = _norm_job_frame_orientation(job0.frame_orientation)
         ws = (job0.workspace or "v1").strip() or "v1"
     if not script:
         async with mysql_connector.session_scope() as session:
@@ -1219,6 +1254,7 @@ async def _reparse_video_match_job_core(job_id: str) -> None:
                 "script_preview": script[:8000],
                 "car_model": car_model,
                 "frame_size": frame_size_job,
+                "frame_orientation": frame_orientation_job,
             },
             max_bytes=32000,
         ),
@@ -1238,6 +1274,8 @@ async def _reparse_video_match_job_core(job_id: str) -> None:
             topic=topic,
             title=title,
             car_model=car_model,
+            frame_size=frame_size_job,
+            frame_orientation=frame_orientation_job,
             index=0,
             tts_obs_project_id=jid,
             out_obs_audio_urls=tts_audio_urls,
@@ -1273,6 +1311,7 @@ async def _reparse_video_match_job_core(job_id: str) -> None:
                 tj,
                 car_model=car_model,
                 frame_size=frame_size_job,
+                frame_orientation=frame_orientation_job,
             )
             obs_url = tts_audio_urls[order] if order < len(tts_audio_urls) else None
             row = VideoMatchShotRow(
