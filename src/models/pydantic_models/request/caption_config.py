@@ -3,28 +3,19 @@ from typing import *
 
 from utils.general_utils import is_valid_hex_color
 
-font_options = [
-    "Songti SC Regular",
-    "PingFang SC Regular",
-    "Alibaba PuHuiTi",
-    "DengXian",
-    "Heiti TC Medium",
-    "Source Han Sans CN",
-    "vivo Sans",
-    "MiSans",
-    "HONOR Sans CN",
-    "OPlusSans 3.0",
-    "HarmonyOS Sans SC",
-    "PangMenZhengDao-Cu6.0",
-    "Alibaba Health Font 2.0 CN 85 B",
-    "baotuxiaobaiti",
-    "SJxingkai-C Regular",
-    "YRDZST-Semibold",
-    "Slideqiuhong",
-    "TsangerShuYuanT W04",
-    "QTxiaotu",
-    "Noto Color Emoji"
-]
+font_options = ['Source Han Sans CN',
+                'HarmonyOS Sans SC',
+                'MiSans',
+                'OPlusSans 3.0',
+                'vivo Sans',
+                'HONOR Sans CN',
+                'Alibaba PuHuiTi',
+                'Alibaba Health Font 2.0 CN',
+                'Alimama DaoLiTi',
+                'Alimama ShuHeiTi',
+                'Zhi Mang Xing',
+                'Noto Color Emoji'
+                ]
 
 class Word(BaseModel):
     start: int = Field(ge=0, alias="from")
@@ -65,7 +56,7 @@ class Cap(BaseModel):
 class CapConfig(BaseModel):
     caption_list: List[Cap] = Field(default_factory=lambda: [])
     font_size: int = Field(default=30, gt=0)
-    font_type: Literal[*font_options] = "Songti SC Regular"
+    font_type: Literal[*font_options] = "Source Han Sans CN"
     cap_color: str = "#ffffff"
     cap_outline_color: str = "#000000"
     cap_outline_width: Optional[float] = Field(ge=0, default=None)
