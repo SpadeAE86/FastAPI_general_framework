@@ -37,8 +37,8 @@ class OpenSearchConnector(ResourceConnector):
             ssl_show_warn=False, # 隐藏自签名证书警告
             sniff_on_start=False,
             sniff_on_connection_fail=False,
-            timeout=120,
-            max_retries=3,
+            timeout=300,
+            max_retries=5,
             retry_on_timeout=True
         )
         await self.ping()

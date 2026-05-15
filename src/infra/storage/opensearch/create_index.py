@@ -40,9 +40,12 @@ class IndexManager:
         model_class: Type[BaseIndex],
         field_types: Optional[Dict[str, Dict[str, Any]]] = None,
         settings: Optional[Dict[str, Any]] = None,
-        overwrite: bool = False
+        overwrite: bool = False,
+        index_name_override: Optional[str] = None,
     ) -> bool:
-        index_name = get_index_name(model_class)
+        index_name = (index_name_override or "").strip() or get_index_name(model_class)
+        if not index_name:
+            raise ValueError("index name resolved empty")
         client = await self.get_client()
         
         # If caller didn't provide field_types, try to derive from Annotated markers.

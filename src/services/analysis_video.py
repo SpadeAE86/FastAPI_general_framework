@@ -724,6 +724,7 @@ async def index_shotcards_to_opensearch(
     embedding_model=None,
     refresh: bool = False,
     workspace: str = "v1",
+    opensearch_index_name: Optional[str] = None,
 ) -> dict:
     """
     Convenience method:
@@ -740,7 +741,12 @@ async def index_shotcards_to_opensearch(
     
     if workspace == "v2":
         from models.pydantic.opensearch_index.car_interior_analysis_v2 import CarInteriorAnalysisV2
-        resp = await bulk_index(CarInteriorAnalysisV2, docs, refresh=refresh)
+        resp = await bulk_index(
+            CarInteriorAnalysisV2,
+            docs,
+            refresh=refresh,
+            index_name_override=opensearch_index_name,
+        )
     else:
         resp = await bulk_index(CarInteriorAnalysis, docs, refresh=refresh)
         

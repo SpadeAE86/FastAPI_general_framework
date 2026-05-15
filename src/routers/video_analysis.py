@@ -582,6 +582,41 @@ def _wrap_bool_query(
         b["must_not"] = must_not
     return {"bool": b}
 
+
+def _wrap_hybrid_query_with_filters(
+    hybrid_query: dict,
+    *,
+    history_prefix: Optional[str],
+    term_filters: List[dict],
+    must_not: Optional[List[dict]] = None,
+) -> dict:
+    """
+    OpenSearch 要求 ``hybrid`` 为顶层 query，不能包在 ``bool.must`` 里。
+    将 filter / must_not 下推到 hybrid 的每个子查询外层的 ``bool``（与 script_match 一致）。
+    """
+    filt = list(term_filters)
+    if history_prefix:
+        filt.append({"prefix": {"id": history_prefix}})
+
+    hy = hybrid_query.get("hybrid") if isinstance(hybrid_query, dict) else None
+    if not isinstance(hy, dict):
+        return hybrid_query
+    subqs = hy.get("queries") or []
+    wrapped: List[dict] = []
+    for subq in subqs:
+        if not isinstance(subq, dict):
+            continue
+        if not filt and not must_not:
+            wrapped.append(subq)
+            continue
+        b: Dict[str, Any] = {"must": [subq]}
+        if filt:
+            b["filter"] = filt
+        if must_not:
+            b["must_not"] = must_not
+        wrapped.append({"bool": b})
+    return {"hybrid": {"queries": wrapped}}
+
 def _parse_doc_id(doc_id: str) -> Optional[tuple[str, int]]:
     """
     doc_id format: "{history_id}_{scene_id}"
@@ -850,12 +885,20 @@ async def search_cards(req: VideoAnalysisSearchRequest):
     if body is not None:
         inner_q = body.get("query")
         if inner_q is not None:
-            body["query"] = _wrap_bool_query(
-                inner_q,
-                history_prefix=hist_prefix_opt,
-                term_filters=term_filters,
-                must_not=must_not_opt,
-            )
+            if isinstance(inner_q, dict) and "hybrid" in inner_q:
+                body["query"] = _wrap_hybrid_query_with_filters(
+                    inner_q,
+                    history_prefix=hist_prefix_opt,
+                    term_filters=term_filters,
+                    must_not=must_not_opt,
+                )
+            else:
+                body["query"] = _wrap_bool_query(
+                    inner_q,
+                    history_prefix=hist_prefix_opt,
+                    term_filters=term_filters,
+                    must_not=must_not_opt,
+                )
         body["highlight"] = {
             "pre_tags": ["<em>"],
             "post_tags": ["</em>"],

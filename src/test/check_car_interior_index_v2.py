@@ -9,8 +9,10 @@ Quick sanity checks for OpenSearch index `car_interior_analysis_v2`:
 
 Run:
   python -m src.test.check_car_interior_index_v2
+  python -m src.test.check_car_interior_index_v2 --samples 5
 """
 
+import argparse
 import os
 import sys
 import asyncio
@@ -22,7 +24,7 @@ if SRC_DIR not in sys.path:
 
 from infra.storage.opensearch_connector import opensearch_connector
 from models.pydantic.opensearch_index.car_interior_analysis_v2 import CarInteriorAnalysisV2
-from models.pydantic.opensearch_index.base_index import get_index_name
+from models.pydantic.opensearch_index.base_index import get_index_name, get_vector_fields
 
 
 VECTOR_FIELDS = [
@@ -36,7 +38,19 @@ VECTOR_FIELDS = [
 ]
 
 
+def _len_or_none(v):
+    if v is None:
+        return None
+    if isinstance(v, list):
+        return len(v)
+    return f"<{type(v).__name__}>"
+
+
 async def main():
+    ap = argparse.ArgumentParser(description="Sanity check car_interior_analysis_v2 index.")
+    ap.add_argument("--samples", type=int, default=0, help="打印若干条文档的向量字段长度摘要")
+    args = ap.parse_args()
+
     await opensearch_connector.ensure_init()
     c = await opensearch_connector.get_client()
     idx = get_index_name(CarInteriorAnalysisV2)
@@ -59,6 +73,32 @@ async def main():
             body={"query": {"bool": {"must_not": [{"exists": {"field": vf}}]}}},
         )
         print(f"missing.{vf}:", missing.get("count"))
+
+    n = max(0, int(args.samples))
+    if n > 0:
+        m = await c.indices.get_mapping(index=idx)
+        root = m.get(idx) or next(iter(m.values()), {})
+        props = (root.get("mappings") or {}).get("properties") or {}
+        print("\n--- mapping: knn / *_vector fields (top-level) ---")
+        for name, spec in sorted(props.items()):
+            if not isinstance(spec, dict):
+                continue
+            t = spec.get("type")
+            if t == "knn_vector" or name.endswith("_vector"):
+                dim = spec.get("dimension")
+                extra = f" dim={dim}" if dim is not None else ""
+                print(f"  {name}: {t}{extra}")
+
+        vf_names = get_vector_fields(CarInteriorAnalysisV2)
+        sr = await c.search(index=idx, body={"size": n, "query": {"match_all": {}}, "_source": True})
+        th = ((sr.get("hits") or {}).get("hits") or [])
+        print(f"\n--- sample docs (n={len(th)}), vector lengths (expect 384 or null) ---")
+        for h in th:
+            sid = h.get("_id")
+            src = h.get("_source") or {}
+            print(f"  _id={sid}")
+            for f in vf_names:
+                print(f"    {f}: {_len_or_none(src.get(f))}")
 
     await opensearch_connector.close()
 

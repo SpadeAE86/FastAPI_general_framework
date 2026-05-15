@@ -33,10 +33,11 @@ from __future__ import annotations
 import asyncio
 import copy
 import time
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
+from typing import Any, Awaitable, Callable, Dict, FrozenSet, List, Optional, Tuple
 
 from infra.storage.opensearch.query_builder import QueryBuilder
 from infra.storage.opensearch_connector import opensearch_connector
+from models.pydantic.opensearch_index.base_index import get_vector_fields
 from models.pydantic.opensearch_index.car_interior_analysis_v2 import CarInteriorAnalysisV2
 from services.video_analysis_db_service import video_analysis_db_service
 
