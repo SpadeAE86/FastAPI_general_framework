@@ -539,15 +539,9 @@ class QueryBuilder:
         if not text:
             return [0.0] * 384
         if self.embedding_model is None:
-            try:
-                from sentence_transformers import SentenceTransformer  # type: ignore
-            except Exception as e:
-                raise RuntimeError(
-                    "sentence-transformers is required for vector/hybrid search. "
-                    "Install it in your current environment (e.g. pip install sentence-transformers) "
-                    "or pass a custom embedding_model to QueryBuilder(...)."
-                ) from e
-            self.embedding_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+            from services.analysis_video import get_embedding_model
+
+            self.embedding_model = get_embedding_model()
         embedding = self.embedding_model.encode(text)
         return embedding.tolist()
     

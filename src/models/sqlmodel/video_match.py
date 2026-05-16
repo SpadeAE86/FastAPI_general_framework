@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from sqlmodel import SQLModel, Field
-from sqlalchemy import Column, DateTime, Text, Float, Integer, ForeignKey, func
+from sqlalchemy import Column, DateTime, Text, Float, Integer, ForeignKey, func, Index
 from sqlalchemy.dialects.mysql import JSON as MySQLJSON, VARCHAR
 
 class VideoMatchJob(SQLModel, table=True):
@@ -60,6 +60,8 @@ class VideoMatchShotRow(SQLModel, table=True):
     """单条分镜：Stage1 展示字段 + Stage2 标签 JSON（供后续 OpenSearch 匹配）。"""
 
     __tablename__ = "video_match_shot_row"
+    #: 与按 job 拉分镜并 ORDER BY shot_order 的查询对齐，避免宽行 JSON/filesort 触发 sort_buffer 1038
+    __table_args__ = (Index("ix_video_match_shot_row_job_shot_order", "job_id", "shot_order"),)
 
     id: Optional[int] = Field(default=None, primary_key=True)
     job_id: str = Field(

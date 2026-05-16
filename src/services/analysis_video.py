@@ -286,9 +286,10 @@ def get_embedding_model():
     repeated "Loading weights" overhead on every reindex/search.
 
     Env:
-        SENTENCE_TRANSFORMER_MODEL — 可选。设为本地模型目录的绝对路径，或 Hugging Face 模型 ID。
-        默认会从网络解析/下载 ``paraphrase-multilingual-MiniLM-L12-v2``；若 SSL 连不上 huggingface.co，
-        请预下载模型后指到本地目录，或使用 HF_ENDPOINT 等镜像（见 Hugging Face 文档）。
+        SENTENCE_TRANSFORMER_MODEL — 可选。设为**本地模型目录的绝对路径**（推荐离线），或 Hugging Face 模型 ID（需联网）。
+        本地模式建议同时：HF_HUB_OFFLINE=1（或 FastAPI 启动前设 SKIP_HF_MIRROR=1），避免 lifespan 强设镜像后仍走代理；
+        若日志出现 ``127.0.0.1:10808`` 代理拒绝，请清空或修正 HTTP_PROXY/HTTPS_PROXY。
+        默认 ID ``paraphrase-multilingual-MiniLM-L12-v2`` 首次会从 Hub 解析/下载；不通网时请拷贝已缓存目录并设上述环境变量。
     """
     global _EMBEDDING_MODEL
     if _EMBEDDING_MODEL is not None:

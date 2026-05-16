@@ -204,6 +204,28 @@ async def _ensure_video_match_columns() -> None:
                 log.warning("video_match column migration failed: %s", e)
 
 
+async def _ensure_video_match_shot_row_indexes() -> None:
+    """
+    复合索引 (job_id, shot_order)：列表页按 job 取分镜并排序时走索引顺序，
+    避免仅 job_id 索引 + filesort 在宽行（match_top_hits_json 等）上耗尽显式 sort_buffer（MySQL 1038）。
+    """
+    engine = await mysql_connector.get_engine()
+    sql = (
+        "CREATE INDEX ix_video_match_shot_row_job_shot_order "
+        "ON video_match_shot_row (job_id, shot_order)"
+    )
+    async with engine.begin() as conn:
+        try:
+            await conn.execute(text(sql))
+            log.info("Applied index ix_video_match_shot_row_job_shot_order on video_match_shot_row")
+        except Exception as e:
+            msg = str(e).lower()
+            if "1061" in msg or "duplicate" in msg:
+                log.debug("video_match_shot_row composite index already exists, skip")
+                return
+            log.warning("video_match_shot_row index migration failed: %s", e)
+
+
 async def _backfill_video_material_match_history() -> None:
     """旧分镜行仅有 search_request_id 时，补齐 video_material_match_history 与 match_id。"""
     import uuid
@@ -373,6 +395,7 @@ async def create_tables_if_not_exists() -> None:
     await _ensure_video_analysis_history_extras()
     await _ensure_image_history_extras()
     await _ensure_video_match_columns()
+    await _ensure_video_match_shot_row_indexes()
     await _backfill_video_material_match_history()
     await _ensure_video_source_upload_cache_transcode_columns()
     await _ensure_video_mix_compose_job_columns()

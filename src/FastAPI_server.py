@@ -24,14 +24,37 @@ from infra.storage.sqlmodel_init import create_tables_if_not_exists
 # from core.health_monitor.lifespan import start_health_monitor, stop_health_monitor
 
 
+def _apply_hf_env_presets() -> None:
+    """
+    默认为国内镜像；本地/离线仅加载已下载模型时不要强制 HF_ENDPOINT，否则会走代理去拉 modules.json。
+    参见环境变量：SENTENCE_TRANSFORMER_MODEL、HF_HUB_OFFLINE、SKIP_HF_MIRROR。
+    """
+    st = (os.environ.get("SENTENCE_TRANSFORMER_MODEL") or "").strip()
+    local_dir = bool(st) and os.path.isdir(st)
+    offline = os.environ.get("HF_HUB_OFFLINE", "").strip().lower() in ("1", "true", "yes")
+    skip_mirror = os.environ.get("SKIP_HF_MIRROR", "").strip().lower() in ("1", "true", "yes")
+    if offline or skip_mirror or local_dir:
+        if offline:
+            log.info("HF_HUB_OFFLINE 已开启：不设置 HF_ENDPOINT，避免 Hugging Face Hub 网络请求")
+        elif skip_mirror:
+            log.info("SKIP_HF_MIRROR 已开启：不设置 HF_ENDPOINT")
+        elif local_dir:
+            log.info(
+                "SENTENCE_TRANSFORMER_MODEL 指向本地目录 ({})：不设置 HF_ENDPOINT；请确保目录内为完整模型快照",
+                st,
+            )
+        return
+    if (os.environ.get("HF_ENDPOINT") or "").strip():
+        return
+    os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+    os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+    log.info("已预设 HF_ENDPOINT=%s（仅下载场景；本地模型请设 SENTENCE_TRANSFORMER_MODEL 为目录或设 HF_HUB_OFFLINE=1）", os.environ["HF_ENDPOINT"])
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     warmup_task: asyncio.Task[None] | None = None
-    # --- 环境预设 ---
-    # 使用国内 HF 镜像加速模型下载
-    os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
-    # 开启加速下载
-    os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+    _apply_hf_env_presets()
 
     log.info("FastAPI started")
     # 不要用 loop.set_default_executor 替换 Uvicorn/asyncio 的默认线程池：
