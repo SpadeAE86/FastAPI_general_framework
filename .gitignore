@@ -22,6 +22,9 @@ botpy.log
 tests/
 src/data/video_analysis_uploads/
 
+# Ide
+.idea/
+.claude/
 
 # Video analysis extracted frames (large, generated)
 src/video_analysis_workspace/
@@ -40,4 +43,7 @@ src/test/scripts/**
 **/sample/**
 **/workspace/
 **/workspace/**
+
+# GitNexus local knowledge graph index (generated, do not commit)
+.gitnexus/
 
