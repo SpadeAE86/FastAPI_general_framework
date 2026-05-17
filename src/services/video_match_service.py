@@ -20,6 +20,7 @@ from services.script_match_service import match_script_tags_segments
 from services.video_analysis_db_service import video_analysis_db_service
 from services.video_match_http_trace import (
     hits_for_db_with_truncated_explain,
+    opensearch_body_for_debug_log,
     trace_request_body_for_shot_search,
     trace_response_top_hits_with_explain,
     truncate_for_trace,
@@ -590,16 +591,20 @@ async def rematch_video_match_shot(job_id: str, shot_row_id: int) -> Dict[str, A
                     await session.commit()
         except Exception:
             log.warning("video_match rematch finalize material_match_history failed id={}", match_hist_id)
+        log.debug(
+            "video_match rematch opensearch_body job={} shot={} body={}",
+            jid, shot_ord, opensearch_body_for_debug_log(m),
+        )
+        _r_top1_name = top1.split("/")[-1] if top1 else "—"
+        _r_top5_lines = "\n".join(
+            "  [{}] {}".format(i + 1, u.split("/")[-1])
+            for i, u in enumerate(urls5)
+        ) or "  (空)"
         log.info(
-            "video_match shot_search rematch job={} shot_order={} row_id={} hit_count={} match_ok={} top1={} top5_urls={} elapsed_ms={}",
-            jid,
-            shot_ord,
-            sid,
-            len(top_hits_raw),
-            match_ok,
-            top1,
-            urls5,
-            elapsed,
+            "video_match rematch job={} shot={} row={} hits={} ok={} elapsed={:.0f}ms\n"
+            "  top1: {}\n"
+            "  top5:\n{}",
+            jid, shot_ord, sid, len(top_hits_raw), match_ok, elapsed, _r_top1_name, _r_top5_lines,
         )
 
     try:
@@ -832,16 +837,20 @@ async def run_job_search(
                     await session.commit()
         except Exception:
             log.warning("video_match finalize material_match_history failed id={}", match_hist_id)
+        log.debug(
+            "video_match shot_search opensearch_body job={} shot={} body={}",
+            job_id, shot_ord, opensearch_body_for_debug_log(m),
+        )
+        top1_name = top1.split("/")[-1] if top1 else "—"
+        top5_lines = "\n".join(
+            "  [{}] {}".format(i + 1, u.split("/")[-1])
+            for i, u in enumerate(urls5)
+        ) or "  (空)"
         log.info(
-            "video_match shot_search job={} shot_order={} row_id={} hit_count={} match_ok={} top1={} top5_urls={} elapsed_ms={}",
-            job_id,
-            shot_ord,
-            row_id,
-            len(top_hits_raw),
-            match_ok,
-            top1,
-            urls5,
-            elapsed,
+            "video_match shot_search job={} shot={} row={} hits={} ok={} elapsed={:.0f}ms\n"
+            "  top1: {}\n"
+            "  top5:\n{}",
+            job_id, shot_ord, row_id, len(top_hits_raw), match_ok, elapsed, top1_name, top5_lines,
         )
 
     t_wall0 = time.perf_counter()
@@ -874,7 +883,26 @@ async def run_job_search(
     if len(matches) != len(rows):
         log.warning("video_match: match count {} != rows {}", len(matches), len(rows))
 
-    log.info("video_match search finished job={} wall_ms={} segments={}", job_id, total_ms, len(rows))
+    # job 级汇总：Top1 去重率（帮助判断检索策略多样性）
+    _all_top1s = []
+    for _m in matches:
+        if isinstance(_m, dict):
+            _hits = _m.get("top_hits") or []
+            _t1 = _hits[0].get("video_path", "") if _hits else ""
+            if _t1:
+                _all_top1s.append(_t1.split("/")[-1])
+    from collections import Counter as _Counter
+    _dup = _Counter(_all_top1s)
+    _dup_lines = "\n".join(
+        "  x{} -> {}".format(cnt, name)
+        for name, cnt in _dup.most_common()
+        if cnt > 1
+    ) or "  (无重复)"
+    log.info(
+        "video_match search finished job={} wall_ms={} segments={} top1_unique={}/{}\n"
+        "  重复 Top1:\n{}",
+        job_id, total_ms, len(rows), len(_dup), len(_all_top1s), _dup_lines,
+    )
 
     async with mysql_connector.session_scope() as session:
         job = await session.get(VideoMatchJob, job_id)
@@ -1063,6 +1091,7 @@ async def list_video_match_jobs(
     *,
     parse_status: Optional[str] = None,
     workspace: Optional[str] = None,
+    ids: Optional[str] = None,
     limit: int = 50,
 ) -> Dict[str, Any]:
     """
@@ -1077,6 +1106,11 @@ async def list_video_match_jobs(
         ws = (workspace or "").strip()
         if ws:
             stmt = stmt.where(VideoMatchJob.workspace == ws)
+        ids_str = (ids or "").strip()
+        if ids_str:
+            id_list = [i.strip() for i in ids_str.split(",") if i.strip()]
+            if id_list:
+                stmt = stmt.where(VideoMatchJob.id.in_(id_list))
         res = await session.execute(stmt)
         jobs = list(res.scalars().all())
     items: List[Dict[str, Any]] = []
@@ -1105,6 +1139,7 @@ async def list_material_match_histories(
     workspace: Optional[str] = None,
     source: Optional[str] = None,
     status: Optional[str] = None,
+    ids: Optional[str] = None,
     limit: int = 100,
 ) -> Dict[str, Any]:
     """素材匹配看板列表（视频匹配分镜检索 + 视频分析搜索栏）。"""
@@ -1119,6 +1154,11 @@ async def list_material_match_histories(
         src = (source or "").strip()
         if src:
             stmt = stmt.where(VideoMaterialMatchHistory.source == src)
+        ids_str = (ids or "").strip()
+        if ids_str:
+            id_list = [i.strip() for i in ids_str.split(",") if i.strip()]
+            if id_list:
+                stmt = stmt.where(VideoMaterialMatchHistory.id.in_(id_list))
         stf = (status or "").strip()
         if stf:
             stmt = stmt.where(VideoMaterialMatchHistory.status == stf)

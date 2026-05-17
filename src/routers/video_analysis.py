@@ -34,6 +34,7 @@ from services.analysis_video import analyze_video, index_shotcards_to_opensearch
 from services.script_rewrite_service import rewrite_script_to_storyboard_and_tags
 from utils.frame_orientation import infer_frame_orientation
 from services.video_analysis_db_service import video_analysis_db_service
+from services.video_match_service import _load_strategy_by_name
 from services.http_request_trace_service import http_request_trace_service
 from infra.logging.logger import logger as log
 from infra.storage.opensearch_connector import opensearch_connector
@@ -56,7 +57,7 @@ from services.token_join_template_service import (
     update_template,
 )
 from utils.search_utils import reciprocal_rank_fuse
-from core.workspace import list_workspaces, DEFAULT_WORKSPACE_KEY
+from core.workspace import list_workspaces, DEFAULT_WORKSPACE_KEY, get_workspace
 
 
 video_analysis_router = APIRouter(prefix="/video-analysis", tags=["video-analysis"])
@@ -125,7 +126,7 @@ async def get_workspaces():
 @video_analysis_router.get("/index-fields")
 async def get_index_fields(workspace: str = Query("v2")):
     """获取指定 workspace 下索引的可用字段，用于前端动态生成权重调节滑块"""
-    IndexModel = CarInteriorAnalysisV2 if workspace == "v2" else CarInteriorAnalysis
+    IndexModel = get_workspace(workspace).index_class
     text_fields = get_searchable_fields(IndexModel)
     vector_fields = get_vector_fields(IndexModel)
     return {
@@ -311,13 +312,14 @@ async def token_join_templates_set_default_route(template_id: int):
     if row is None:
         raise HTTPException(status_code=404, detail="template not found")
     return {"success": True, "template": row.model_dump()}
-
-
 # ---------------- 历史记录接口 ----------------
 
 @video_analysis_router.get("/history")
-async def get_history(workspace: Optional[str] = Query(None, description="工作区标识，如 v1 / v2")):
-    history = await video_analysis_db_service.list_history(workspace=workspace)
+async def get_history(
+    workspace: Optional[str] = Query(None, description="用来区分工作区"),
+    ids: Optional[str] = Query(None, description="逗号分隔的ID列表，用于局部轮询")
+):
+    history = await video_analysis_db_service.list_history(workspace=workspace, ids=ids)
     return {"success": True, "history": history}
 
 
@@ -544,7 +546,9 @@ class VideoAnalysisSearchToken(BaseModel):
 
 class VideoAnalysisSearchRequest(BaseModel):
     tokens: List[VideoAnalysisSearchToken] = Field(default_factory=list)
+    strategy_name: Optional[str] = Field(default=None, description="搜索策略名称。若提供，则以后端策略为主")
     fuzzy: bool = False
+    enable_road_run_fallback: bool = Field(default=True, description="开启路跑兜底")
     history_id: Optional[str] = Field(
         default=None,
         description="已忽略：搜索不按历史收窄，仅在 workspace 对应索引内全量检索；保留字段仅为兼容旧客户端。",
@@ -624,23 +628,77 @@ def _must_not_clauses_from_texts(texts: List[str], weighted_fields: List[str]) -
     return out
 
 
+def _build_fallback_filter_block(
+    term_filters: List[dict],
+    history_prefix: Optional[str],
+    enable_road_run_fallback: bool
+) -> List[dict]:
+    filt = []
+    if history_prefix:
+        filt.append({"prefix": {"id": history_prefix}})
+
+    if not term_filters:
+        return filt
+
+    if not enable_road_run_fallback:
+        filt.extend(term_filters)
+        return filt
+
+    fallback_block = {
+        "bool": {
+            "minimum_should_match": 1,
+            "should": [
+                {
+                    "bool": {
+                        "filter": list(term_filters),
+                        "_name": "strict_match"
+                    }
+                },
+                {
+                    "bool": {
+                        "filter": [{"term": {"generic_hq_road_run": True}}],
+                        "_name": "road_run_fallback"
+                    }
+                }
+            ]
+        }
+    }
+    filt.append(fallback_block)
+    return filt
+
+
+def _build_fallback_should_boosts(term_filters: List[dict], enable_road_run_fallback: bool) -> List[dict]:
+    if not enable_road_run_fallback or not term_filters:
+        return []
+    should_boosts = []
+    for tf in term_filters:
+        if "term" in tf:
+            for field, val in tf["term"].items():
+                should_boosts.append({"term": {field: {"value": val, "boost": 1.1}}})
+    return should_boosts
+
+
 def _wrap_bool_query(
     inner: dict,
     *,
     history_prefix: Optional[str],
     term_filters: List[dict],
     must_not: Optional[List[dict]] = None,
+    enable_road_run_fallback: bool = False,
 ) -> dict:
-    filt = list(term_filters)
-    if history_prefix:
-        filt.append({"prefix": {"id": history_prefix}})
-    if not filt and not must_not:
+    filt = _build_fallback_filter_block(term_filters, history_prefix, enable_road_run_fallback)
+    should = _build_fallback_should_boosts(term_filters, enable_road_run_fallback)
+    
+    if not filt and not must_not and not should:
         return inner
+        
     b: dict = {"must": [inner]}
     if filt:
         b["filter"] = filt
     if must_not:
         b["must_not"] = must_not
+    if should:
+        b["should"] = should
     return {"bool": b}
 
 
@@ -650,14 +708,14 @@ def _wrap_hybrid_query_with_filters(
     history_prefix: Optional[str],
     term_filters: List[dict],
     must_not: Optional[List[dict]] = None,
+    enable_road_run_fallback: bool = False,
 ) -> dict:
     """
     OpenSearch 要求 ``hybrid`` 为顶层 query，不能包在 ``bool.must`` 里。
     将 filter / must_not 下推到 hybrid 的每个子查询外层的 ``bool``（与 script_match 一致）。
     """
-    filt = list(term_filters)
-    if history_prefix:
-        filt.append({"prefix": {"id": history_prefix}})
+    filt = _build_fallback_filter_block(term_filters, history_prefix, enable_road_run_fallback)
+    should = _build_fallback_should_boosts(term_filters, enable_road_run_fallback)
 
     hy = hybrid_query.get("hybrid") if isinstance(hybrid_query, dict) else None
     if not isinstance(hy, dict):
@@ -667,7 +725,7 @@ def _wrap_hybrid_query_with_filters(
     for subq in subqs:
         if not isinstance(subq, dict):
             continue
-        if not filt and not must_not:
+        if not filt and not must_not and not should:
             wrapped.append(subq)
             continue
         b: Dict[str, Any] = {"must": [subq]}
@@ -675,6 +733,8 @@ def _wrap_hybrid_query_with_filters(
             b["filter"] = filt
         if must_not:
             b["must_not"] = must_not
+        if should:
+            b["should"] = should
         wrapped.append({"bool": b})
     return {"hybrid": {"queries": wrapped}}
 
@@ -809,6 +869,16 @@ async def search_cards(req: VideoAnalysisSearchRequest):
     ws = (req.workspace or "").strip() or "default"
     history_id = (req.history_id or "").strip()
     index_is_v2 = ws == "v2"
+
+    if req.strategy_name:
+        st = await _load_strategy_by_name(req.strategy_name)
+        if st:
+            req.bm25_weight = float(st.bm25_weight or 0.3)
+            req.vector_weight = float(st.vector_weight or 0.7)
+            req.text_weights = st.text_weights
+            req.vector_weights = st.vector_weights
+            req.use_rrf = bool(st.use_rrf)
+            req.fuzzy = req.vector_weight > 0
 
     query_text, term_filters, must_not_texts = _video_analysis_split_tokens(
         raw_tokens, index_is_v2=index_is_v2
@@ -1054,6 +1124,7 @@ async def search_cards(req: VideoAnalysisSearchRequest):
                     history_prefix=hist_prefix_opt,
                     term_filters=term_filters,
                     must_not=must_not_opt,
+                    enable_road_run_fallback=req.enable_road_run_fallback,
                 )
             else:
                 body["query"] = _wrap_bool_query(
@@ -1061,6 +1132,7 @@ async def search_cards(req: VideoAnalysisSearchRequest):
                     history_prefix=hist_prefix_opt,
                     term_filters=term_filters,
                     must_not=must_not_opt,
+                    enable_road_run_fallback=req.enable_road_run_fallback,
                 )
         body["highlight"] = {
             "pre_tags": ["<em>"],
@@ -1111,6 +1183,8 @@ async def search_cards(req: VideoAnalysisSearchRequest):
             matched_queries = h.get("matched_queries")
             if matched_queries:
                 meta["_matched_queries"] = matched_queries
+                if "road_run_fallback" in matched_queries and "strict_match" not in matched_queries:
+                    meta["is_fallback"] = True
             explanation = h.get("_explanation")
             if explanation:
                 meta["_explanation"] = explanation

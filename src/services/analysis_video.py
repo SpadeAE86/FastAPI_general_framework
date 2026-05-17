@@ -24,6 +24,7 @@ from models.pydantic.video_analysis_request import ShotCard
 from models.pydantic.opensearch_index.car_interior_analysis import CarInteriorAnalysis
 from infra.storage.opensearch.document_writer import bulk_index
 from infra.logging.logger import logger as log
+from core.workspace import get_workspace
 
 
 from models.sqlmodel.video_upload_cache import VideoSourceUploadCache
@@ -394,7 +395,7 @@ async def _analyze_single_scene(
         return card
 
     try:
-        schema = SceneAnalysisResultV2.model_json_schema() if workspace == "v2" else SceneAnalysisResult.model_json_schema()
+        schema = get_workspace(workspace).schema_class.model_json_schema()
         raw = await call_doubao_vision(prompt, frame_urls, schema)
         if not raw:
             card.error = "豆包返回为空"
@@ -533,19 +534,17 @@ async def analyze_video(
     obs_key_prefix = f"ai_picture/video_analysis/{project_id}"
 
     appendix = ""
-    if custom_prompt:
-        prompt = custom_prompt
-    else:
-        prompt = DEFAULT_VISION_PROMPT_V2 if workspace == "v2" else DEFAULT_VISION_PROMPT_V1
-        if workspace == "v2":
-            appendix = build_v2_vision_selling_appendix(car_key_for_glossary)
-            if appendix:
-                prompt = f"{prompt}\n\n{appendix}"
-            prompt = f"{prompt}\n\n可以额外参考视频文件名（辅助卖点/语境，仍以画面为准）：{basename}"
-            log.info(
-                f"[{project_id}] v2 vision 提示元数据: form_car_model={user_car!r} "
-                f"car_key_for_glossary={car_key_for_glossary!r} appendix_chars={len(appendix)} basename={basename}"
-            )
+    ws_cfg = get_workspace(workspace)
+    prompt = custom_prompt if custom_prompt else ws_cfg.default_prompt
+    if workspace == "v2":
+        appendix = build_v2_vision_selling_appendix(car_key_for_glossary)
+        if appendix:
+            prompt = f"{prompt}\n\n{appendix}"
+        prompt = f"{prompt}\n\n可以额外参考视频文件名（辅助卖点/语境，仍以画面为准）：{basename}"
+        log.info(
+            f"[{project_id}] v2 vision 提示元数据: form_car_model={user_car!r} "
+            f"car_key_for_glossary={car_key_for_glossary!r} appendix_chars={len(appendix)} basename={basename}"
+        )
 
     log.info(
         "[{}] vision 提示词总长 {} 字符 workspace={} custom_prompt={}",
@@ -740,15 +739,11 @@ async def index_shotcards_to_opensearch(
     if not docs:
         return {"success": True, "items": 0}
     
-    if workspace == "v2":
-        from models.pydantic.opensearch_index.car_interior_analysis_v2 import CarInteriorAnalysisV2
-        resp = await bulk_index(
-            CarInteriorAnalysisV2,
-            docs,
-            refresh=refresh,
-            index_name_override=opensearch_index_name,
-        )
-    else:
-        resp = await bulk_index(CarInteriorAnalysis, docs, refresh=refresh)
-        
+    ws_cfg = get_workspace(workspace)
+    resp = await bulk_index(
+        ws_cfg.index_class,
+        docs,
+        refresh=refresh,
+        index_name_override=opensearch_index_name,
+    )
     return {"success": True, "items": len(docs), "opensearch": resp}

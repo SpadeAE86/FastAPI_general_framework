@@ -309,11 +309,16 @@ class VideoAnalysisDBService:
         except Exception as e:
             log.warning("replace_split_frame_obs_cache failed (table missing?): %s", e)
 
-    async def list_history(self, workspace: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def list_history(self, workspace: Optional[str] = None, ids: Optional[str] = None) -> List[Dict[str, Any]]:
         async with mysql_connector.session_scope() as session:
             stmt = select(VideoAnalysisHistory)
             if workspace:
                 stmt = stmt.where(VideoAnalysisHistory.workspace == workspace)
+            ids_str = (ids or "").strip()
+            if ids_str:
+                id_list = [i.strip() for i in ids_str.split(",") if i.strip()]
+                if id_list:
+                    stmt = stmt.where(VideoAnalysisHistory.id.in_(id_list))
             stmt = stmt.order_by(VideoAnalysisHistory.created_at.desc())
             res = await session.execute(stmt)
             return [

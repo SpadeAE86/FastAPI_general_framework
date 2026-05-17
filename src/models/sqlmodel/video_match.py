@@ -49,7 +49,7 @@ class VideoMatchJob(SQLModel, table=True):
     request_id: Optional[str] = Field(default=None, sa_column=Column(VARCHAR(36), nullable=True, index=True))
 
     created_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now(), index=True)
     )
     updated_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())

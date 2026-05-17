@@ -67,8 +67,8 @@ class HistorySaveRequest(BaseModel):
     history: List[ImageHistoryItem]
 
 @image_router.get("/image/history")
-async def get_image_history():
-    history = await image_history_db_service.list_all()
+async def get_image_history(ids: Optional[str] = None):
+    history = await image_history_db_service.list_all(ids=ids)
     return {"success": True, "history": history}
 
 

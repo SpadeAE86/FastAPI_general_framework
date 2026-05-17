@@ -51,9 +51,15 @@ class ImageHistoryDBService:
         res = await session.execute(stmt)
         return res.scalars().first()
 
-    async def list_all(self) -> List[Dict[str, Any]]:
+    async def list_all(self, ids: Optional[str] = None) -> List[Dict[str, Any]]:
         async with mysql_connector.session_scope() as session:
-            res = await session.execute(select(ImageHistoryCard).order_by(ImageHistoryCard.created_at.desc()))
+            stmt = select(ImageHistoryCard).order_by(ImageHistoryCard.created_at.desc())
+            ids_str = (ids or "").strip()
+            if ids_str:
+                id_list = [i.strip() for i in ids_str.split(",") if i.strip()]
+                if id_list:
+                    stmt = stmt.where(ImageHistoryCard.id.in_(id_list))
+            res = await session.execute(stmt)
             return [_row_to_api(row) for row in res.scalars().all()]
 
     async def get_by_id(self, item_id: str) -> Optional[Dict[str, Any]]:

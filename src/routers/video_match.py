@@ -68,10 +68,11 @@ async def list_material_matches_route(
     workspace: Optional[str] = None,
     source: Optional[str] = None,
     status: Optional[str] = None,
+    ids: Optional[str] = None,
     limit: int = 100,
 ):
     return await list_material_match_histories(
-        workspace=workspace, source=source, status=status, limit=limit
+        workspace=workspace, source=source, status=status, ids=ids, limit=limit
     )
 
 
@@ -87,9 +88,10 @@ async def get_material_match_board_detail_route(match_id: str):
 async def list_video_match_jobs_route(
     parse_status: Optional[str] = None,
     workspace: Optional[str] = None,
+    ids: Optional[str] = None,
     limit: int = 50,
 ):
-    return await list_video_match_jobs(parse_status=parse_status, workspace=workspace, limit=limit)
+    return await list_video_match_jobs(parse_status=parse_status, workspace=workspace, ids=ids, limit=limit)
 
 
 @video_match_router.post("/jobs")

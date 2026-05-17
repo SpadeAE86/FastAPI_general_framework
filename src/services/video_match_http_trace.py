@@ -80,13 +80,24 @@ def strip_large_numeric_vectors(obj: Any, *, max_list_len: int = 48) -> Any:
 
 
 def trace_request_body_for_shot_search(m: Dict[str, Any], **extra: Any) -> Any:
-    """分镜检索阶段写入 HTTP trace 的 request_body（已向量压缩 + 字节截断）。"""
+    """
+    分镜检索阶段写入 HTTP trace 的 request_body。
+
+    语义对齐"HTTP trace 用于重试/重发"的设计意图：
+    - request_body 存储「前端发给后端的请求参数」（job_id + 标签字段），
+      而非 OpenSearch 内部查询体（后者体积大，由调用方 log.debug 打印）。
+    - opensearch_body 由调用方在 log.debug 中打印，trace 里仅保留可读摘要。
+    """
     payload: Dict[str, Any] = {
-        "index": INDEX_NAME,
-        "opensearch_body": m.get("opensearch_body"),
-        "search_params": m.get("search_params"),
         "query_text": m.get("query_text"),
+        "search_params": m.get("search_params"),
+        "tags_json": m.get("tags_json") or m.get("segment"),
     }
     payload.update({k: v for k, v in extra.items() if v is not None})
-    compact = strip_large_numeric_vectors(payload)
-    return truncate_for_trace(compact)
+    return truncate_for_trace({k: v for k, v in payload.items() if v is not None})
+
+
+def opensearch_body_for_debug_log(m: Dict[str, Any]) -> Any:
+    """供调用方 log.debug 打印 OpenSearch 请求体（向量已压缩，体积尚可）。"""
+    compact = strip_large_numeric_vectors({"opensearch_body": m.get("opensearch_body")})
+    return truncate_for_trace(compact, max_bytes=8000)

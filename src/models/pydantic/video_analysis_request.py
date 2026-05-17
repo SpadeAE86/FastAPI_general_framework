@@ -61,6 +61,7 @@ class ShotCard(BaseModel):
     time: Optional[str] = None
 
     analysis_doc_id: Optional[str] = Field(default=None, description="OpenSearch 文档 ID")
+    is_fallback: Optional[bool] = Field(default=None, description="是否因路跑兜底策略被选出")
     error: Optional[str] = Field(default=None, description="若该分镜分析失败, 这里记录错误信息")
 
 
