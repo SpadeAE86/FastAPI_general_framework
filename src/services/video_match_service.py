@@ -32,8 +32,7 @@ from services.script_rewrite_service import (
 from utils.frame_orientation import infer_frame_orientation
 
 from services.video_match_query import (
-    get_job_payload, get_shot_match_detail, list_video_match_jobs,
-    list_material_match_histories, get_material_match_board_detail, shot_row_to_api_dict
+    get_job_payload, get_shot_match_detail, get_material_match_board_detail, shot_row_to_api_dict
 )
 from services.video_match_lifecycle import (
     synthesize_shot_obs_audio, mark_interrupted_video_match_jobs_failed,
@@ -93,6 +92,10 @@ def _merge_job_constraints_into_segment_tags(
     return out
 
 
+async def _hydrate_shot_match_urls_for_response(
+    shot: Dict[str, Any],
+    *,
+    shot_cards_version: str,
 ) -> None:
     """
     读取任务时补全展示字段：库内 ``top1_obs_url`` 可能因历史 bug 为空，但 ``match_top_hits_json``
@@ -790,6 +793,12 @@ async def create_job_and_parse(
     return loaded
 
 
+async def list_video_match_jobs(
+    *,
+    parse_status: Optional[str] = None,
+    workspace: Optional[str] = None,
+    ids: Optional[str] = None,
+    limit: int = 50,
 ) -> Dict[str, Any]:
     """
     Lightweight job list for debugging / history picker（如「已转写」会话）。
@@ -831,6 +840,13 @@ async def create_job_and_parse(
     return {"success": True, "jobs": items}
 
 
+async def list_material_match_histories(
+    *,
+    workspace: Optional[str] = None,
+    source: Optional[str] = None,
+    status: Optional[str] = None,
+    ids: Optional[str] = None,
+    limit: int = 100,
 ) -> Dict[str, Any]:
     """素材匹配看板列表（视频匹配分镜检索 + 视频分析搜索栏）。"""
     lim = max(1, min(int(limit or 100), 200))
@@ -878,25 +894,6 @@ async def create_job_and_parse(
             }
         )
     return {"success": True, "matches": items}
-
-
-) -> None:
-    jid = (job_id or "").strip()
-    k = (kind or "").strip()
-    try:
-        if k == "parse":
-            await _reparse_video_match_job_core(jid)
-        elif k == "search" and (strategy_name or "").strip():
-            await run_job_search(
-                jid,
-                strategy_name=str(strategy_name).strip(),
-                mode="field_aligned_hybrid",
-                top_k=5,
-            )
-        else:
-            log.error("video_match retry worker: bad args job={} kind={}", jid, k)
-    except Exception:
-        log.exception("video_match retry background failed job={}", jid)
 
 
 async def _reparse_video_match_job_core(job_id: str) -> None:

@@ -140,4 +140,22 @@ async def schedule_video_match_job_retry(job_id: str) -> Dict[str, Any]:
 
 async def run_video_match_retry_background(
     job_id: str, kind: str, strategy_name: Optional[str] = None
-
+) -> None:
+    jid = (job_id or "").strip()
+    k = (kind or "").strip()
+    try:
+        if k == "parse":
+            from services.video_match_service import _reparse_video_match_job_core
+            await _reparse_video_match_job_core(jid)
+        elif k == "search" and (strategy_name or "").strip():
+            from services.video_match_service import run_job_search
+            await run_job_search(
+                jid,
+                strategy_name=str(strategy_name).strip(),
+                mode="field_aligned_hybrid",
+                top_k=5,
+            )
+        else:
+            logger.error("video_match retry worker: bad args job=%s kind=%s", jid, k)
+    except Exception:
+        logger.exception("video_match retry background failed job=%s", jid)

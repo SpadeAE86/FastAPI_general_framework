@@ -124,22 +124,6 @@ async def get_shot_match_detail(job_id: str, shot_row_id: int) -> Optional[Dict[
     return {"success": True, "detail": detail, "shot": shot_api}
 
 
-
-async def list_video_match_jobs(
-    *,
-    parse_status: Optional[str] = None,
-    workspace: Optional[str] = None,
-    ids: Optional[str] = None,
-    limit: int = 50,
-
-async def list_material_match_histories(
-    *,
-    workspace: Optional[str] = None,
-    source: Optional[str] = None,
-    status: Optional[str] = None,
-    ids: Optional[str] = None,
-    limit: int = 100,
-
 async def get_material_match_board_detail(match_id: str) -> Optional[Dict[str, Any]]:
     """任务看板：单条素材匹配履历 HTTP 详情。"""
     from services.task_detail_service import (
@@ -243,11 +227,6 @@ def _top5_video_urls_from_hits(hits: Any) -> List[str]:
     return urls
 
 
-
-async def _hydrate_shot_match_urls_for_response(
-    shot: Dict[str, Any],
-    *,
-    shot_cards_version: str,
 
 def _tags_summary_from_json(tj: Dict[str, Any]) -> str:
     parts: List[str] = []
