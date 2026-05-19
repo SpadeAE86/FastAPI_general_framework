@@ -9,6 +9,7 @@ from celery_mq.protocols import TaskManagerProtocol
 from models.pydantic_models.request.frontend_timeline_request import FrontendTimelineRequest
 from models.pydantic_models.request.mixed_video_request import MixedVideoRequest
 from celery_mq.task_manager import task_manager
+from utils.frontend_exporter import build_frontend_timeline
 from utils.log_utils import logger as log
 from typing import Dict, Any, List, Optional
 
@@ -36,6 +37,8 @@ async def create_video_task(mixed_config: MixedVideoRequest, trace_id = Header(N
         
         # 将Pydantic模型转换为字典
         task_data = mixed_config.model_dump(exclude_none=True)
+        if not task_data["cap_config"]["font_type"]:
+            task_data["cap_config"]["font_type"] = "Source Han Sans CN"
         task_data["task_type"] = "mix"
         task_data["trace_id"] = trace_id
 
