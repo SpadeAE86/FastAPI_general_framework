@@ -5,7 +5,7 @@
 from routers.stack import stack_router as stack_router
 from routers.chat import chat_router as chat_router
 from routers.image import image_router as image_router
-from routers.prompt_template import prompt_router as prompt_router
+from routers.management.prompt_template import prompt_router as prompt_router
 from routers.video import video_router as video_router
 from routers.video_analysis import video_analysis_router as video_analysis_router
 from routers.script_match import script_match_router as script_match_router
