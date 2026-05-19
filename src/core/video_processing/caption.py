@@ -32,7 +32,7 @@ class CapHelper:
             font_size = caption.font_size if caption.font_size else self.cap_config.font_size
             font_type = caption.font_type if caption.font_type else self.cap_config.font_type
             if not font_type:
-                font_type = "Songti SC Regular"
+                font_type = "Source Han Sans CN"
             fc = hex_to_bgra_v2(self.cap_config.cap_color) if self.cap_config.cap_color and is_valid_hex_color(caption.color)\
                 else hex_to_bgra_v2("#ffffff")
             oc = hex_to_bgra_v2(self.cap_config.cap_outline_color) if self.cap_config.cap_outline_color and is_valid_hex_color(self.cap_config.cap_outline_color)\
