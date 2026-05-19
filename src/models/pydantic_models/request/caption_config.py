@@ -14,7 +14,8 @@ font_options = ['Source Han Sans CN',
                 'Alimama DaoLiTi',
                 'Alimama ShuHeiTi',
                 'Zhi Mang Xing',
-                'Noto Color Emoji'
+                'Noto Color Emoji',
+                ""
                 ]
 
 class Word(BaseModel):
