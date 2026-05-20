@@ -8,75 +8,73 @@
 from pathlib import Path
 
 from utils.skia_text_render import render_text_to_png
+from utils.skia_text_render import calc_line_spacing
 
-# 字体显示名 → 文件名映射（用于文档/查阅，实际转换只需 _FONT_FAMILY_MAP）
-_F2F = {
-    "Songti SC Regular": "Songti.ttc",
-    "PingFang SC Regular": "PingFang.ttc",
-    "Alibaba PuHuiTi": "Alibaba-PuHuiTi-Regular.ttf",
-    "DengXian": "DengXian.ttf",
-    "Heiti TC Medium": "STHeiti Medium.ttc",
-    "Source Han Sans CN": "SourceHanSansCN-Regular#1.otf",
-    "vivo Sans": "vivoSans-Regular.ttf",
-    "MiSans": "MiSans-Regular.otf",
-    "HONOR Sans CN": "HONORSansCN-Regular.ttf",
-    "OPlusSans 3.0": "OPlusSans3-Regular.ttf",
-    "HarmonyOS Sans SC": "HarmonyOS_Sans_SC_Regular.ttf",
-    "PangMenZhengDao-Cu6.0": "庞门正道粗书体6.0.ttf",
-    "Alibaba Health Font 2.0 CN 85 B": "AlibabaHealthFont2.0CN-85B.ttf",
-    "baotuxiaobaiti": "包图小白体.ttf",
-    "SJxingkai-C Regular": "三极行楷简体-粗.ttf",
-    "YRDZST-Semibold": "杨任东竹石体-Semibold.ttf",
-    "Slideqiuhong": "演示秋鸿楷.ttf",
-    "TsangerShuYuanT W04": "仓耳舒圆体W04.ttf",
-    "QTxiaotu": "千图小兔体.ttf",
-    "Noto Color Emoji": "NotoColorEmoji-Regular.ttf",
-    "Alimama ShuHeiTi Bold": "Alimama_ShuHeiTi_Bold.ttf",
-    "Canger XiaoWanZi": "仓耳小丸子.ttf",
-    "TsangerShuYuanT W01": "仓耳舒圆体W01.ttf",
-    "YouShe Title Rounded": "优设标题圆.otf",
-    "HXBNanShen 2.0": "胡晓波男神体2.0.otf",
-    "HXBSaoBao 2.0": "胡晓波骚包体2.0.otf",
-    "Alimama DaoLiTi Regular": "阿里妈妈刀隶体-Regular.ttf",
-}
-
-# 将 f2f 键（family + style 格式）转换为 matchFamilyStyle 所需的 family name：
-# 规则：去掉末尾的常见字重词（空格分隔或短横线分隔）
-_STYLE_WORDS = frozenset([
-    "Regular", "Bold", "Medium", "Light", "Semibold",
-    "Heavy", "Thin", "Black", "Italic",
-])
-
-
-def _strip_style_suffix(name: str) -> str:
-    """去掉 font 名称末尾的字重/样式词，返回 family name。"""
-    # 处理 "Family-Style" 格式，如 "SJxingkai-C Regular" 末尾 " Regular"
-    # 先处理空格分隔
-    parts = name.rsplit(" ", 1)
-    if len(parts) == 2 and parts[1] in _STYLE_WORDS:
-        return parts[0]
-    # 再处理短横线分隔，如 "YRDZST-Semibold"
-    parts = name.rsplit("-", 1)
-    if len(parts) == 2 and parts[1] in _STYLE_WORDS:
-        return parts[0]
-
-    return name
-
-
-# f2f 显示名 → family name（传给 render_text_to_png 的 font_name）
-_FONT_FAMILY_MAP: dict[str, str] = {
-    **{k: _strip_style_suffix(k) for k in _F2F},
-    **{
-        "Alibaba Health Font 2.0 CN 85 B": "Alibaba Health Font 2.0 CN",
-        "PingFang SC Regular": "PingFang SC",  # fix：映射错误，映射成“PingFang HK”繁体，导致部分简体文字缺失
-        "TsangerShuYuanT W01": "TsangerShuYuanT",
-        "TsangerShuYuanT W04": "TsangerShuYuanT",
-        "Canger XiaoWanZi": "TsangerXWZ",
-        "YouShe Title Rounded": "YouSheBiaoTiYuan",
-        "HXBNanShen 2.0": "HuXiaoBo-NanShenTi2.0",
-        "HXBSaoBao 2.0": "HuXiaoBo-SaoBaoTi2.0",
-    }
-}
+# 前端字体名-传递的参数-实际的字体文件
+# 20260515160000 产品要求剔除不安全字体，只保留23个ttf、otf，其中有同名不同粗细的字体，默认只使用Regular，粗细由后续添加粗细参数来调整
+FONTS: list = [
+  {
+    "label": "思源黑体",
+    "value": "Source Han Sans CN",
+    "file": "SourceHanSansCN-Regular.otf"
+  },
+  {
+    "label": "鸿蒙黑体 (HarmonyOS Sans)",
+    "value": "HarmonyOS Sans SC",
+    "file": "HarmonyOS_Sans_SC_Regular.ttf"
+  },
+  {
+    "label": "小米兰亭 (MiSans)",
+    "value": "MiSans",
+    "file": "MiSans-Regular.otf"
+  },
+  {
+    "label": "OPPO 体验体 (OPlusSans)",
+    "value": "OPlusSans 3.0",
+    "file": "OPlusSans3-Regular.ttf"
+  },
+  {
+    "label": "vivo 雅兰体 (vivo Sans)",
+    "value": "vivo Sans",
+    "file": "vivoSans-Regular.ttf"
+  },
+  {
+    "label": "荣耀黑体 (HONOR Sans)",
+    "value": "HONOR Sans CN",
+    "file": "HONORSansCN-Regular.ttf"
+  },
+  {
+    "label": "阿里普惠体",
+    "value": "Alibaba PuHuiTi",
+    "file": "Alibaba-PuHuiTi-Regular.ttf"
+  },
+  {
+    "label": "阿里健康体",
+    "value": "Alibaba Health Font 2.0 CN",
+    "file": "AlibabaHealthFont2.0CN-85B.ttf"
+  },
+  {
+    "label": "阿里妈妈刀隶体",
+    "value": "Alimama DaoLiTi",
+    "file": "阿里妈妈刀隶体-Regular.ttf"
+  },
+  {
+    "label": "阿里妈妈数黑体",
+    "value": "Alimama ShuHeiTi",
+    "file": "Alimama_ShuHeiTi_Bold.ttf"
+  },
+  {
+    "label": "志莽行书",
+    "value": "Zhi Mang Xing",
+    "file": "钟齐志莽行书.ttf"
+  },
+  {
+    "label": "彩色表情 (Noto Emoji)",
+    "value": "Noto Color Emoji",
+    "file": "NotoColorEmoji-Regular.ttf"
+  }, # emoji不单独使用
+]
+ALL_FONT_VALUE: list = [_["value"] for _ in FONTS]
 
 
 def create_subtitle_png(
@@ -111,50 +109,74 @@ def create_subtitle_png(
     返回：
       有 save_path 时保存并返回 Path；否则返回 numpy BGRA 数组。
     """
-    resolved_font = _FONT_FAMILY_MAP.get(font_name, font_name)
+    _font_size = font_size if (png_width > png_height) else (font_size * png_height / png_width)
+    _absolute_x = (anchor_x - (png_width / 2)) / png_width # 还原回后端透传的前端传参，用于测试明确的转换公式
+    _anchor_x = int(_absolute_x * (png_width / 2) + (png_width / 2)) # 字幕中心位于最左边时，前端传值-1；字幕中心位于w中轴时，前端传值0；字幕中心位于最右边时，前端传值1 # todo 前端使用16：9画幅且使用竖屏视频时，传参时按画幅的w计算的，会导致产物异常。需要前端传递画幅参数。
     result = render_text_to_png(
         text=texts,
         
         wrap_width = 4096 * 10,
         # fix:前端无主动换行，有多长就多长，居中。同前端表现。
         
-        font_name=resolved_font,
-        anchor_x=anchor_x,
+        font_name=font_name,
+        # fix:产品剔除了不安全字体，只保留了23个，做了映射。
+        
+        anchor_x=_anchor_x,
+        # fix:前端传值（最左=-1，中间=0，最右=1），注意调用方传值计算
+        
         anchor_y=anchor_y,
         
         # font_size=font_size,
-        font_size=max(1, (int(font_size * 2 * png_height / png_width) if (png_width > png_height) else font_size * 2) - 2),
+        font_size=_font_size,
         # fix:前端、后端透传，算法端向前端展示的大小映射。
         # fix:横屏视频文字大小，前端显示和实际产物不一致。横屏时转换回原始fontsize。
         
         font_color=font_color,
         
-        font_weight=350,
+        font_weight=400,
         # fix:前端默认400，后端不传，算法端向前端展示的大小映射。
         
         stroke_color=outline_color,
         
         #stroke_width=outline_width,
-        stroke_width=outline_width * 4,
-        # fix:前端0-100对应0-5px。当前端使用100时，前端传5，后端传5，对应到skia中需要*4，才能和前端基本一致。
+        stroke_width=(outline_width * 3 * png_height / png_width) if (png_width > png_height) else outline_width * 3,
+        # fix:前端0-100对应0-5px。当前端使用100时，前端传5，后端传5，对应到skia中需要*3，才能和前端基本一致。
         
         # line_spacing=line_spacing,
-        line_spacing= -1,
-        # fix:前端默认不传，后端以前约定默认传10。对应到skia中需要处理成-1，才能和前端基本一致。
+        # line_spacing=-1 if (png_width > png_height) else -4,
+        line_spacing=int(calc_line_spacing(font_name, font_size=_font_size, line_height_ratio=1.5)),
+        # fix:前端展示使用150%字高，前端默认不传，后端以前约定默认传10。对应到skia中需要处理成1.5倍字高，才能和前端基本一致。
         
-        background_style=background_style,
+        # background_style=background_style,
+        background_style={0: 0, 1: 2}.get(background_style),
+        # fix:前端0时无，后端透传，算法端0；前端1时有，后端透传，算法端2。
+        
         background_color=background_color,
-        background_fill_width=float(background_pad),
-        background_fill_height=float(background_pad),
+        
+        # background_fill_width=float(background_pad),
+        background_fill_width=0,
+        # fix:前端展示为0
+        
+        # background_fill_height=float(background_pad),
+        background_fill_height=int(calc_line_spacing(font_name, font_size=_font_size, line_height_ratio=1.5)),
+        # fix:前端展示为行高
+        
+        background_radius=0,
+        # fix:前端展示为直角
+        
         png_width=png_width,
+        
         png_height=png_height,
+        
         save_path=Path(save_path) if save_path is not None else None,
+        
         scale=scale,
+        
         rotation=rot,
         
         # letter_spacing=letter_spacing,
-        letter_spacing=-1, 
-        # fix:前端默认不传，后端以前约定默认传2。对应到skia中需要处理成-1，才能和前端基本一致。
+        letter_spacing=0, 
+        # fix:前端默认不传，后端以前约定默认传2。对应到skia中需要处理成0，才能和前端基本一致。
     )
     # 兼容旧版 PIL：调用方（ffmpeg cmd 拼接）期望字幕 png 路径是 str，而不是 Path
     if isinstance(result, Path):

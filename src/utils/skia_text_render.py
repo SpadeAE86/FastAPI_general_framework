@@ -260,7 +260,7 @@ def _build_paragraph_cached(
     if is_stroke:
         paint.setStyle(skia.Paint.kStroke_Style)
         paint.setStrokeWidth(stroke_width)
-        paint.setStrokeJoin(skia.Paint.kRound_Join)
+        paint.setStrokeJoin(skia.Paint.kMiter_Join)
     else:
         paint.setStyle(skia.Paint.kFill_Style)
     paint.setColor(color_int)
@@ -364,7 +364,7 @@ def _render_curved_text(
         stroke_paint = skia.Paint(AntiAlias=True)
         stroke_paint.setStyle(skia.Paint.kStroke_Style)
         stroke_paint.setStrokeWidth(stroke_width)
-        stroke_paint.setStrokeJoin(skia.Paint.kRound_Join)
+        stroke_paint.setStrokeJoin(skia.Paint.kMiter_Join)
         stroke_paint.setColor(stroke_color_int)
 
     # 正值（凸弧）：圆心在 cy + R；负值（凹弧）：圆心在 cy - R
@@ -409,7 +409,14 @@ def _apply_canvas_transform(
         return True
     return False
 
-
+def calc_line_spacing(font_name: str, font_size: float, line_height_ratio: float = 1.5) -> float:
+    """将前端 line-height 比例换算为 _render_to_surface 所需的 line_spacing。"""
+    font = _load_font(font_name, font_size)
+    m = font.getMetrics()
+    # fAscent 是负值（向上），fDescent 正值（向下）
+    natural_line_height = m.fDescent - m.fAscent + m.fLeading
+    return font_size * line_height_ratio - natural_line_height
+    
 def _render_to_surface(
         text: str,
         curve_degree: float = 0.0,
@@ -840,42 +847,61 @@ if __name__ == "__main__":
     print("测试开始")
     t0 = time.perf_counter()
     # 循环单次
-    for i in range(1):
-        render_text_to_png(
-            text="中❤国\n🚀 😊 🫶 🏁 Hello!\n中国 ❤ 🚀 😊 🫶 🏁 Hello!",
-            curve_degree=0,
-            wrap_width=0,
-            text_transform='uppercase',
-            font_name="TsangerShuYuanT W01",
-            font_size=20,
-            font_color=(255, 255, 0, 255),
-            letter_spacing=0,
-            text_style='bold_italic',
+    RUN_TEST = True
+    if RUN_TEST:
+        t0 = time.perf_counter()
+        # 循环单次
+        for font_name in [
+            "Source Han Sans CN",
+            "HarmonyOS Sans SC", 
+            "MiSans",
+            "OPlusSans 3.0",
+            "vivo Sans",
+            "HONOR Sans CN",
+            "Alibaba PuHuiTi",
+            "Alibaba Health Font 2.0 CN",
+            "Alimama DaoLiTi",
+            "Alimama ShuHeiTi",
+            "Zhi Mang Xing",
+            ]:
+            render_text_to_png(
+                text="鲤鱼1鲥鱿2魈魉魁魏魑魔鱼鱿鲁魏100中❤国\n🚀 😊 🫶 🏁 Hello!\n中国 ❤ 🚀 😊 🫶 🏁 Hello!123",
+                curve_degree=0,
+                wrap_width=0,
+                text_transform='uppercase',
+                font_name=font_name,
+                font_size=20,
+                font_color=(255, 255, 0, 255),
+                letter_spacing=0,
+                text_style='bold_italic',
 
-            stroke_width=10,
-            stroke_color=(255, 0, 0, 255),
+                stroke_width=10,
+                stroke_color=(255, 0, 0, 255),
 
-            background_style=2,
-            background_color=(100, 0, 0, 100),
-            background_fill_width=10.0,
-            background_fill_height=10.0,
-            # background_offset_x=-100.0,
-            # background_offset_y=100.0,
-            # background_radius=180,
+                background_style=1,
+                background_color=(100, 0, 0, 255),
+                # background_image=STATIC_DIR / "input_背景图片.png",
+                background_fill_width=100.0,
+                background_fill_height=50.0,
+                # background_offset_x=-100.0,
+                # background_offset_y=100.0,
+                # background_radius=180,
 
-            alignment='right',
+                # alignment='right',
 
-            line_spacing=5,
+                line_spacing=5,
 
-            scale=2.5,
-            rotation=0.0,
-            anchor_x=1460,
-            anchor_y=640,
-            png_width=_DEFAULT_PNG_WIDTH,
-            png_height=_DEFAULT_PNG_HEIGHT,
-            save_path=Path(__file__).resolve().parent / "my_test_gpu_output.png",
-        )
-    print("绘图完成")
+                # scale=2.5,
+                rotation=0.0,
+                # anchor_x=1460,
+                # anchor_y=640,
+                png_width=_DEFAULT_PNG_WIDTH,
+                png_height=_DEFAULT_PNG_HEIGHT,
+                # return_full_frame=False,
+                save_path=Path("./") / f"my_test_normal_{font_name.replace(' ', '_')}.png",
+            )
+        print(f'{time.perf_counter()-t0 = }s')
+        exit()
     # # 测试弯曲文字（凸弧 180°）
     # render_text_to_png(
     #     text="中❤国 🚀 Hello World! 你好世界",
