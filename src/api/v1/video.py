@@ -37,7 +37,7 @@ async def create_video_task(mixed_config: MixedVideoRequest, trace_id = Header(N
         
         # 将Pydantic模型转换为字典
         task_data = mixed_config.model_dump(exclude_none=True)
-        if not task_data.get(["cap_config"], {}).get(["font_type"], ""):
+        if not task_data.get("cap_config", {}).get("font_type", ""):
             task_data["cap_config"]["font_type"] = "Source Han Sans CN"
         task_data["task_type"] = "mix"
         task_data["trace_id"] = trace_id
