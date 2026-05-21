@@ -1,3 +1,4 @@
+import math
 from typing import List, Optional
 import uuid
 
@@ -15,6 +16,7 @@ from models.pydantic_models.response.frontend_timeline_response import (
     SettingsData,
     SourceData,
     SpritesData,
+    SpriteSheet,
     TextClipData,
     TextContentData,
     TextTrackData,
@@ -58,6 +60,91 @@ def _normalize_video_infos(video_info_list: Optional[List[FrontendVideoInfo]]) -
         item if isinstance(item, FrontendVideoInfo) else FrontendVideoInfo(**item)
         for item in video_info_list
     ]
+
+
+def _infer_source_frames(video_info: FrontendVideoInfo, current_fps: int, fallback_frames: int) -> int:
+    """
+    Prefer explicit source metadata, then duration-based inference, then sprite metadata.
+
+    The frontend expects `source.frames` and `time.realDuration` to describe the original
+    material frame count, not the sampled sprite-sheet count.
+    """
+    if video_info.source_frames and video_info.source_frames > 0:
+        return int(video_info.source_frames)
+
+    if video_info.duration and current_fps:
+        return int(round(video_info.duration * current_fps))
+
+    if video_info.sprites:
+        sample_interval = video_info.sprites.sampleInterval or video_info.sprite_sample_interval or 5
+        total_samples = video_info.sprites.totalSamples
+        if not total_samples:
+            total_samples = sum((sheet.frameCount or 0) for sheet in video_info.sprites.sheets)
+        if total_samples > 0:
+            return int(total_samples * sample_interval)
+
+    return int(fallback_frames)
+
+
+def _normalize_sprites(
+    video_info: FrontendVideoInfo,
+    source_frames: int,
+    add_domain,
+) -> Optional[SpritesData]:
+    if not video_info.sprites:
+        return None
+
+    sprites = video_info.sprites.model_copy(deep=True)
+    sample_interval = sprites.sampleInterval or video_info.sprite_sample_interval or 5
+    frame_width = sprites.frameWidth or video_info.sprite_frame_width or 200
+    frame_height = sprites.frameHeight or video_info.sprite_frame_height or 112
+    default_cols = video_info.sprite_cols or 12
+    default_rows = video_info.sprite_rows or 20
+
+    sprites.sampleInterval = sample_interval
+    sprites.frameWidth = frame_width
+    sprites.frameHeight = frame_height
+
+    total_samples = sprites.totalSamples or 0
+    if total_samples <= 0 and source_frames > 0:
+        total_samples = int(math.ceil(source_frames / sample_interval))
+    if total_samples <= 0 and sprites.sheets:
+        total_samples = sum((sheet.frameCount or 0) for sheet in sprites.sheets)
+
+    normalized_sheets: List[SpriteSheet] = []
+    next_start_frame = 0
+    for idx, sheet in enumerate(sprites.sheets):
+        cols = sheet.cols or default_cols
+        rows = sheet.rows or default_rows
+        frames_per_sheet = cols * rows
+        # Normalize startFrame in the sampled-frame space, not raw video-frame space.
+        # The first sheet starts at 0, and each later sheet starts where the previous one ended.
+        start_frame = next_start_frame
+        if sheet.startFrame not in (None, 0) and sheet.startFrame != start_frame:
+            start_frame = sheet.startFrame
+
+        if total_samples > 0:
+            remaining_samples = max(total_samples - start_frame, 0)
+            frame_count = min(frames_per_sheet, remaining_samples)
+        else:
+            frame_count = sheet.frameCount or frames_per_sheet
+
+        normalized_sheets.append(
+            SpriteSheet(
+                url=add_domain(sheet.url),
+                cols=cols,
+                rows=rows,
+                frameCount=frame_count,
+                startFrame=start_frame,
+            )
+        )
+
+        next_start_frame = start_frame + frame_count
+
+    sprites.sheets = normalized_sheets
+    if total_samples > 0:
+        sprites.totalSamples = total_samples
+    return sprites
 
 
 def build_frontend_timeline(
@@ -132,8 +219,8 @@ def build_frontend_timeline(
         scene_id = str(uuid.uuid4())
         crop = req.crop_config[i] if req.crop_config and i < len(req.crop_config) else None
 
-        current_fps = normalized_video_infos[i].fps if i < len(normalized_video_infos) and normalized_video_infos[i].fps else fps
-        sprites = normalized_video_infos[i].sprites if i < len(normalized_video_infos) else None
+        video_info = normalized_video_infos[i] if i < len(normalized_video_infos) else FrontendVideoInfo()
+        current_fps = video_info.fps if video_info.fps else fps
 
         if crop:
             in_point_frames = int(crop.start * current_fps)
@@ -143,6 +230,12 @@ def build_frontend_timeline(
             out_point_frames = int(3.0 * current_fps)
 
         length_frames = out_point_frames - in_point_frames
+        fallback_source_frames = length_frames * 2
+        source_frames = _infer_source_frames(video_info, current_fps, fallback_source_frames)
+        sprites = _normalize_sprites(video_info, source_frames, _add_domain)
+        source_width = video_info.width or settings.width
+        source_height = video_info.height or settings.height
+        material_id = video_info.material_id or str(uuid.uuid4())
 
         scene = SceneData(
             id=scene_id,
@@ -166,15 +259,7 @@ def build_frontend_timeline(
         )
         current_offset_frames += duration_in_seconds
 
-        if sprites and sprites.sheets:
-            for sheet in sprites.sheets:
-                sheet.url = _add_domain(sheet.url)
-
-        real_duration = length_frames * 2
-        if sprites and sprites.sheets:
-            real_duration = sum(s.frameCount for s in sprites.sheets)
-
-        material_id = str(uuid.uuid4())
+        # `realDuration` and `source.frames` track the original material frame count.
         video_clip = VideoClipData(
             id=str(uuid.uuid4()),
             sceneId=scene_id,
@@ -184,15 +269,15 @@ def build_frontend_timeline(
                 inPoint=in_point_frames,
                 outPoint=out_point_frames,
                 layer=0,
-                realDuration=real_duration,
+                realDuration=source_frames,
             ),
             source=SourceData(
                 name=material_id,
                 url=_add_domain(req.obs_video_path_list[i]),
-                cover=None,
-                frames=real_duration,
-                width=settings.width,
-                height=settings.height,
+                cover=_add_domain(video_info.source_cover) if video_info.source_cover else None,
+                frames=source_frames,
+                width=source_width,
+                height=source_height,
                 materialId=material_id,
                 sprites=sprites,
             ),

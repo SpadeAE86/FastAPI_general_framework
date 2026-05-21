@@ -1,7 +1,11 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **AIGC_video_mix_remake** (1322 symbols, 3557 relationships, 105 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+## 本地 Python 解释器
+
+运行本地 Python 相关命令时，请优先使用 `C:\Users\25065\.conda\envs\py312\python.exe`。
+
+This project is indexed by GitNexus as **AIGC_video_mix_remake** (1410 symbols, 3807 relationships, 112 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

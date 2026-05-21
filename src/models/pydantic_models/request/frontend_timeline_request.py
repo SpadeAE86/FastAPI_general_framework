@@ -8,10 +8,28 @@ from models.pydantic_models.response.frontend_timeline_response import SpritesDa
 
 class FrontendVideoInfo(BaseModel):
     fps: Optional[int] = Field(default=None, description="Supplementary fps for frame index and sprites")
-    sprites: Optional[SpritesData] = Field(default=None, description="Supplementary sprite sheet metadata")
-    source_width: Optional[int] = Field(default=None, description="Optional source width")
-    source_height: Optional[int] = Field(default=None, description="Optional source height")
     duration: Optional[float] = Field(default=None, description="Optional source duration in seconds")
+    source_frames: Optional[int] = Field(default=None, description="Optional original source frame count")
+    width: Optional[int] = Field(
+        default=None,
+        validation_alias=AliasChoices("width", "source_width"),
+        serialization_alias="width",
+        description="Optional source width",
+    )
+    height: Optional[int] = Field(
+        default=None,
+        validation_alias=AliasChoices("height", "source_height"),
+        serialization_alias="height",
+        description="Optional source height",
+    )
+    source_cover: Optional[str] = Field(default=None, description="Optional source cover url")
+    material_id: Optional[str] = Field(default=None, description="Optional source material id")
+    sprite_cols: int = Field(default=12, description="Default sprite sheet columns")
+    sprite_rows: int = Field(default=20, description="Default sprite sheet rows")
+    sprite_sample_interval: int = Field(default=5, description="Default sample interval in frames")
+    sprite_frame_width: int = Field(default=200, description="Default sprite frame width")
+    sprite_frame_height: int = Field(default=112, description="Default sprite frame height")
+    sprites: Optional[SpritesData] = Field(default=None, description="Supplementary sprite sheet metadata")
 
 
 class FrontendAudioInfo(BaseModel):

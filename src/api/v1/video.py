@@ -169,10 +169,18 @@ async def get_frontend_timeline(request: FrontendTimelineRequest) -> Dict[str, A
             video_info_list=request.video_info_list,
             audio_info_list=request.audio_info_list,
         )
+        json_str = timeline_res.model_dump(
+            exclude_none=True,
+            exclude={"code", "message", "biz_id", "start_time", "end_time", "cost_time"},
+        )
         return {
             "code": 200,
             "message": "生成成功",
-            "data": timeline_res.model_dump(exclude_none=True)
+            "data": {
+                "creativeProjectId": timeline_res.meta.id,
+                "coverImg": "",
+                "jsonStr": json_str,
+            },
         }
     except Exception as e:
         log.error(f"生成前端Timeline失败: {e}", exc_info=True)

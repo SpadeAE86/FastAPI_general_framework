@@ -40,10 +40,10 @@ class TimeData(BaseModel):
 
 class SpriteSheet(BaseModel):
     url: str
-    cols: int
-    rows: int
+    cols: int = Field(default=12)
+    rows: int = Field(default=20)
     frameCount: int
-    startFrame: int
+    startFrame: int = Field(default=0)
 
 class SpritesData(BaseModel):
     sheets: List[SpriteSheet] = Field(default_factory=list)
@@ -158,6 +158,11 @@ class AudioClipData(BaseModel):
     source: AudioSourceData
     effect: AudioEffectData = Field(default_factory=AudioEffectData)
 
+class SelectionData(BaseModel):
+    selectedByScene: List[List[str]] = Field(default_factory=list)
+    selectedType: Optional[str] = Field(default=None)
+    selectedClipId: Optional[str] = Field(default=None)
+
 class TimelineData(BaseModel):
     scenes: List[SceneData] = Field(default_factory=list)
     videoClips: List[VideoClipData] = Field(default_factory=list)
@@ -165,6 +170,8 @@ class TimelineData(BaseModel):
     textClips: List[TextClipData] = Field(default_factory=list)
     audioTracks: List[AudioTrackData] = Field(default_factory=list)
     audioClips: List[AudioClipData] = Field(default_factory=list)
+    splitClips: List[Any] = Field(default_factory=list)
+    selection: SelectionData = Field(default_factory=SelectionData)
 
 class FrontendTimelineResponse(BaseResponse):
     """
