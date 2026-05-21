@@ -42,7 +42,7 @@ class SpriteSheet(BaseModel):
     url: str
     cols: int = Field(default=12)
     rows: int = Field(default=20)
-    frameCount: int
+    frameCount: Optional[int] = Field(default=None, description="Sampled frame count for this sprite sheet")
     startFrame: int = Field(default=0)
 
 class SpritesData(BaseModel):

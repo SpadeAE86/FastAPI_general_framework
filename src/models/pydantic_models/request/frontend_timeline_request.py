@@ -7,7 +7,7 @@ from models.pydantic_models.response.frontend_timeline_response import SpritesDa
 
 
 class FrontendVideoInfo(BaseModel):
-    fps: Optional[int] = Field(default=None, description="Supplementary fps for frame index and sprites")
+    fps: Optional[int] = Field(default=None, description="Optional source fps; used with duration to infer frames")
     duration: Optional[float] = Field(default=None, description="Optional source duration in seconds")
     source_frames: Optional[int] = Field(default=None, description="Optional original source frame count")
     width: Optional[int] = Field(
@@ -29,7 +29,10 @@ class FrontendVideoInfo(BaseModel):
     sprite_sample_interval: int = Field(default=5, description="Default sample interval in frames")
     sprite_frame_width: int = Field(default=200, description="Default sprite frame width")
     sprite_frame_height: int = Field(default=112, description="Default sprite frame height")
-    sprites: Optional[SpritesData] = Field(default=None, description="Supplementary sprite sheet metadata")
+    sprites: Optional[SpritesData] = Field(
+        default=None,
+        description="Supplementary sprite sheet metadata; frameCount can be omitted and inferred from duration/fps",
+    )
 
 
 class FrontendAudioInfo(BaseModel):
