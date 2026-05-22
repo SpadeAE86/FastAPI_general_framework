@@ -130,7 +130,7 @@ class TextClipData(BaseModel):
     content: TextContentData
     style: TextStyleData = Field(default_factory=TextStyleData)
     position: TextPositionData = Field(default_factory=TextPositionData)
-    voiceover: Optional[VoiceOverData] = Field(default=None)
+    voiceover: Dict[str, Any] = Field(default_factory=dict)
 
 class AudioTrackData(BaseModel):
     id: str

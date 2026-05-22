@@ -39,6 +39,13 @@ class FrontendAudioInfo(BaseModel):
     voice_character: str = Field(default="小仙(亲切女声)", description="AliVoice voice id")
     audio_speed_level: int = Field(default=0, description="Voice speed level; default falls back to 1.0x")
     volume: int = Field(default=100, description="Volume")
+    audio_url: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("audio_url", "audioUrl"),
+        serialization_alias="audio_url",
+        description="Optional audio url or obs key for the caption voiceover",
+    )
+    duration: float = Field(default=3, description="Fallback audio duration in seconds")
     target_speech_rate: Optional[float] = Field(default=None, description="Target speech rate")
     emotion: Optional[str] = Field(default=None, description="Emotion")
     intensity: Optional[float] = Field(default=None, description="Emotion intensity")

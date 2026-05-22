@@ -30,7 +30,7 @@ from models.pydantic_models.response.frontend_timeline_response import (
 DEFAULT_VOICE_ID = "小仙(亲切女声)"
 
 
-def _build_voiceover(audio_info: Optional[FrontendAudioInfo], audio_url: str) -> VoiceOverData:
+def _build_voiceover(audio_info: Optional[FrontendAudioInfo], audio_url: str) -> dict:
     audio_info = audio_info or FrontendAudioInfo()
     speed = 2 ** (audio_info.audio_speed_level / 500) if audio_info.audio_speed_level else 1.0
     return VoiceOverData(
@@ -38,7 +38,7 @@ def _build_voiceover(audio_info: Optional[FrontendAudioInfo], audio_url: str) ->
         speed=speed,
         volume=audio_info.volume,
         audioUrl=audio_url,
-    )
+    ).model_dump(exclude_none=True)
 
 
 def _normalize_audio_infos(audio_info_list: Optional[List[FrontendAudioInfo]], caption_count: int) -> List[FrontendAudioInfo]:
@@ -50,6 +50,8 @@ def _normalize_audio_infos(audio_info_list: Optional[List[FrontendAudioInfo]], c
             normalized.append(item)
         else:
             normalized.append(FrontendAudioInfo(**item))
+    if len(normalized) < caption_count:
+        normalized.extend(FrontendAudioInfo() for _ in range(caption_count - len(normalized)))
     return normalized
 
 
@@ -198,6 +200,7 @@ def build_frontend_timeline(
     )
 
     timeline_data = TimelineData()
+    selected_by_scene: List[List[str]] = []
 
     text_track_id = str(uuid.uuid4())
     timeline_data.textTracks.append(TextTrackData(id=text_track_id, name="AI_Subtitle_Track", order=1))
@@ -286,6 +289,7 @@ def build_frontend_timeline(
             ),
         )
         timeline_data.videoClips.append(video_clip)
+        selected_by_scene.append([video_clip.id])
 
     audio_paths = req.obs_audio_path_list or []
     caption_list = req.cap_config.caption_list if req.cap_config and req.cap_config.caption_list else []
@@ -309,10 +313,9 @@ def build_frontend_timeline(
             cap_in_frames = int(scene_local_offset_seconds * target_fps)
             cap_len_frames = int((cap.end - cap.start) * target_fps)
 
-            voiceover = None
-            if cap_idx < len(audio_paths):
-                audio_info = normalized_audio_infos[cap_idx] if cap_idx < len(normalized_audio_infos) else FrontendAudioInfo()
-                voiceover = _build_voiceover(audio_info, _add_domain(audio_paths[cap_idx]))
+            audio_info = normalized_audio_infos[cap_idx] if cap_idx < len(normalized_audio_infos) else FrontendAudioInfo()
+            audio_url = audio_info.audio_url or (audio_paths[cap_idx] if cap_idx < len(audio_paths) else "")
+            voiceover = _build_voiceover(audio_info, _add_domain(audio_url)) if audio_url else {}
 
             text_clip = TextClipData(
                 id=str(uuid.uuid4()),
@@ -362,6 +365,8 @@ def build_frontend_timeline(
                 ),
             )
             timeline_data.audioClips.append(audio_clip)
+
+    timeline_data.selection.selectedByScene = selected_by_scene
 
     return FrontendTimelineResponse(
         meta=meta,
