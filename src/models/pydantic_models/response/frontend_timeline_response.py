@@ -33,10 +33,10 @@ class SceneData(BaseModel):
 class TimeData(BaseModel):
     offset: int = Field(description="该片段在当前场景时间线上的起始帧")
     length: int = Field(description="该片段在时间线上占据的帧数")
-    inPoint: int = Field(description="片头裁剪帧")
-    outPoint: int = Field(description="片尾裁剪帧")
+    inPoint: int = Field(description="Timeline in-point, fixed to 0 for frontend compatibility")
+    outPoint: int = Field(description="Remaining source duration in frames after trimming")
     layer: Optional[int] = Field(default=0, description="图层层级（Z-index）")
-    realDuration: Optional[int] = Field(default=None, description="原视频总帧数")
+    realDuration: Optional[int] = Field(default=None, description="Remaining source duration in frames")
 
 class SpriteSheet(BaseModel):
     url: str
@@ -61,6 +61,7 @@ class SourceData(BaseModel):
     height: Optional[int] = Field(default=None, description="视频原高")
     sprites: Optional[SpritesData] = Field(default=None, description="视频缩略图雪碧图信息")
     materialId: str = Field(description="素材业务ID")
+    originalInPoint: int = Field(default=0, description="原始裁切起点帧，按30fps计算")
 
 class EffectData(BaseModel):
     speed: float = Field(default=1)

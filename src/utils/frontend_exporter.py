@@ -226,15 +226,17 @@ def build_frontend_timeline(
         current_fps = video_info.fps if video_info.fps else fps
 
         if crop:
-            in_point_frames = int(crop.start * current_fps)
+            original_in_point_frames = int(crop.start * current_fps)
             out_point_frames = int(crop.end * current_fps)
         else:
-            in_point_frames = 0
+            original_in_point_frames = 0
             out_point_frames = int(3.0 * current_fps)
 
-        length_frames = out_point_frames - in_point_frames
-        fallback_source_frames = length_frames * 2
+        requested_length_frames = max(out_point_frames - original_in_point_frames, 0)
+        fallback_source_frames = requested_length_frames * 2
         source_frames = _infer_source_frames(video_info, current_fps, fallback_source_frames)
+        remaining_source_frames = max(source_frames - original_in_point_frames, 0)
+        length_frames = min(requested_length_frames, remaining_source_frames)
         sprites = _normalize_sprites(video_info, source_frames, _add_domain)
         source_width = video_info.width or settings.width
         source_height = video_info.height or settings.height
@@ -269,10 +271,10 @@ def build_frontend_timeline(
             time=TimeData(
                 offset=0,
                 length=length_frames,
-                inPoint=in_point_frames,
-                outPoint=out_point_frames,
+                inPoint=0,
+                outPoint=remaining_source_frames,
                 layer=0,
-                realDuration=source_frames,
+                realDuration=remaining_source_frames,
             ),
             source=SourceData(
                 name=material_id,
@@ -282,6 +284,7 @@ def build_frontend_timeline(
                 width=source_width,
                 height=source_height,
                 materialId=material_id,
+                originalInPoint=original_in_point_frames,
                 sprites=sprites,
             ),
             effect=EffectData(
