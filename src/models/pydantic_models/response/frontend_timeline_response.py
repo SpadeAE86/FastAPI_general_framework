@@ -102,7 +102,7 @@ class FontColorData(BaseModel):
     a: float = 1.0
 
 class TextStyleData(BaseModel):
-    fontFamily: str = Field(default='"Source Han Sans CN"')
+    fontFamily: str = Field(default='Source Han Sans CN')
     fontSize: int = Field(default=24)
     fontColor: FontColorData = Field(default_factory=FontColorData)
     bold: bool = Field(default=False)
