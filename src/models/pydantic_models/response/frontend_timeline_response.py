@@ -31,12 +31,14 @@ class SceneData(BaseModel):
     height: int = Field(description="场景高度")
 
 class TimeData(BaseModel):
-    offset: int = Field(description="该片段在当前场景时间线上的起始帧")
-    length: int = Field(description="该片段在时间线上占据的帧数")
-    inPoint: int = Field(description="Timeline in-point, fixed to 0 for frontend compatibility")
-    outPoint: int = Field(description="Remaining source duration in frames after trimming")
+    offset: Optional[int] = Field(default=None, description="该片段在当前场景时间线上的起始帧")
+    length: Optional[int] = Field(default=None, description="该片段在时间线上占据的帧数")
+    inPoint: Optional[int] = Field(default=None, description="Timeline in-point, fixed to 0 for frontend compatibility")
+    outPoint: Optional[int] = Field(default=None, description="Remaining source duration in frames after trimming")
     layer: Optional[int] = Field(default=0, description="图层层级（Z-index）")
     realDuration: Optional[int] = Field(default=None, description="Remaining source duration in frames")
+    startFrame: Optional[int] = Field(default=None, description="Audio track start frame on the timeline")
+    endFrame: Optional[int] = Field(default=None, description="Audio track end frame on the timeline")
 
 class SpriteSheet(BaseModel):
     url: str
@@ -137,13 +139,20 @@ class AudioTrackData(BaseModel):
     id: str
     name: str
     order: int
+    volume: int = Field(default=100)
+    muted: bool = Field(default=False)
     visible: bool = Field(default=True)
     locked: bool = Field(default=False)
 
 class AudioSourceData(BaseModel):
-    name: str
+    name: Optional[str] = Field(default=None)
     url: str
     frames: Optional[int] = Field(default=None)
+
+
+class AudioExtraData(BaseModel):
+    name: Optional[str] = Field(default=None)
+    cover: Optional[str] = Field(default=None)
 
 class AudioEffectData(BaseModel):
     speed: float = Field(default=1.0)
@@ -158,6 +167,7 @@ class AudioClipData(BaseModel):
     time: TimeData
     source: AudioSourceData
     effect: AudioEffectData = Field(default_factory=AudioEffectData)
+    extra: Optional[AudioExtraData] = Field(default=None)
 
 class SelectionData(BaseModel):
     selectedByScene: List[List[str]] = Field(default_factory=list)

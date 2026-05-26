@@ -56,6 +56,33 @@ def _normalize_audio_infos(audio_info_list: Optional[List[FrontendAudioInfo]], c
     return normalized
 
 
+def _pick_bgm_entries(req: MixedVideoRequest) -> List[tuple[str, Optional[object]]]:
+    """
+    Prefer explicit BGM fields, then fall back to the second audio path in obs_audio_path_list.
+    The first audio path is treated as the per-caption voiceover source.
+    """
+    if req.obs_bgm_path_list:
+        bgm_entries: List[tuple[str, Optional[object]]] = []
+        for idx, bgm_path in enumerate(req.obs_bgm_path_list):
+            bgm_cfg = None
+            if req.bgm_config and idx < len(req.bgm_config):
+                bgm_cfg = req.bgm_config[idx]
+            elif req.audio_config and idx < len(req.audio_config):
+                bgm_cfg = req.audio_config[idx]
+            bgm_entries.append((bgm_path, bgm_cfg))
+        return bgm_entries
+
+    if req.obs_audio_path_list and len(req.obs_audio_path_list) > 1:
+        bgm_cfg = None
+        if req.audio_config and len(req.audio_config) > 1:
+            bgm_cfg = req.audio_config[1]
+        elif req.bgm_config:
+            bgm_cfg = req.bgm_config[0]
+        return [(req.obs_audio_path_list[1], bgm_cfg)]
+
+    return []
+
+
 def _normalize_video_infos(video_info_list: Optional[List[FrontendVideoInfo]]) -> List[FrontendVideoInfo]:
     if not video_info_list:
         return []
@@ -207,7 +234,9 @@ def build_frontend_timeline(
     timeline_data.textTracks.append(TextTrackData(id=text_track_id, name="AI_Subtitle_Track", order=1))
 
     audio_track_id = str(uuid.uuid4())
-    timeline_data.audioTracks.append(AudioTrackData(id=audio_track_id, name="BGM_Track", order=1))
+    timeline_data.audioTracks.append(
+        AudioTrackData(id=audio_track_id, name="音频轨道1", order=1, volume=100, muted=False)
+    )
 
     num_clips = len(req.obs_video_path_list) if req.obs_video_path_list else 0
     current_offset_frames = 0.0
@@ -313,8 +342,8 @@ def build_frontend_timeline(
                     break
                 accumulated_seconds += s_info["duration"]
 
-            cap_in_frames = int(scene_local_offset_seconds * target_fps)
-            cap_len_frames = int((cap.end - cap.start) * target_fps)
+            cap_in_frames = 0
+            cap_len_frames = int(round((cap.end - cap.start) * TIMELINE_FPS))
 
             audio_info = normalized_audio_infos[cap_idx] if cap_idx < len(normalized_audio_infos) else FrontendAudioInfo()
             audio_url = audio_info.audio_url or (audio_paths[cap_idx] if cap_idx < len(audio_paths) else "")
@@ -335,39 +364,51 @@ def build_frontend_timeline(
             text_clip.style.fontSize = cap.font_size if cap.font_size else req.cap_config.font_size
             timeline_data.textClips.append(text_clip)
 
-    if req.bgm_config and req.obs_bgm_path_list:
-        for idx, bgm in enumerate(req.bgm_config):
-            if idx >= len(req.obs_bgm_path_list):
-                break
-            bgm_url = _add_domain(req.obs_bgm_path_list[idx])
-            in_point_frames = int(bgm.start * fps)
-            out_point_frames = int(bgm.end * fps)
-            length_frames = out_point_frames - in_point_frames
-            offset_frames = int(bgm.offset * fps) if hasattr(bgm, "offset") else 0
+    timeline_total_frames = sum(scene.duration for scene in timeline_data.scenes)
+    bgm_entries = _pick_bgm_entries(req)
+    for idx, (bgm_path, bgm_cfg) in enumerate(bgm_entries):
+        bgm_url = _add_domain(bgm_path)
+        bgm_start = float(getattr(bgm_cfg, "start", 0) or 0)
+        bgm_end = getattr(bgm_cfg, "end", -1) if bgm_cfg else -1
+        bgm_offset = float(getattr(bgm_cfg, "offset", 0) or 0)
+        bgm_volume = float(getattr(bgm_cfg, "volume", 1) or 1)
+        bgm_name = getattr(bgm_cfg, "name", None) or "初夏"
+        bgm_cover = getattr(bgm_cfg, "cover", None)
 
-            audio_clip = AudioClipData(
-                id=str(uuid.uuid4()),
-                trackId=audio_track_id,
-                sceneId=None,
-                time=TimeData(
-                    offset=offset_frames,
-                    length=length_frames,
-                    inPoint=in_point_frames,
-                    outPoint=out_point_frames,
-                    layer=0,
-                    realDuration=length_frames * 2,
-                ),
-                source=AudioSourceData(
-                    name=f"bgm_{idx}",
-                    url=bgm_url,
-                    frames=length_frames * 2,
-                ),
-                effect=AudioEffectData(
-                    volume=int(bgm.volume * 100) if hasattr(bgm, "volume") else 100,
-                    speed=1.0,
-                ),
-            )
-            timeline_data.audioClips.append(audio_clip)
+        start_frame = int(round(bgm_start * TIMELINE_FPS))
+        if bgm_end is None or float(bgm_end) < 0:
+            end_frame = timeline_total_frames
+        else:
+            end_frame = int(round(float(bgm_end) * TIMELINE_FPS))
+        length_frames = max(end_frame - start_frame, 0)
+        offset_frames = int(round(bgm_offset * TIMELINE_FPS))
+
+        audio_clip = AudioClipData(
+            id=str(uuid.uuid4()),
+            trackId=audio_track_id,
+            sceneId=None,
+            time=TimeData(
+                offset=offset_frames,
+                length=length_frames,
+                inPoint=start_frame,
+                outPoint=end_frame,
+                layer=0,
+                realDuration=end_frame,
+                startFrame=start_frame,
+                endFrame=end_frame,
+            ),
+            source=AudioSourceData(
+                name=bgm_name,
+                url=bgm_url,
+                frames=end_frame,
+            ),
+            effect=AudioEffectData(
+                volume=int(round(bgm_volume * 100)),
+                speed=1.0,
+            ),
+            extra={"name": bgm_name, "cover": bgm_cover},
+        )
+        timeline_data.audioClips.append(audio_clip)
 
     timeline_data.selection.selectedByScene = selected_by_scene
 
