@@ -28,6 +28,7 @@ from models.pydantic_models.response.frontend_timeline_response import (
 
 
 DEFAULT_VOICE_ID = "小仙(亲切女声)"
+TIMELINE_FPS = 30
 
 
 def _build_voiceover(audio_info: Optional[FrontendAudioInfo], audio_url: str) -> dict:
@@ -64,7 +65,7 @@ def _normalize_video_infos(video_info_list: Optional[List[FrontendVideoInfo]]) -
     ]
 
 
-def _infer_source_frames(video_info: FrontendVideoInfo, current_fps: int, fallback_frames: int) -> int:
+def _infer_source_frames(video_info: FrontendVideoInfo, fallback_frames: int) -> int:
     """
     Prefer explicit source metadata, then duration-based inference, then sprite metadata.
 
@@ -74,8 +75,8 @@ def _infer_source_frames(video_info: FrontendVideoInfo, current_fps: int, fallba
     if video_info.source_frames and video_info.source_frames > 0:
         return int(video_info.source_frames)
 
-    if video_info.duration and current_fps:
-        return int(round(video_info.duration * current_fps))
+    if video_info.duration:
+        return int(round(video_info.duration * TIMELINE_FPS))
 
     if video_info.sprites:
         sample_interval = video_info.sprites.sampleInterval or video_info.sprite_sample_interval or 5
@@ -159,7 +160,7 @@ def build_frontend_timeline(
     if not project_id:
         project_id = str(uuid.uuid4().int >> 64)
 
-    fps = req.fps
+    fps = TIMELINE_FPS
 
     try:
         from config.config import get_settings
@@ -223,20 +224,19 @@ def build_frontend_timeline(
         crop = req.crop_config[i] if req.crop_config and i < len(req.crop_config) else None
 
         video_info = normalized_video_infos[i] if i < len(normalized_video_infos) else FrontendVideoInfo()
-        current_fps = video_info.fps if video_info.fps else fps
+        current_fps = TIMELINE_FPS
 
         if crop:
-            original_in_point_frames = int(crop.start * current_fps)
-            out_point_frames = int(crop.end * current_fps)
+            original_in_point_frames = int(round(crop.start * TIMELINE_FPS))
+            out_point_frames = int(round(crop.end * TIMELINE_FPS))
         else:
             original_in_point_frames = 0
-            out_point_frames = int(3.0 * current_fps)
+            out_point_frames = int(round(3.0 * TIMELINE_FPS))
 
         requested_length_frames = max(out_point_frames - original_in_point_frames, 0)
         fallback_source_frames = requested_length_frames * 2
-        source_frames = _infer_source_frames(video_info, current_fps, fallback_source_frames)
-        remaining_source_frames = max(source_frames - original_in_point_frames, 0)
-        length_frames = min(requested_length_frames, remaining_source_frames)
+        source_frames = _infer_source_frames(video_info, fallback_source_frames)
+        length_frames = requested_length_frames
         sprites = _normalize_sprites(video_info, source_frames, _add_domain)
         source_width = video_info.width or settings.width
         source_height = video_info.height or settings.height
@@ -272,9 +272,9 @@ def build_frontend_timeline(
                 offset=0,
                 length=length_frames,
                 inPoint=0,
-                outPoint=remaining_source_frames,
+                outPoint=out_point_frames,
                 layer=0,
-                realDuration=remaining_source_frames,
+                realDuration=out_point_frames,
             ),
             source=SourceData(
                 name=material_id,
