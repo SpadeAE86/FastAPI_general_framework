@@ -329,18 +329,15 @@ def build_frontend_timeline(
 
     if caption_list:
         for cap_idx, cap in enumerate(caption_list):
-            target_scene_id = timeline_data.scenes[0].id if timeline_data.scenes else str(uuid.uuid4())
-            target_fps = fps
-            scene_local_offset_seconds = cap.start
-
-            accumulated_seconds = 0
-            for s_info in scene_starts_in_seconds:
-                if accumulated_seconds <= cap.start < (accumulated_seconds + s_info["duration"]):
-                    target_scene_id = s_info["id"]
-                    target_fps = s_info["fps"]
-                    scene_local_offset_seconds = cap.start - accumulated_seconds
-                    break
-                accumulated_seconds += s_info["duration"]
+            # Each caption is expected to map 1:1 to its own video scene.
+            # The frontend uses the scene order to place captions, so keep the
+            # scene association deterministic by index instead of time-range lookup.
+            if cap_idx < len(timeline_data.scenes):
+                target_scene_id = timeline_data.scenes[cap_idx].id
+            elif timeline_data.scenes:
+                target_scene_id = timeline_data.scenes[-1].id
+            else:
+                target_scene_id = str(uuid.uuid4())
 
             cap_in_frames = 0
             cap_len_frames = int(round((cap.end - cap.start) * TIMELINE_FPS))
