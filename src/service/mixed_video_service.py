@@ -138,8 +138,16 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
             log.info(f"width: {width}")
             log.info(f"height: {height}")
             # 通过crop_config获取时长列表
-            len_list = [(c.end - c.start) if c else 0 for c in
-                        mixed_config.crop_config] if mixed_config.crop_config else [0] * len(video_list)
+            len_list = []
+            if mixed_config.crop_config:
+                for c in mixed_config.crop_config:
+                    if not c:
+                        len_list.append(0)
+                        continue
+                    effective_end = c.extend_to if c.extend_to is not None and c.extend_to > c.end else c.end
+                    len_list.append(max(effective_end - c.start, 0))
+            else:
+                len_list = [0] * len(video_list)
             log.info(f"video duration list: {len_list}")
 
             #生成字幕图片实例，储存生成的图片

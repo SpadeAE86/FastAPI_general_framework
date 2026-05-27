@@ -24,7 +24,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
                                    mirror=False, speed=1, extra_filter="", processed_so_far=0, pix_fmt="yuv420p",
                                    cache_hit=False, fade_in_duration=0, fade_out_duration=0, audio_config=None,
                                    audio_path_list=None, vindex = 0, cap_helper = None, ai_mode = False,
-                                   sticker_config = None, sticker_list= None):
+                                   sticker_config = None, sticker_list= None, freeze_tail_duration=0):
     """
     对单个视频素材进行标准化处理并生成 FFmpeg filter_complex，
     用于视频混剪流水线中的「单片段处理阶段」。
@@ -296,12 +296,20 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     if transform_str:
         video_filter_list.append(f"{end_v}{transform_str}[no_cap_v]")
         end_v = "[no_cap_v]"
+    if duration > 0:
+        video_filter_list.append(f"{end_v}trim=start=0:end={duration},setpts=PTS-STARTPTS[trim_v]")
+        end_v = "[trim_v]"
+    freeze_tail_duration = float(freeze_tail_duration / speed) if freeze_tail_duration else 0.0
+    if freeze_tail_duration > 0:
+        video_filter_list.append(f"{end_v}tpad=stop_mode=clone:stop_duration={freeze_tail_duration}[freeze_v]")
+        end_v = "[freeze_v]"
 
     # 此时start_time在后续滤镜链中都需要用到提速后的，包括duration时长也会改变
     start_time = float(start_time/speed)
     end_time = float(end_time/speed)
     duration = end_time - start_time
-    converter = TimelineConverter(processed_so_far, duration, start_time)
+    effective_duration = duration + freeze_tail_duration
+    converter = TimelineConverter(processed_so_far, effective_duration, start_time)
 
 
 
@@ -314,7 +322,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         caption_distributor = CaptionDistributor(width, height, cap_config, transition_config, cap_helper, project_id)
         subtitle_list, transition_caption = caption_distributor.gen_subtitle_png(
             processed_so_far=processed_so_far,
-            duration=duration,
+            duration=effective_duration,
             transition_in=fade_in_duration,
             transition_out=fade_out_duration,
         )
@@ -352,10 +360,11 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     weights = ["1.0"]
     audio_input = []
     audio_filter = ""
+    audio_simple_filter = []
     if audio_config:
         mix_input = [f"[main_audio]"]
         speed_audio_str = f",{audio_filter_str}" if audio_filter_str else ""
-        audio_filter += f"[{end_a}]volume=3{speed_audio_str}[main_audio];"
+        audio_filter += f"[{end_a}]volume=3{speed_audio_str},atrim=start=0:end={duration},asetpts=PTS-STARTPTS,apad=whole_dur={effective_duration}[main_audio];"
         audio_filter_flag = []  # FFmpeg forbids combining simple (-af) and complex filtergraphs for the same mapped stream
         end_a = "[merged]"
         cur = len(subtitle_list)
@@ -383,7 +392,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
             crop_offset_str += f"adelay={local_delay_ms}|{local_delay_ms},"
             volume = audio_config[idx].volume * 2
             weight = audio_config[idx].weight
-            audio_filter += f"[{1 + cur}:a]{crop_offset_str}apad=whole_dur={end_time},volume={volume}[{output}];"
+            audio_filter += f"[{1 + cur}:a]{crop_offset_str}apad=whole_dur={effective_duration},volume={volume}[{output}];"
             mix_input.append(f"[{output}]")
             weights.append(str(weight))
             cur += 1
@@ -396,6 +405,13 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         audio_input_option.extend(["-i", p])
     if audio_filter:
         video_filter_list.append(audio_filter)
+    else:
+        simple_audio_filters = []
+        if audio_filter_str:
+            simple_audio_filters.append(audio_filter_str)
+        simple_audio_filters.append(f"atrim=start=0:end={duration},asetpts=N/SR/TB,apad=whole_dur={effective_duration}")
+        audio_simple_filter = ["-af", ",".join(simple_audio_filters)]
+        audio_filter_flag = []
 
     # === 新增配置：统一时基 ===
     # 15360 是一个通用的时基 (90000也是常用的，但15360对mp4很友好)
@@ -466,7 +482,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     log.info(f"{video} 完成处理")
 
     # 转场分割
-    new_length = duration
+    new_length = effective_duration
     if fade_in_duration or fade_out_duration:
         transition_clip = split_normalize(
             output_name,

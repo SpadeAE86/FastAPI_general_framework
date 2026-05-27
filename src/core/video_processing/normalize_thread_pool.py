@@ -50,10 +50,14 @@ async def thread_pool_normalize(
             log.info(f"filter str: {filter_str}")
             start = 0
             end = len_list[idx]
+            freeze_tail_duration = 0
 
             if mixed_video_config.crop_config:
-                end = mixed_video_config.crop_config[idx].end
-                start = mixed_video_config.crop_config[idx].start
+                crop = mixed_video_config.crop_config[idx]
+                start = crop.start
+                end = crop.end
+                effective_end = crop.extend_to if crop.extend_to is not None and crop.extend_to > crop.end else crop.end
+                freeze_tail_duration = max(effective_end - end, 0)
 
             cache_hit = False
             fade_out_duration = 0
@@ -104,6 +108,7 @@ async def thread_pool_normalize(
                 ai_mode=ai_mode,   #是否是ai混剪
                 sticker_config=mixed_video_config.sticker_config,   #贴纸配置
                 sticker_list=sticker_list,   #贴纸路径列表
+                freeze_tail_duration=freeze_tail_duration,
             )
 
             future = executor.submit(_time_tracked_normalize, idx, normalize_func)

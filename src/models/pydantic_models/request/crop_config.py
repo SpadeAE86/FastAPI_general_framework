@@ -7,6 +7,11 @@ from typing import *
 class CropConfig(BaseModel):
     start: float = Field(ge=0)
     end: float = Field(ge=0)
+    extend_to: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="Optional output end time for freeze-tail rendering; if set beyond end, the clip is held on the last frame until this time",
+    )
     translate_x: float = Field(default=0)
     translate_y: float = Field(default=0)
     rotation: float = Field(default=0)
