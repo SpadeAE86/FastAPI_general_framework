@@ -358,9 +358,11 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         audio_filter += f"[{end_a}]volume=3{speed_audio_str}[main_audio];"
         audio_filter_flag = []  # FFmpeg forbids combining simple (-af) and complex filtergraphs for the same mapped stream
         end_a = "[merged]"
-        cur = len(subtitle_list)
-        if mute_origin:
-            cur += 1
+        # 真实 supplemental audio 的输入索引要跳过：
+        # - 视频流 0
+        # - 字幕 PNG 输入
+        # - 可能插入的 anullsrc
+        supplement_audio_input_base = len(subtitle_list) + 1 + int(mute_origin or not has_audio)
 
         for idx, a in enumerate(audio_path_list):
             log.info(f"{idx} audio with offset {audio_config[idx].offset}, start={audio_config[idx].start}, end={audio_config[idx].end}, process_so_far={processed_so_far}")
@@ -383,10 +385,10 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
             crop_offset_str += f"adelay={local_delay_ms}|{local_delay_ms},"
             volume = audio_config[idx].volume * 2
             weight = audio_config[idx].weight
-            audio_filter += f"[{1 + cur}:a]{crop_offset_str}apad=whole_dur={end_time},volume={volume}[{output}];"
+            audio_stream_index = supplement_audio_input_base + idx
+            audio_filter += f"[{audio_stream_index}:a]{crop_offset_str}apad=whole_dur={end_time},volume={volume}[{output}];"
             mix_input.append(f"[{output}]")
             weights.append(str(weight))
-            cur += 1
         # todo: 根据官方提供的例子 ffmpeg -i VOCALS -i MUSIC -filter_complex amix=inputs=2:duration=longest:dropout_transition=0:weights="1 0.25":normalize=0 OUTPUT
         weight_str = " ".join(weights)
         audio_filter += f'{"".join(mix_input)}amix=inputs={len(mix_input)}:duration=longest:weights="{weight_str}":normalize=0{end_a}'
