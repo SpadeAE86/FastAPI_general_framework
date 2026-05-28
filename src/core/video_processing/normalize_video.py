@@ -205,6 +205,18 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     video_filter_list = []   # 总滤镜列表
     # 先行滤镜
     pre_transform = []
+
+    # === [FIX-AUDIO-OFFSET] 保存原始时间裁切范围（speed 除法之前），给 atrim 使用 ===
+    # 视频流的 trim 和音频流的 atrim 都需要用「原始时间轴」的坐标（未经 speed 除法）。
+    # speed 除法在 L307 才发生，所以这里的 start_time/end_time 还是原始值。
+    raw_start_time = start_time
+    raw_end_time = end_time
+
+    # === [FIX-AUDIO-OFFSET] trim 前置滤镜：让 filter_complex 内部时间轴从 0 开始 ===
+    # 把原来输出端的 -ss/-to 裁剪移到这里做，保证后续所有音频 adelay/atrim
+    # 都基于「裁切后片段」的坐标系，而不是完整视频的坐标系。
+    pre_transform.append(f"trim=start={raw_start_time}:end={raw_end_time},setpts=PTS-STARTPTS")
+
     # === GPU → CPU（必须最前）===
     if my_config["device"] == "gpu":
         pre_transform.extend([
@@ -329,7 +341,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
             cap_end = subtitle_config["end"]
             subtitle_png_input.extend(["-i", p])
             vf_text += f"[{1 + idx}:v]format=rgba,setpts=PTS-STARTPTS[sub{idx}];"
-            vf_text += f"{cur_stream}[sub{idx}]overlay=enable='between(t,{cap_start + start_time},{cap_end + start_time - 0.005})'"
+            # [FIX-AUDIO-OFFSET] trim+setpts 已将视频时间轴归零，t=0 即片段起点，
+            # 字幕的 cap_start/cap_end 已是相对 processed_so_far 的局部偏移，直接使用，无需再加 start_time
+            vf_text += f"{cur_stream}[sub{idx}]overlay=enable='between(t,{cap_start},{cap_end - 0.005})'"
             end_label = f"overlay{idx}"
             cur_stream = f"[{end_label}]"
             if idx == len(subtitle_list) - 1:
@@ -348,7 +362,17 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         end_v = "[cap_v]"
 
     # 音频滤镜
-    end_a = "0:a" if not mute_origin and has_audio else f"{len(subtitle_list)+1}:a"
+    raw_audio_label = "0:a" if not mute_origin and has_audio else f"{len(subtitle_list)+1}:a"
+    # === [FIX-AUDIO-OFFSET] 对原生音频流也做 atrim+asetpts，使其坐标系与视频 trim 后对齐 ===
+    # mute_origin 时 raw_audio_label 指向 anullsrc（无限流），不需要也不能 atrim
+    # 使用 raw_start_time/raw_end_time（speed 除法之前的原始值），因为音频流时间轴不受 speed 影响。
+    if not mute_origin and has_audio:
+        video_filter_list.append(
+            f"[{raw_audio_label}]atrim=start={raw_start_time}:end={raw_end_time},asetpts=PTS-STARTPTS[trimmed_a]"
+        )
+        end_a = "trimmed_a"
+    else:
+        end_a = raw_audio_label
     weights = ["1.0"]
     audio_input = []
     audio_filter = ""
@@ -437,6 +461,8 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         if my_config['device'] == "gpu" else []
 
     # 使用三个filter一次性完成
+    # [FIX-AUDIO-OFFSET] -ss/-to 已移入 filter_complex 的 trim/atrim 前置滤镜，
+    # 此处不再设置输出端裁剪，避免音频 offset 以完整视频坐标系计算导致错位。
     normalize_cmd = [
         'ffmpeg', "-ignore_editlist", "1",
         *gpu_cuda_device_init,
@@ -447,7 +473,6 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         *subtitle_png_input,
         *muted_audio,
         *audio_input_option,
-        '-ss', str(start_time), '-to', str(end_time),
         *cfr_option,  # <--- 插入统一常量帧率
         '-r', str(fps),
         *gpu_encoder,
