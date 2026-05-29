@@ -205,6 +205,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     video_filter_list = []   # 总滤镜列表
     # 先行滤镜
     pre_transform = []
+    raw_start_time = start_time
+    raw_end_time = end_time
+    pre_transform.append(f"trim=start={raw_start_time}:end={raw_end_time},setpts=PTS-STARTPTS")
     # === GPU → CPU（必须最前）===
     if my_config["device"] == "gpu":
         pre_transform.extend([
@@ -337,7 +340,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
             cap_end = subtitle_config["end"]
             subtitle_png_input.extend(["-i", p])
             vf_text += f"[{1 + idx}:v]format=rgba,setpts=PTS-STARTPTS[sub{idx}];"
-            vf_text += f"{cur_stream}[sub{idx}]overlay=enable='between(t,{cap_start + start_time},{cap_end + start_time - 0.005})'"
+            vf_text += f"{cur_stream}[sub{idx}]overlay=enable='between(t,{cap_start},{cap_end - 0.005})'"
             end_label = f"overlay{idx}"
             cur_stream = f"[{end_label}]"
             if idx == len(subtitle_list) - 1:
@@ -356,7 +359,14 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         end_v = "[cap_v]"
 
     # 音频滤镜
-    end_a = "0:a" if not mute_origin and has_audio else f"{len(subtitle_list)+1}:a"
+    raw_audio_label = "0:a" if not mute_origin and has_audio else f"{len(subtitle_list)+1}:a"
+    if not mute_origin and has_audio:
+        video_filter_list.append(
+            f"[{raw_audio_label}]atrim=start={raw_start_time}:end={raw_end_time},asetpts=PTS-STARTPTS[trimmed_a]"
+        )
+        end_a = "trimmed_a"
+    else:
+        end_a = raw_audio_label
     weights = ["1.0"]
     audio_input = []
     audio_filter = ""
@@ -368,6 +378,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         audio_filter_flag = []  # FFmpeg forbids combining simple (-af) and complex filtergraphs for the same mapped stream
         end_a = "[merged]"
         supplement_audio_input_base = len(subtitle_list) + 1 + int(mute_origin or not has_audio)
+        supplement_audio_input_cursor = supplement_audio_input_base
 
         for idx, a in enumerate(audio_path_list):
             log.info(f"{idx} audio with offset {audio_config[idx].offset}, start={audio_config[idx].start}, end={audio_config[idx].end}, process_so_far={processed_so_far}")
@@ -390,10 +401,11 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
             crop_offset_str += f"adelay={local_delay_ms}|{local_delay_ms},"
             volume = audio_config[idx].volume * 2
             weight = audio_config[idx].weight
-            audio_stream_index = supplement_audio_input_base + idx
+            audio_stream_index = supplement_audio_input_cursor
             audio_filter += f"[{audio_stream_index}:a]{crop_offset_str}apad=whole_dur={effective_duration},volume={volume}[{output}];"
             mix_input.append(f"[{output}]")
             weights.append(str(weight))
+            supplement_audio_input_cursor += 1
         # todo: 根据官方提供的例子 ffmpeg -i VOCALS -i MUSIC -filter_complex amix=inputs=2:duration=longest:dropout_transition=0:weights="1 0.25":normalize=0 OUTPUT
         weight_str = " ".join(weights)
         audio_filter += f'{"".join(mix_input)}amix=inputs={len(mix_input)}:duration=longest:weights="{weight_str}":normalize=0{end_a}'
@@ -457,13 +469,13 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         *subtitle_png_input,
         *muted_audio,
         *audio_input_option,
-        '-ss', str(start_time), '-to', str(end_time),
         *cfr_option,  # <--- 插入统一常量帧率
         '-r', str(fps),
         *gpu_encoder,
         "-threads", "2",
         *preset_option,
         "-filter_complex", video_filter,
+        *audio_simple_filter,
         *audio_filter_flag,
         '-ar', '44100',
         '-ac', '2',
