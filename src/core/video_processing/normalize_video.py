@@ -305,6 +305,8 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     end_time = float(end_time/speed)
     duration = end_time - start_time
     freeze_tail_duration = float(freeze_tail_duration / speed) if freeze_tail_duration else 0.0
+    if abs(freeze_tail_duration) < 1e-6:
+        freeze_tail_duration = 0.0
     effective_duration = duration + freeze_tail_duration
     log.info(
         f"normalize durations: source_duration={source_duration}, clip_duration={duration}, "
