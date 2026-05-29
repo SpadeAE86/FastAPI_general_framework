@@ -161,7 +161,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     # 获取视频信息
     fname = os.path.basename(video)
     name, ext = os.path.splitext(fname)
-    video_width, video_height, duration, rot, pix_format, codec = video_info.get_info()
+    video_width, video_height, source_duration, rot, pix_format, codec = video_info.get_info()
     # 旋转90度交换视频长宽
     if abs(rot) in [90, 270]:
         video_width, video_height = video_height, video_width
@@ -176,9 +176,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     output_prefix = os.path.join(subfolder, f"normalized_{start_time}_{end_time}_")
     output_name = output_prefix + str(vindex) + "_" + fname
 
-    if start_time > duration:
-        raise ServiceException(code=439, message=f"{video}起始时间{start_time}大于视频时长{duration}")
-    end_time = min(duration, end_time)  #主动校准结束点，不会超过视频结束时间
+    if start_time > source_duration:
+        raise ServiceException(code=439, message=f"{video}起始时间{start_time}大于视频时长{source_duration}")
+    end_time = min(source_duration, end_time)  #主动校准结束点，不会超过视频结束时间
 
     muted_audio = []
     translate_x = translate_x * video_width
@@ -189,11 +189,11 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     # 通过I帧快速切分文件（由于I帧分布有的时候非常疏松，所以只裁切时长30秒以上并所需片段不到总时长1/5的视频，并且裁切范围）
     segment = video
     segment_to_remove = []
-    if duration>30 and duration / (end_time - start_time) >= 5:
+    if source_duration > 30 and source_duration / (end_time - start_time) >= 5:
 
         segment_dir = f"{OUTPUT_DIR}/{project_id}/"
         os.makedirs(f"{segment_dir}", exist_ok=True)
-        log.info(f"{end_time - start_time}/{duration} >=5, make extra cropping ")  #huristic
+        log.info(f"{end_time - start_time}/{source_duration} >=5, make extra cropping ")  #huristic
         segment_result: SegmentResult = quick_segment(segment, vindex, segment_dir, start_time, end_time)  #快速裁切
         segment = segment_result.segment
         segment_to_remove.append(segment)
@@ -299,19 +299,23 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     if transform_str:
         video_filter_list.append(f"{end_v}{transform_str}[no_cap_v]")
         end_v = "[no_cap_v]"
-    if duration > 0:
-        video_filter_list.append(f"{end_v}trim=start=0:end={duration},setpts=PTS-STARTPTS[trim_v]")
-        end_v = "[trim_v]"
-    freeze_tail_duration = float(freeze_tail_duration / speed) if freeze_tail_duration else 0.0
-    if freeze_tail_duration > 0:
-        video_filter_list.append(f"{end_v}tpad=stop_mode=clone:stop_duration={freeze_tail_duration}[freeze_v]")
-        end_v = "[freeze_v]"
 
     # 此时start_time在后续滤镜链中都需要用到提速后的，包括duration时长也会改变
     start_time = float(start_time/speed)
     end_time = float(end_time/speed)
     duration = end_time - start_time
+    freeze_tail_duration = float(freeze_tail_duration / speed) if freeze_tail_duration else 0.0
     effective_duration = duration + freeze_tail_duration
+    log.info(
+        f"normalize durations: source_duration={source_duration}, clip_duration={duration}, "
+        f"freeze_tail_duration={freeze_tail_duration}, effective_duration={effective_duration}"
+    )
+    if duration > 0:
+        video_filter_list.append(f"{end_v}trim=start=0:end={duration},setpts=PTS-STARTPTS[trim_v]")
+        end_v = "[trim_v]"
+    if freeze_tail_duration > 0:
+        video_filter_list.append(f"{end_v}tpad=stop_mode=clone:stop_duration={freeze_tail_duration}[freeze_v]")
+        end_v = "[freeze_v]"
     converter = TimelineConverter(processed_so_far, effective_duration, start_time)
 
 

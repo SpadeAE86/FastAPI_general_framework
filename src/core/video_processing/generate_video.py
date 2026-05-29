@@ -1,7 +1,69 @@
 import os
+import subprocess
+from functools import lru_cache
 
 from config.config import *
 from utils.general_utils import random_with_system_time, run_ffmpeg_command
+
+
+@lru_cache(maxsize=128)
+def _probe_media_duration(media_path: str) -> float:
+    probe_cmd = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        media_path,
+    ]
+    result = subprocess.run(probe_cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or f"failed to probe media duration: {media_path}")
+    return float(result.stdout.strip())
+
+
+def _build_bgm_fade_filters(audio_path: str, cfg, output_duration: float) -> str:
+    if not cfg:
+        return ""
+
+    start = float(getattr(cfg, "start", 0) or 0)
+    end = getattr(cfg, "end", -1)
+    offset = float(getattr(cfg, "offset", 0) or 0)
+    ease_in = float(getattr(cfg, "ease_in", 0) or 0)
+    ease_out = float(getattr(cfg, "ease_out", 0) or 0)
+
+    source_duration = None
+    try:
+        source_duration = _probe_media_duration(audio_path)
+    except Exception:
+        pass
+
+    if source_duration is not None:
+        source_end = source_duration if end is None or float(end) < 0 else min(float(end), source_duration)
+        trimmed_duration = max(source_end - start, 0.0)
+    elif end is None or float(end) < 0:
+        trimmed_duration = max(output_duration - offset, 0.0)
+    else:
+        trimmed_duration = max(float(end) - start, 0.0)
+
+    visible_duration = min(trimmed_duration, max(output_duration - offset, 0.0))
+    if visible_duration <= 0:
+        return ""
+
+    actual_fade_in = min(ease_in, visible_duration)
+    remaining_after_fade_in = max(visible_duration - actual_fade_in, 0.0)
+    actual_fade_out = ease_out if ease_out > 0 and remaining_after_fade_in >= ease_out else 0.0
+
+    fade_parts = []
+    if actual_fade_in > 0:
+        fade_parts.append(f"afade=t=in:st={offset}:d={actual_fade_in}")
+    if actual_fade_out > 0:
+        fade_out_start = offset + visible_duration - actual_fade_out
+        fade_parts.append(f"afade=t=out:st={fade_out_start}:d={actual_fade_out}")
+
+    return ",".join(fade_parts)
 
 
 def generate_video(video_path_list, len_list, project_id="test",
@@ -42,11 +104,16 @@ def generate_video(video_path_list, len_list, project_id="test",
             weight = 1
             if audio_config and audio_config[idx]:
                 if audio_config[idx].end >= 0:
-                    crop_offset_str += f"atrim=start={audio_config[idx].start}:end={audio_config[idx].end},"
+                    crop_offset_str += f"atrim=start={audio_config[idx].start}:end={audio_config[idx].end},asetpts=PTS-STARTPTS,"
+                else:
+                    crop_offset_str += "atrim=start={0},asetpts=PTS-STARTPTS,".format(audio_config[idx].start)
                 if audio_config[idx].offset >= 0:
                     crop_offset_str += f"adelay={audio_config[idx].offset * 1000}|{audio_config[idx].offset * 1000},"
                 volume = audio_config[idx].volume * 2
                 weight = audio_config[idx].weight
+                fade_filter = _build_bgm_fade_filters(a, audio_config[idx], end)
+                if fade_filter:
+                    crop_offset_str += f"{fade_filter},"
             audio_filter += f"[{1 + idx}:a]{crop_offset_str}volume={volume}[{output}];"
             mix_input.append(f"[{output}]")
             weights.append(str(weight))
