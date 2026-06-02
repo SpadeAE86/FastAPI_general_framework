@@ -120,7 +120,7 @@ def generate_video(video_path_list, len_list, project_id="test",
         # todo: 根据官方提供的例子 ffmpeg -i VOCALS -i MUSIC -filter_complex amix=inputs=2:duration=longest:dropout_transition=0:weights="1 0.25":normalize=0 OUTPUT
         weight_str = " ".join(weights)
 
-        audio_filter += f'{"".join(mix_input)}amix=inputs={len(audio_path_list) + 1}:duration=longest:weights=\'{weight_str}\':normalize=0,asetpts=N/SR/TB{enda};'
+        audio_filter += f'{"".join(mix_input)}amix=inputs={len(audio_path_list) + 1}:duration=longest:weights=\'{weight_str}\':normalize=1,asetpts=N/SR/TB{enda};'
     else:
         audio_simple_filter = ["-af", "asetpts=N/SR/TB"]
     endv = "0:v"

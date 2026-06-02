@@ -109,7 +109,8 @@ def create_subtitle_png(
     返回：
       有 save_path 时保存并返回 Path；否则返回 numpy BGRA 数组。
     """
-    _font_size = font_size if (png_width > png_height) else (font_size * png_height / png_width)
+    # _font_size = font_size if (png_width > png_height) else (font_size * png_height / png_width)
+    _font_size = font_size # fix：20260531 使用上层mixed_video_service中计算好的
     _absolute_x = (anchor_x - (png_width / 2)) / png_width # 还原回后端透传的前端传参，用于测试明确的转换公式
     _anchor_x = int(_absolute_x * (png_width / 2) + (png_width / 2)) # 字幕中心位于最左边时，前端传值-1；字幕中心位于w中轴时，前端传值0；字幕中心位于最右边时，前端传值1 # todo 前端使用16：9画幅且使用竖屏视频时，传参时按画幅的w计算的，会导致产物异常。需要前端传递画幅参数。
     result = render_text_to_png(
