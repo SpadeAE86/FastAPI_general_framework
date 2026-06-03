@@ -6,6 +6,14 @@ audio:
     access_key_id: ACCESS_KEY_ID
     access_key_secret: ACCESS_KEY_SECRET
     app_key: APP_KEY
+  Volcano:
+    app_id: YOUR_VOLCANO_APP_ID
+    access_token: YOUR_VOLCANO_ACCESS_TOKEN
+    api_key: YOUR_VOLCANO_API_KEY
+    resource_id: YOUR_VOLCANO_RESOURCE_ID
+    cluster: volcano_tts
+    host: wss://openspeech.bytedance.com/api/v1/tts/ws_binary
+    v3_sse_host: https://openspeech.bytedance.com/api/v3/tts/unidirectional/sse
   Tencent:
     access_key_id: ACCESS_KEY_ID
     access_key_secret: ACCESS_KEY_SECRET
@@ -239,3 +247,16 @@ http:
     timeout: 10.0  # GET请求超时（秒）
     retry_sleep: 10  # 重试等待时间（秒）
 
+task_type:
+  mix: video_priority_queue
+  sprite: sprite_queue
+  transcode: transcode_queue
+  voice: voice_queue
+  volcovoice: volcovoice_queue
+
+result_queue:
+  mix: video_result_queue
+  sprite: sprite_result_queue
+  transcode: transcode_result_queue
+  voice: voice_result_queue
+  volcovoice: volcovoice_result_queue

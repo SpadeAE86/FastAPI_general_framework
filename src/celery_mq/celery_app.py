@@ -69,7 +69,11 @@ celery_app = Celery(
     "app",
     broker=broker_url,
     backend=backend_url,
-    include=["celery_mq.task.normalize_video_tasks", "celery_mq.task.alivoice_tasks"]
+    include=[
+        "celery_mq.task.normalize_video_tasks",
+        "celery_mq.task.alivoice_tasks",
+        "celery_mq.task.volcovoice_tasks",
+    ]
 )
 if rabbitmq_config.get("use_ssl", False):
     celery_app.conf.broker_use_ssl = {
@@ -99,8 +103,14 @@ celery_app.conf.update(
     worker_prefetch_multiplier=worker_config.get("prefetch_multiplier", 1),  # 每个worker只预取1个任务
     worker_max_tasks_per_child=worker_config.get("max_tasks_per_child", 50),  # 每个worker进程最多处理50个任务后重启，避免内存泄漏
     worker_disable_rate_limits=True,  # 禁用速率限制
-    task_queues=(
-        Queue(f"{ENV}_video_priority_queue", Exchange(queue_config.get("exchange", "tasks"), type=queue_config.get("exchange_type", "direct")), routing_key=queue_config.get("routing_key", "default"), queue_arguments={'x-max-priority': 10}),
+    task_queues=tuple(
+        Queue(
+            f"{ENV}_{queue_name}",
+            Exchange(queue_config.get("exchange", "tasks"), type=queue_config.get("exchange_type", "direct")),
+            routing_key=queue_config.get("routing_key", "default"),
+            **({"queue_arguments": {"x-max-priority": 10}} if task_type == "mix" else {}),
+        )
+        for task_type, queue_name in my_config.get("task_type", {}).items()
     ),
     task_serializer='json',
     accept_content=['json'],
