@@ -353,7 +353,8 @@ async def generate_image(req: ImageGenerateRequest, background_tasks: Background
     try:
         log.info(f"收到图片生成请求: model={req.model}, size={req.size}, async={async_mode}")
         log.info(f"提示词: {req.prompt}")
-        
+        if req.reference_image_list:
+            log.info(f"参考图列表:\n {"\n".join(req.reference_image_list)}")
         if not async_mode:
             # 原有的同步模式（保留用于备选）
             image_url = await service_generate_image(
@@ -423,13 +424,15 @@ async def generate_text(req: TextGenerateRequest):
         log.info(f"收到文本生成请求: model={req.model}")
         if req.system_prompt:
             log.info(f"系统提示词已提供")
-        log.info(f"提示词: {req.prompt}")
+        if req.reference_image_list:
+            log.info(f"参考图列表:\n " + "\n".join(req.reference_image_list))
         
         text = await call_doubao_seedtext(
             prompt=req.prompt,
             model=req.model.value,
             system_prompt=req.system_prompt,
             video_duration=req.video_duration,
+            reference_image_list=req.reference_image_list,
         )
         
         if text:

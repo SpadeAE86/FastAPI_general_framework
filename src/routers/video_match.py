@@ -96,7 +96,7 @@ async def list_video_match_jobs_route(
 
 
 @video_match_router.post("/jobs")
-async def create_video_match_job(body: VideoMatchCreateJobBody):
+async def create_video_match_job(body: VideoMatchCreateJobBody, background_tasks: BackgroundTasks):
     return await create_job_and_parse(
         script=body.script,
         topic=body.topic,
@@ -106,6 +106,7 @@ async def create_video_match_job(body: VideoMatchCreateJobBody):
         frame_orientation=body.frame_orientation,
         workspace=body.workspace,
         mock=body.mock,
+        background_tasks=background_tasks,
     )
 
 
@@ -214,6 +215,16 @@ async def update_shot_tokens_route(job_id: str, shot_row_id: int, body: dict = B
         raise HTTPException(status_code=400, detail="tokens must be a list")
     from services.video_match_service import update_shot_tokens
     return await update_shot_tokens(job_id, shot_row_id, tokens)
+
+
+@video_match_router.put("/jobs/{job_id}/shots/{shot_row_id}/top1")
+async def update_shot_top1_route(job_id: str, shot_row_id: int, body: dict = Body(...)):
+    """手动切换/更新分镜的 Top1 视频"""
+    top1_obs_url = body.get("top1_obs_url")
+    if not isinstance(top1_obs_url, str):
+        raise HTTPException(status_code=400, detail="top1_obs_url must be a string")
+    from services.video_match_service import update_shot_top1_url
+    return await update_shot_top1_url(job_id, shot_row_id, top1_obs_url)
 
 
 @video_match_router.get("/jobs/{job_id}/shots/{shot_row_id}/detail")

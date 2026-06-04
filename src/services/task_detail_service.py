@@ -112,6 +112,63 @@ def build_image_task_detail(row: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def build_video_gen_task_detail(row: Dict[str, Any]) -> Dict[str, Any]:
+    """由 image_history_cards 行数据（type=t2v/i2v）合成视频生成 HTTP 明细。"""
+    ok = _norm_image_success(row)
+    duration_ms = _duration_ms_created_updated(row)
+    req_body: Dict[str, Any] = {
+        "prompt": row.get("prompt"),
+        "model": row.get("model"),
+        "resolution": row.get("resolution"),
+        "ratio": row.get("ratio"),
+        "duration": row.get("duration"),
+        "type": row.get("type"),
+    }
+    resp_body: Dict[str, Any] = {
+        "success": ok,
+        "video_url": row.get("url"),
+        "doubao_url": row.get("doubao_url"),
+        "obs_url": row.get("obs_url"),
+        "task_id": row.get("taskId"),
+        "error": row.get("error"),
+    }
+    st = (row.get("status") or "").lower()
+    if ok:
+        label = "成功"
+    elif row.get("error") or st == "failed":
+        label = "失败"
+    else:
+        label = "进行中"
+    return {
+        "id": row.get("id"),
+        "taskId": row.get("taskId"),
+        "traceId": None,
+        "parentTraceId": None,
+        "serviceName": "my_bot_advance",
+        "methodName": "POST /video",
+        "httpMethod": "POST",
+        "businessType": "VIDEO_GEN",
+        "prompt_full": row.get("prompt"),
+        "result_image_url": row.get("url") or row.get("obs_url") or row.get("doubao_url"),
+        "requestUrl": "/video",
+        "statusCode": 200 if ok else 500,
+        "durationMs": duration_ms,
+        "businessSuccess": ok,
+        "businessStatusLabel": label,
+        "errorMessage": row.get("error"),
+        "timeDisplay": row.get("time"),
+        "createdAt": _iso(row.get("created_at")),
+        "updatedAt": _iso(row.get("updated_at")),
+        "requestHeaders": {},
+        "requestBody": req_body,
+        "responseHeaders": {},
+        "responseBody": resp_body,
+        "note": "当前为根据历史表字段推断的合成详情（视频生成）；接入网关后可写入真实 request/response。",
+    }
+
+
+
+
 def _norm_va_success(row: Dict[str, Any]) -> bool:
     return (row.get("status") or "").strip().upper() == "SUCCESS"
 

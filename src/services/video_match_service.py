@@ -100,7 +100,7 @@ async def rematch_video_match_shot(job_id: str, shot_row_id: int) -> Dict[str, A
     """
     单条分镜重新跑 OpenSearch 匹配（需 job 已有 search_strategy_snapshot，通常需先成功跑过整 job 匹配）。
     """
-    jid = (job_id or "").strip()
+    jid = str(job_id or "").strip()
     try:
         sid = int(shot_row_id)
     except (TypeError, ValueError):
@@ -211,6 +211,30 @@ async def rematch_video_match_shot(job_id: str, shot_row_id: int) -> Dict[str, A
                 db_row.search_request_id = trace_rid
                 db_row.match_id = match_hist_id
                 session.add(db_row)
+                await session.flush()
+
+                # Query all shot rows under this job to calculate overall job search status
+                res_sr = await session.execute(
+                    select(VideoMatchShotRow).where(VideoMatchShotRow.job_id == jid)
+                )
+                shot_rows = list(res_sr.scalars().all())
+                n_fail = sum(1 for sr in shot_rows if (sr.search_status or "").lower() == "failed")
+                n_running = sum(1 for sr in shot_rows if (sr.search_status or "").lower() in ("running", "pending"))
+                
+                if job:
+                    if n_running > 0:
+                        job.search_status = "running"
+                        job.search_error = None
+                    elif n_fail > 0:
+                        job.search_status = "failed"
+                        job.search_error = (
+                            f"{n_fail} 条分镜素材匹配失败（无 OpenSearch 命中或无法解析出有效视频地址 / Top5 为空）"
+                        )
+                    else:
+                        job.search_status = "done"
+                        job.search_error = None
+                    session.add(job)
+
                 await session.commit()
         except Exception:
             log.exception("video_match rematch persist DB failed job={} row={}", jid, sid)
@@ -620,7 +644,10 @@ async def create_job_and_parse(
     frame_orientation: Optional[str] = None,
     workspace: Optional[str] = "v1",
     mock: bool = False,
+    background_tasks: Optional[BackgroundTasks] = None,
 ) -> Dict[str, Any]:
+    from fastapi import BackgroundTasks
+
     if mock:
         return _mock_response_payload()
 
@@ -677,88 +704,118 @@ async def create_job_and_parse(
             session.add(job_link)
             await session.commit()
 
-    t_parse0 = time.perf_counter()
-    try:
-        tts_audio_urls: List[Optional[str]] = []
-        storyboard, tags = await rewrite_script_to_storyboard_and_tags(
-            script,
-            topic=topic,
-            title=title,
-            car_model=car_model,
-            frame_size=fs_norm,
-            frame_orientation=fo_norm,
-            index=0,
-            tts_obs_project_id=job_id,
-            out_obs_audio_urls=tts_audio_urls,
-        )
-    except Exception as e:
-        log.exception("video_match parse rewrite failed: {}", e)
-        await http_request_trace_service.finalize(
-            parse_rid,
-            status_code=500,
-            error_message=str(e)[:2000],
-            response_body={"parse_status": "failed"},
-            business_success=False,
-            duration_ms=int((time.perf_counter() - t_parse0) * 1000),
-        )
-        async with mysql_connector.session_scope() as session:
-            job = await session.get(VideoMatchJob, job_id)
-            if job:
-                job.parse_status = "failed"
-                job.parse_error = str(e)
-                session.add(job)
-                await session.commit()
-        return {"success": False, "job_id": job_id, "error": str(e)}
-
-    async with mysql_connector.session_scope() as session:
-        for order, seg in enumerate(storyboard.storyboard):
-            tag_seg = _resolve_tag_segment(tags, seg.id, order)
-            tj: Optional[Dict[str, Any]]
-            if tag_seg is not None:
-                tj = tag_seg.model_dump(exclude_none=True)
-            else:
-                tj = {}
-            tj = _merge_job_constraints_into_segment_tags(
-                tj,
+    async def parse_task():
+        t_parse0 = time.perf_counter()
+        try:
+            tts_audio_urls: List[Optional[str]] = []
+            storyboard, tags = await rewrite_script_to_storyboard_and_tags(
+                script,
+                topic=topic,
+                title=title,
                 car_model=car_model,
                 frame_size=fs_norm,
                 frame_orientation=fo_norm,
+                index=0,
+                tts_obs_project_id=str(job_id),
+                out_obs_audio_urls=tts_audio_urls,
             )
-            obs_url = tts_audio_urls[order] if order < len(tts_audio_urls) else None
-            row = VideoMatchShotRow(
-                job_id=job_id,
-                shot_order=order,
-                storyboard_id=int(seg.id),
-                segment_text=seg.segment_text,
-                duration_sec=float(seg.duration),
-                description=seg.description,
-                tags_json=tj if tj else None,
-                search_status="pending",
-                obs_audio_url=obs_url,
+
+            async with mysql_connector.session_scope() as session:
+                for order, seg in enumerate(storyboard.storyboard):
+                    tag_seg = _resolve_tag_segment(tags, seg.id, order)
+                    tj: Optional[Dict[str, Any]]
+                    if tag_seg is not None:
+                        tj = tag_seg.model_dump(exclude_none=True)
+                    else:
+                        tj = {}
+                    tj = _merge_job_constraints_into_segment_tags(
+                        tj,
+                        car_model=car_model,
+                        frame_size=fs_norm,
+                        frame_orientation=fo_norm,
+                    )
+                    obs_url = tts_audio_urls[order] if order < len(tts_audio_urls) else None
+                    row = VideoMatchShotRow(
+                        job_id=job_id,
+                        shot_order=order,
+                        storyboard_id=int(seg.id),
+                        segment_text=seg.segment_text,
+                        duration_sec=float(seg.duration),
+                        description=seg.description,
+                        tags_json=tj if tj else None,
+                        extract_status="done" if tj else "pending",
+                        search_status="pending",
+                        obs_audio_url=obs_url,
+                    )
+                    session.add(row)
+                job_obj = await session.get(VideoMatchJob, job_id)
+                if job_obj:
+                    job_obj.parse_status = "done"
+                    job_obj.parse_error = None
+                    job_obj.extract_status = "done"
+                    job_obj.extract_error = None
+                    session.add(job_obj)
+                await session.commit()
+
+            await http_request_trace_service.finalize(
+                parse_rid,
+                status_code=200,
+                response_body={
+                    "parse_status": "done",
+                    "shot_count": len(storyboard.storyboard),
+                },
+                business_success=True,
+                duration_ms=int((time.perf_counter() - t_parse0) * 1000),
             )
-            session.add(row)
-        job = await session.get(VideoMatchJob, job_id)
-        if job:
-            job.parse_status = "done"
-            job.parse_error = None
-            session.add(job)
-        await session.commit()
+            log.info("Background parsing completed successfully for job_id={}", job_id)
+        except Exception as e:
+            log.exception("Background parsing failed for job_id={}: {}", job_id, e)
+            await http_request_trace_service.finalize(
+                parse_rid,
+                status_code=500,
+                error_message=str(e)[:2000],
+                response_body={"parse_status": "failed"},
+                business_success=False,
+                duration_ms=int((time.perf_counter() - t_parse0) * 1000),
+            )
+            async with mysql_connector.session_scope() as session:
+                job_obj = await session.get(VideoMatchJob, job_id)
+                if job_obj:
+                    job_obj.parse_status = "failed"
+                    job_obj.parse_error = str(e)
+                    session.add(job_obj)
+                    await session.commit()
 
-    await http_request_trace_service.finalize(
-        parse_rid,
-        status_code=200,
-        response_body={
-            "parse_status": "done",
-            "shot_count": len(storyboard.storyboard),
-        },
-        business_success=True,
-        duration_ms=int((time.perf_counter() - t_parse0) * 1000),
-    )
-
-    loaded = await get_job_payload(job_id)
-    if loaded is None:
-        return {"success": False, "job_id": job_id, "error": "job not found after parse"}
-    return loaded
+    if background_tasks:
+        background_tasks.add_task(parse_task)
+        return {
+            "success": True,
+            "mock": False,
+            "job_id": job_id,
+            "serial_no": None,
+            "request_id": parse_rid,
+            "script": script,
+            "topic": topic,
+            "title": title,
+            "car_model": car_model,
+            "frame_size": fs_norm,
+            "frame_orientation": fo_norm,
+            "workspace": ws,
+            "parse_status": "running",
+            "parse_error": None,
+            "extract_status": "pending",
+            "search_status": "pending",
+            "search_total_ms": None,
+            "search_error": None,
+            "search_strategy_snapshot": None,
+            "shots": [],
+        }
+    else:
+        await parse_task()
+        loaded = await get_job_payload(job_id)
+        if loaded is None:
+            return {"success": False, "job_id": job_id, "error": "job not found after parse"}
+        return loaded
 
 
 async def list_video_match_jobs(
@@ -937,7 +994,7 @@ async def _reparse_video_match_job_core(job_id: str) -> None:
             frame_size=frame_size_job,
             frame_orientation=frame_orientation_job,
             index=0,
-            tts_obs_project_id=jid,
+            tts_obs_project_id=str(jid),
             out_obs_audio_urls=tts_audio_urls,
         )
     except Exception as e:
@@ -961,6 +1018,18 @@ async def _reparse_video_match_job_core(job_id: str) -> None:
 
     async with mysql_connector.session_scope() as session:
         for order, seg in enumerate(storyboard.storyboard):
+            tag_seg = _resolve_tag_segment(tags, seg.id, order)
+            tj: Optional[Dict[str, Any]]
+            if tag_seg is not None:
+                tj = tag_seg.model_dump(exclude_none=True)
+            else:
+                tj = {}
+            tj = _merge_job_constraints_into_segment_tags(
+                tj,
+                car_model=car_model,
+                frame_size=frame_size_job,
+                frame_orientation=frame_orientation_job,
+            )
             obs_url = tts_audio_urls[order] if order < len(tts_audio_urls) else None
             row = VideoMatchShotRow(
                 job_id=jid,
@@ -969,8 +1038,8 @@ async def _reparse_video_match_job_core(job_id: str) -> None:
                 segment_text=seg.segment_text,
                 duration_sec=float(seg.duration),
                 description=seg.description,
-                tags_json=None,
-                extract_status="pending",
+                tags_json=tj if tj else None,
+                extract_status="done" if tj else "pending",
                 search_status="pending",
                 obs_audio_url=obs_url,
             )
@@ -979,6 +1048,8 @@ async def _reparse_video_match_job_core(job_id: str) -> None:
         if job:
             job.parse_status = "done"
             job.parse_error = None
+            job.extract_status = "done"
+            job.extract_error = None
             session.add(job)
         await session.commit()
 
@@ -1192,3 +1263,56 @@ async def update_shot_tokens(job_id: str, shot_row_id: int, tokens: List[Dict[st
         session.add(row)
         await session.commit()
         return {"success": True}
+
+
+async def update_shot_top1_url(job_id: str, shot_row_id: int, top1_obs_url: str) -> Dict[str, Any]:
+    """
+    手动切换分镜的 Top1 视频。
+    """
+    jid = str(job_id or "").strip()
+    try:
+        sid = int(shot_row_id)
+    except (TypeError, ValueError):
+        sid = 0
+    if not jid or sid <= 0:
+        return {"success": False, "error": "invalid id"}
+
+    async with mysql_connector.session_scope() as session:
+        row = await session.get(VideoMatchShotRow, sid)
+        if row is None or str(row.job_id) != jid:
+            return {"success": False, "error": "shot not found"}
+        
+        row.top1_obs_url = top1_obs_url
+        # 如果当前分镜是失败状态，但被用户手动指定了有效的视频地址，则更新为 done 成功状态
+        if top1_obs_url and row.search_status == "failed":
+            row.search_status = "done"
+            
+        session.add(row)
+        await session.flush()
+
+        # 同时更新 parent job 的 search_status，防止因为单个分镜手动选择后，父 Job 仍处于 failed 状态
+        res_sr = await session.execute(
+            select(VideoMatchShotRow).where(VideoMatchShotRow.job_id == jid)
+        )
+        shot_rows = list(res_sr.scalars().all())
+        n_fail = sum(1 for sr in shot_rows if (sr.search_status or "").lower() == "failed")
+        n_running = sum(1 for sr in shot_rows if (sr.search_status or "").lower() in ("running", "pending"))
+        
+        job = await session.get(VideoMatchJob, jid)
+        if job:
+            if n_running > 0:
+                job.search_status = "running"
+                job.search_error = None
+            elif n_fail > 0:
+                job.search_status = "failed"
+                job.search_error = (
+                    f"{n_fail} 条分镜素材匹配失败（无 OpenSearch 命中或无法解析出有效视频地址 / Top5 为空）"
+                )
+            else:
+                job.search_status = "done"
+                job.search_error = None
+            session.add(job)
+            
+        await session.commit()
+        return {"success": True, "top1_obs_url": top1_obs_url}
+

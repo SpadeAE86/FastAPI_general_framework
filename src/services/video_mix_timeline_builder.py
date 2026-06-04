@@ -27,21 +27,41 @@ def _best_video_path_from_hits(hits: Any) -> Optional[str]:
     return None
 
 
-def _scene_start_sec_from_first_hit(row: VideoMatchShotRow) -> float:
+def _scene_start_sec_for_selected_hit(row: VideoMatchShotRow, selected_url: Optional[str]) -> float:
     hits = row.match_top_hits_json
     if not isinstance(hits, list) or not hits:
         return 0.0
-    h = hits[0]
-    if not isinstance(h, dict):
+    
+    target_hit = None
+    if selected_url:
+        sel_norm = selected_url.strip().lower()
+        for h in hits:
+            if not isinstance(h, dict):
+                continue
+            matched = False
+            for key in ("video_path", "video_url", "url", "obs_video_url"):
+                u = str(h.get(key) or "").strip().lower()
+                if u == sel_norm:
+                    matched = True
+                    break
+            if matched:
+                target_hit = h
+                break
+                
+    if not target_hit and hits:
+        target_hit = hits[0]
+        
+    if not target_hit:
         return 0.0
+        
     for key in ("start_time", "scene_start_sec", "scene_start"):
-        v = h.get(key)
+        v = target_hit.get(key)
         if v is not None:
             try:
                 return max(0.0, float(v))
             except (TypeError, ValueError):
                 pass
-    src = h.get("_source")
+    src = target_hit.get("_source")
     if isinstance(src, dict):
         for key in ("start_time", "scene_start_sec"):
             v = src.get(key)
@@ -56,7 +76,7 @@ def _scene_start_sec_from_first_hit(row: VideoMatchShotRow) -> float:
 def _effective_top1_url(row: VideoMatchShotRow) -> Optional[str]:
     stored = str(row.top1_obs_url or "").strip() or None
     fallback = _best_video_path_from_hits(row.match_top_hits_json)
-    return (fallback or stored or "").strip() or None
+    return (stored or fallback or "").strip() or None
 
 
 def collect_unique_source_obs_urls(shots: List[VideoMatchShotRow]) -> List[str]:
@@ -152,7 +172,7 @@ def build_mixed_video_request_from_shots(
             raise ValueError(f"shot_order={row.shot_order} duration_sec must be positive")
 
         vis_dur = audio_dur + VIDEO_TAIL_PAUSE_SEC
-        scene_start = _scene_start_sec_from_first_hit(row)
+        scene_start = _scene_start_sec_for_selected_hit(row, top1)
         crop_start = scene_start
         crop_end = scene_start + vis_dur
 

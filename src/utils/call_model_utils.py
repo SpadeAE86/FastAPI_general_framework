@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import builtins
 import os
 import time
@@ -143,6 +143,7 @@ async def call_doubao_seedream(
         }
         if reference_image_list:
             extra_body["image"] = reference_image_list
+            log.info(f"参考图列表:\n {"\n".join(reference_image_list)}")
             # 参考图只用来生图，watermark 保持 False
             extra_body["watermark"] = False
 
@@ -169,6 +170,7 @@ async def call_doubao_seedtext(
     model: str = "Seed 2.0 Pro",
     system_prompt: Optional[str] = None,
     video_duration: Optional[int] = None,
+    reference_image_list: Optional[list[str]] = None,
     thinking = False,
     output_schema: Optional[Any] = None,
 ) -> Optional[str]:
@@ -220,14 +222,22 @@ async def call_doubao_seedtext(
                 ],
             })
         
+        user_content = [
+            {
+                "type": "input_text",
+                "text": prompt
+            }
+        ]
+        if reference_image_list:
+            for img in reference_image_list:
+                user_content.append({
+                    "type": "input_image",
+                    "image_url": img
+                })
+
         input_messages.append({
             "role": "user",
-            "content": [
-                {
-                    "type": "input_text",
-                    "text": prompt
-                },
-            ],
+            "content": user_content,
         })
         extra_body: dict = {
             "thinking": {
@@ -255,7 +265,15 @@ async def call_doubao_seedtext(
             chat_messages = []
             if system_prompt:
                 chat_messages.append({"role": "system", "content": system_prompt})
-            chat_messages.append({"role": "user", "content": prompt})
+            
+            chat_user_content = [{"type": "text", "text": prompt}]
+            if reference_image_list:
+                for img in reference_image_list:
+                    chat_user_content.append({
+                        "type": "image_url",
+                        "image_url": {"url": img}
+                    })
+            chat_messages.append({"role": "user", "content": chat_user_content})
 
             response = await client.chat.completions.create(
                 model=real_model,
@@ -414,7 +432,7 @@ async def get_seedance_task_status(task_id: str) -> dict:
             
     except Exception as e:
         _svc_print(f"查询豆包 Seedance 任务状态时发生错误: {e}")
-        return {"status": "failed", "error": str(e)}
+        return {"status": "network_error", "error": str(e)}
 
 if __name__ == "__main__":
     SCHEMA_JSON = SceneAnalysisResult.model_json_schema()

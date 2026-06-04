@@ -1,0 +1,289 @@
+{
+  "audio_config": [
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1779962215501_6_f866e1/alitts0_alivoice_1779962215501_6_f866e1.wav",
+      "end": 1.17,
+      "offset": 0.0,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1779962215501_6_f866e1/alitts1_alivoice_1779962215501_6_f866e1.wav",
+      "end": 2.3,
+      "offset": 1.17,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1779962252773_9_60243d/alitts0_alivoice_1779962252773_9_60243d.wav",
+      "end": 2.9,
+      "offset": 2.3,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1779962256841_8_f0dc12/alitts0_alivoice_1779962256841_8_f0dc12.wav",
+      "end": 3.5,
+      "offset": 2.9,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1779962259190_9_87668f/alitts0_alivoice_1779962259190_9_87668f.wav",
+      "end": 4.1,
+      "offset": 3.5,
+      "start": 0.0
+    }
+  ],
+  "biz_id": 6877,
+  "cap_config": {
+    "caption_list": [
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1779962215501_6_f866e1/alitts0_alivoice_1779962215501_6_f866e1.wav",
+        "background_type": 0,
+        "cap": "终于等到我盼了",
+        "color": "#FFFFFFFF",
+        "end": 1.17,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 0.0
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1779962215501_6_f866e1/alitts1_alivoice_1779962215501_6_f866e1.wav",
+        "background_type": 0,
+        "cap": "好久的EIGHT开箱啦",
+        "color": "#FFFFFFFF",
+        "end": 2.3,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 1.17
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1779962252773_9_60243d/alitts0_alivoice_1779962252773_9_60243d.wav",
+        "background_type": 0,
+        "cap": "新字幕",
+        "color": "#FFFFFFFF",
+        "end": 2.9,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 2.3
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1779962256841_8_f0dc12/alitts0_alivoice_1779962256841_8_f0dc12.wav",
+        "background_type": 0,
+        "cap": "新字幕",
+        "color": "#FFFFFFFF",
+        "end": 3.5,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 2.9
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1779962259190_9_87668f/alitts0_alivoice_1779962259190_9_87668f.wav",
+        "background_type": 0,
+        "cap": "新字幕",
+        "color": "#FFFFFFFF",
+        "end": 4.1,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 3.5
+      }
+    ]
+  },
+  "crop_config": [
+    {
+      "end": 2.3,
+      "extend_to": 2.88,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 4.0,
+      "extend_to": 4.57,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 2.17,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 3.0,
+      "extend_to": 3.0,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 3.0,
+      "extend_to": 3.0,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 3.0,
+      "extend_to": 3.0,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    }
+  ],
+  "filter_config": [
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    }
+  ],
+  "fps": 30,
+  "mute_config": [
+    true,
+    true,
+    true,
+    true,
+    true
+  ],
+  "obs_audio_path_list": [
+    "aigc/aigc_feature/alivoice_1779962215501_6_f866e1/alitts0_alivoice_1779962215501_6_f866e1.wav",
+    "aigc/aigc_feature/alivoice_1779962215501_6_f866e1/alitts1_alivoice_1779962215501_6_f866e1.wav",
+    "aigc/aigc_feature/alivoice_1779962252773_9_60243d/alitts0_alivoice_1779962252773_9_60243d.wav",
+    "aigc/aigc_feature/alivoice_1779962256841_8_f0dc12/alitts0_alivoice_1779962256841_8_f0dc12.wav",
+    "aigc/aigc_feature/alivoice_1779962259190_9_87668f/alitts0_alivoice_1779962259190_9_87668f.wav"
+  ],
+  "obs_video_path_list": [
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059936432048259074_1779962092190/ec88136d-2485-4b93-b875-cf499d537a41_H.264_840x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059936432044064770_1779962092272/6441a623-ebd1-4407-9cc7-011318dc10de_H.264_840x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059936432048259074_1779962092190/ec88136d-2485-4b93-b875-cf499d537a41_H.264_840x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059936432048259075_1779962092295/79939085-0d24-4569-a35f-c1067fc36703_H.264_1920x1080_2100.mp4"
+  ],
+  "ratio_type": "16:9",
+  "request_data": {
+    "bizTypeContext": "videoMixFull",
+    "full_mix_video": true
+  },
+  "resolution": "1080p",
+  "user_id": 41,
+  "videoMaterialIdList": [
+    "2059936432048259074",
+    "2059934227970867201",
+    "2059936432044064770",
+    "2059936432048259074",
+    "2059936432048259075"
+  ]
+}

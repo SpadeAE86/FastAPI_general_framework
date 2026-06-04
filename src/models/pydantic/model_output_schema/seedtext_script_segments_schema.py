@@ -30,7 +30,7 @@ class SeedtextStoryboardSegment(BaseModel):
 
     segment_text: str = Field(
         ...,
-        description="该分段的口播文本（建议约 2-4 秒的短句），通常是一个信息点。",
+        description="该分段的口播文本（建议约 2-4 秒的短句），通常是一个信息点。请直接截取原始脚本对应片段的文字，不要擅自改写或精简。",
         examples=["同级唯一，全系标配大厂底盘。"]
     )
 

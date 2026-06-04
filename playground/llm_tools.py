@@ -18,7 +18,7 @@ async def process_stream_response(response):
         yield delta
 
 async def chat(client: AsyncOpenAI, messages,
-               model="gemini-3-pro", temperature=0.7,
+               model="gpt-5.4", temperature=0.7,
                max_tokens=150, stream=False):
     """
     Sends a chat message to the OpenAI API and returns the response.
@@ -55,7 +55,7 @@ async def chat(client: AsyncOpenAI, messages,
     else:
         message_content = response.choices[0].message.content
     return message_content
-
+# https://ai.comfly.org/
 if __name__ == "__main__":
     client = AsyncOpenAI(
         base_url="https://z.apiyihe.org/v1",

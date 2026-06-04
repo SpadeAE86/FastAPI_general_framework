@@ -6,3 +6,7 @@
 #   loader    — 加载 Skills.md 和同目录下的 Pydantic schema (.py)
 #   selector  — 根据任务关键词匹配最相关的 Skill
 #   parser    — 解析 Skill 文档, 提取参数说明和使用示例
+
+from core.skills.loader import skill_loader, SkillLoader
+from core.skills.selector import skill_selector, SkillSelector
+from core.skills.parser import parse_skill_markdown

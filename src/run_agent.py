@@ -33,7 +33,7 @@ LLM_CONFIG = {
         base_url="https://z.apiyihe.org/v1",
         api_key="sk-TMd7SbPPbVw1JMx0GYKflkWkv8Mzi1tb0B64Y9HqBQ53TaqW",
     ),
-    "model": "gemini-3-pro",
+    "model": "gpt-5.4",
 }
 
 DEFAULT_QUERY = "你好，请介绍一下你自己，你有什么能力？"

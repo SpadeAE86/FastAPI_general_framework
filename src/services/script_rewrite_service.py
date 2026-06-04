@@ -51,6 +51,10 @@ TTS_DURATION_PAD_SECONDS = 0.4
 TTS_MAX_CONCURRENCY = 4
 
 
+# 若想关闭“必须保留原始口播脚本”的约束，请将下面第一行注释，并取消第二行的注释：
+STAGE1_VERBATIM_RULE = "5) 必须保留原始脚本文字：分镜中的 segment_text 应当直接来自原始口播脚本，不要擅自改写或精简。\n"
+# STAGE1_VERBATIM_RULE = ""
+
 SYSTEM_PROMPT_STAGE1 = f"""你是一个“汽车短视频口播脚本 → 分镜规划(StoryBoard)”的结构化生成器。
 
 目标：把一段口播脚本，改写成“可用于汽车宣传片混剪”的分镜规划（StoryBoard）。
@@ -69,6 +73,7 @@ SYSTEM_PROMPT_STAGE1 = f"""你是一个“汽车短视频口播脚本 → 分镜
    - 每段只聚焦 1 个核心卖点或 1 个具体场景
 3) 你必须严格按 schema 输出（由调用方提供 json_schema）
 4) 禁止输出大段原文；列表都要“短、可检索、去重、无空字符串”。
+{STAGE1_VERBATIM_RULE}
 
 混剪经验（必须遵守，决定检索可用性）：
 - 允许不严格按原文顺序：你可以把“路跑/氛围/空间感”的镜头穿插在硬卖点之间，让整条片更像宣传片。
@@ -240,7 +245,7 @@ async def _apply_tts_durations_inplace(
                         if url:
                             obs_audio_urls[i] = url
                     except Exception as e:
-                        log.warning("TTS segment %s OBS upload failed: %s", i, e)
+                        log.warning("TTS segment {} OBS upload failed: {}", i, e)
             except Exception:
                 return
 

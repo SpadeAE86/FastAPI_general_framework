@@ -282,6 +282,7 @@ async def fill_timeline_after_top1(
         "filled_hits": [],
         "filled_duration_seconds": 0.0,
         "segment_duration_seconds": float(seg_dur),
+        "fallback_candidates": [],
     }
     if seg_dur <= 0:
         return empty
@@ -293,6 +294,7 @@ async def fill_timeline_after_top1(
             return 0.0
 
     filled: List[Dict[str, Any]] = []
+    fallback_candidates: List[Dict[str, Any]] = []
     acc = 0.0
 
     # ------------------------------------------------------------------
@@ -409,7 +411,16 @@ async def fill_timeline_after_top1(
                 log.warning("road_run fallback search (plain) failed: %s", e2)
                 fb_resp = {}
 
-        for h in (((fb_resp or {}).get("hits") or {}).get("hits") or []):
+        raw_hits = ((fb_resp or {}).get("hits") or {}).get("hits") or []
+        for h in raw_hits:
+            did = str(h.get("_id") or "")
+            if did:
+                fallback_candidates.append({
+                    "_id": did,
+                    "_score": h.get("_score"),
+                })
+
+        for h in raw_hits:
             if acc >= seg_dur:
                 break
             did = str(h.get("_id") or "")
@@ -436,4 +447,5 @@ async def fill_timeline_after_top1(
         "filled_hits": filled,
         "filled_duration_seconds": float(acc),
         "segment_duration_seconds": float(seg_dur),
+        "fallback_candidates": fallback_candidates,
     }

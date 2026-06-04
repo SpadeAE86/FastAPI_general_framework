@@ -339,6 +339,27 @@ async def _match_one_segment(
             {**h, "video_path": merged_paths.get(str(h.get("history_id") or ""), "")} for h in fhs
         ]
 
+    top_hits_list = [
+        {
+            **t,
+            "history_id": history_id_from_doc_id(t.get("_id") or ""),
+            "video_path": path_map.get(history_id_from_doc_id(t.get("_id") or ""), ""),
+        }
+        for t in top
+    ]
+    if not top_hits_list and fill_block.get("fallback_candidates"):
+        fcs = fill_block.get("fallback_candidates") or []
+        fc_hids = list(dict.fromkeys([history_id_from_doc_id(c.get("_id") or "") for c in fcs if c.get("_id")]))
+        fc_path_map = await _fetch_video_paths(fc_hids, shot_cards_version)
+        top_hits_list = [
+            {
+                **c,
+                "history_id": history_id_from_doc_id(c.get("_id") or ""),
+                "video_path": fc_path_map.get(history_id_from_doc_id(c.get("_id") or ""), ""),
+            }
+            for c in fcs
+        ][:int(top_k)]
+
     out = {
         "segment_id": seg.get("id"),
         "segment_text": seg.get("segment_text"),
@@ -348,14 +369,7 @@ async def _match_one_segment(
         "filters": filters,
         "should_boosts": should_boosts,
         "vector_fields": vector_fields,
-        "top_hits": [
-            {
-                **t,
-                "history_id": history_id_from_doc_id(t.get("_id") or ""),
-                "video_path": path_map.get(history_id_from_doc_id(t.get("_id") or ""), ""),
-            }
-            for t in top
-        ],
+        "top_hits": top_hits_list,
         "filled_hits": fill_block.get("filled_hits") or [],
         "filled_duration_seconds": float(fill_block.get("filled_duration_seconds") or 0.0),
         "segment_duration_seconds": float(fill_block.get("segment_duration_seconds") or 0.0),

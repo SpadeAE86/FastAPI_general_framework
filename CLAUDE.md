@@ -40,4 +40,10 @@ This project is indexed by GitNexus as **my_agent** (5782 symbols, 12471 relatio
 | Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
+## Python Environment
+
+- **Conda Environment**: `py312`
+- **Python Executable**: `C:\Users\25065\.conda\envs\py312\python.exe`
+
+
 <!-- gitnexus:end -->

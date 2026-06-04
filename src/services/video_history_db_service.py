@@ -1,15 +1,25 @@
+"""
+video_history_db_service.py
+复用 image_history_cards 表存储视频生成历史。
+type 字段为 t2v / i2v，与图像 (t2i / i2i) 区分。
+numeric_id 在启动时通过 ensure_video_auto_increment_offset() 对齐到
+offset=10_000，确保视频 ID 与图像 ID 不冲突。
+"""
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy import or_, update, func
+from sqlalchemy import or_, update, func, text
 from sqlmodel import select
 
 from infra.storage.mysql_connector import mysql_connector
+from infra.logging.logger import logger as log
 from models.sqlmodel.image_history import ImageHistoryCard
 from utils.api_datetime import attach_image_row_duration_ms, normalize_row_utc_iso
 
-_ALLOWED_UPSERT_KEYS: Set[str] = {
+_VIDEO_TYPES = ("t2v", "i2v")
+
+_ALLOWED_UPSERT_KEYS = {
     "prompt",
     "model",
     "size",
@@ -28,9 +38,6 @@ _ALLOWED_UPSERT_KEYS: Set[str] = {
     "current_run_started_at",
 }
 
-_IMAGE_TYPES = ("t2i", "i2i")
-
-
 def _row_to_api(row: ImageHistoryCard) -> Dict[str, Any]:
     d = row.model_dump(exclude_none=True)
     d.pop("legacy_id", None)
@@ -40,19 +47,42 @@ def _row_to_api(row: ImageHistoryCard) -> Dict[str, Any]:
     return attach_image_row_duration_ms(normalize_row_utc_iso(d))
 
 
-class ImageHistoryDBService:
-    async def _fetch_one(self, session: Any, key: str) -> Optional[ImageHistoryCard]:
+class VideoHistoryDBService:
+    async def mark_interrupted_running_as_failed(self, reason: str) -> int:
+        """启动恢复：将 t2v/i2v 类型的 running/pending 行标为 failed。"""
+        async with mysql_connector.session_scope() as session:
+            stmt = (
+                update(ImageHistoryCard)
+                .where(
+                    ImageHistoryCard.type.in_(list(_VIDEO_TYPES)),
+                    func.lower(func.coalesce(ImageHistoryCard.status, "")).in_(
+                        ["running", "pending", "processing"]
+                    ),
+                )
+                .values(status="failed", error=reason)
+            )
+            res = await session.execute(stmt)
+            await session.commit()
+            return int(res.rowcount or 0)
+
+    # ------------------------------------------------------------------
+    # CRUD
+    # ------------------------------------------------------------------
+
+    async def _fetch_one(
+        self, session: Any, key: str
+    ) -> Optional[ImageHistoryCard]:
         k = (key or "").strip()
         if not k:
             return None
         if k.isdigit():
             row = await session.get(ImageHistoryCard, int(k))
-            if row and row.type in _IMAGE_TYPES:
+            if row and row.type in _VIDEO_TYPES:
                 return row
             return None
         stmt = select(ImageHistoryCard).where(
             or_(ImageHistoryCard.legacy_id == k, ImageHistoryCard.taskId == k),
-            ImageHistoryCard.type.in_(list(_IMAGE_TYPES))
+            ImageHistoryCard.type.in_(list(_VIDEO_TYPES)),
         )
         res = await session.execute(stmt)
         return res.scalars().first()
@@ -61,7 +91,7 @@ class ImageHistoryDBService:
         async with mysql_connector.session_scope() as session:
             stmt = (
                 select(ImageHistoryCard)
-                .where(ImageHistoryCard.type.in_(list(_IMAGE_TYPES)))
+                .where(ImageHistoryCard.type.in_(list(_VIDEO_TYPES)))
                 .order_by(ImageHistoryCard.created_at.desc())
             )
             ids_str = (ids or "").strip()
@@ -71,9 +101,6 @@ class ImageHistoryDBService:
                     stmt = stmt.where(ImageHistoryCard.numeric_id.in_([int(i) for i in id_list if i.isdigit()]))
             res = await session.execute(stmt)
             return [_row_to_api(row) for row in res.scalars().all()]
-
-    async def get_by_id(self, item_id: str) -> Optional[Dict[str, Any]]:
-        return await self.get_by_id_or_task_id(item_id)
 
     async def get_by_id_or_task_id(self, item_id: str) -> Optional[Dict[str, Any]]:
         key = (item_id or "").strip()
@@ -96,16 +123,16 @@ class ImageHistoryDBService:
                 if "url" in item and "doubao_url" not in item and "obs_url" not in item:
                     item["doubao_url"] = item.pop("url")
 
-                # Strictly filter: only allow image types
+                # Strictly filter: only allow video types
                 t = item.get("type")
-                if t and t not in _IMAGE_TYPES:
+                if t and t not in _VIDEO_TYPES:
                     continue
 
                 existing = await self._fetch_one(session, item_id)
                 if existing is None:
-                    # When inserting a new record, the type must be an image type
+                    # When inserting a new record, the type must be a video type
                     t = item.get("type")
-                    if not t or t not in _IMAGE_TYPES:
+                    if not t or t not in _VIDEO_TYPES:
                         continue
                     kwargs: Dict[str, Any] = {"legacy_id": item_id}
                     for k, v in item.items():
@@ -139,21 +166,5 @@ class ImageHistoryDBService:
             await session.commit()
             return True
 
-    async def mark_interrupted_running_as_failed(self, reason: str) -> int:
-        async with mysql_connector.session_scope() as session:
-            stmt = (
-                update(ImageHistoryCard)
-                .where(
-                    ImageHistoryCard.type.in_(list(_IMAGE_TYPES)),
-                    func.lower(func.coalesce(ImageHistoryCard.status, "")).in_(
-                        ["running", "pending", "processing"]
-                    )
-                )
-                .values(status="failed", error=reason)
-            )
-            res = await session.execute(stmt)
-            await session.commit()
-            return int(res.rowcount or 0)
 
-
-image_history_db_service = ImageHistoryDBService()
+video_history_db_service = VideoHistoryDBService()

@@ -65,13 +65,13 @@ async def upload_audio(audio_path, project_id="test"):
     log.info(f"开始上传音频{audio_path}")
     if not audio_path:
         return ""
-    obs_audio_path = await upload_to_obs(audio_path, obs_audio_prefix, project_id)
+    obs_audio_path = await upload_to_obs(audio_path, obs_audio_prefix, str(project_id))
     obs_audio_path = obs_audio_path.replace("\\", "/")
     return obs_audio_path
 
 async def upload_to_obs(filename: str, obs_prefix: str = "ai_picture/mark/demo/frames_test/", project_id=None) -> str:
     if project_id is not None:
-        obs_prefix = obs_prefix + project_id
+        obs_prefix = obs_prefix + str(project_id)
     fname = os.path.basename(filename)
     obs_key = os.path.join(obs_prefix, fname).replace("\\", "/")
 

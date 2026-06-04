@@ -4,6 +4,7 @@
 #   2. 支持结构化日志输出 (JSON 格式)
 #   3. 按模块/Agent ID 分级别记录
 #   4. 日志文件按天轮转, 自动清理过期日志
+from typing import Any
 from functools import wraps
 from config.config import ENV, MY_CONFIG
 from loguru import logger
@@ -111,4 +112,60 @@ logger.add(
     enqueue=True,  # 🌟 重要：开启异步写入，防止日志 IO 阻塞你的主逻辑（尤其是音视频处理）
 )
 
+# 过滤 Uvicorn 高频轮询请求日志
+import logging
+from logging.handlers import RotatingFileHandler
+
+class AccessLogFilter(logging.Filter):
+    def filter(self, record):
+        msg = record.getMessage()
+        if "GET /health" in msg or "GET /video-analysis/task-badges" in msg:
+            return False
+        return True
+
+logging.getLogger("uvicorn.access").addFilter(AccessLogFilter())
+
+# 统一配置独立的对话日志文件 logs/agent_chat.log
+chat_logger = logging.getLogger("agent_chat")
+chat_logger.setLevel(logging.INFO)
+chat_logger.propagate = False
+
+logger_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+log_dir = os.path.join(logger_dir, "logs")
+os.makedirs(log_dir, exist_ok=True)
+file_handler = RotatingFileHandler(
+    os.path.join(log_dir, "agent_chat.log"),
+    maxBytes=10*1024*1024, # 10MB
+    backupCount=5,
+    encoding="utf-8"
+)
+file_handler.setFormatter(logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s'))
+chat_logger.addHandler(file_handler)
+
 setup_logger()
+
+def log_agent_debug(session_id: str, event_type: str, data: Any):
+    """
+    将 Agent 的交互数据（如 Prompt、Thought、Tool Call、Tool Result、Text Chunk）以结构化 JSONL 格式追加写入 logs/agent_debug.jsonl。
+    """
+    import json
+    from typing import Any
+    from datetime import datetime
+    
+    logger_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    log_dir = os.path.join(logger_dir, "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    debug_file = os.path.join(log_dir, "agent_debug.jsonl")
+    
+    record = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
+        "session_id": session_id,
+        "event_type": event_type,
+        "data": data
+    }
+    
+    try:
+        with open(debug_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except Exception as e:
+        chat_logger.error(f"Failed to write to agent_debug.jsonl: {e}")

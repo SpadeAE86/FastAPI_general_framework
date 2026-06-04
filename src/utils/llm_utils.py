@@ -1,6 +1,6 @@
 ﻿from openai import AsyncOpenAI
 import asyncio
-
+from utils.call_model_utils import _svc_print
 SYSTEM_PROMPT = """你是一个人工智能助手，协助用户解答问题和提供信息。请根据用户的提问，尽可能准确和详细地回答。如果你不确定答案，可以说你不知道，但不要编造信息。"""
 
 async def process_stream_response(response):
@@ -19,7 +19,7 @@ async def process_stream_response(response):
         yield delta
 
 async def chat(client: AsyncOpenAI, messages,
-               model="gemini-3-pro", temperature=0.7,
+               model="gpt-5.5", temperature=0.7,
                max_tokens=150, stream=False, tools=None):
     """
     Sends a chat message to the OpenAI API and returns the response message object.
@@ -54,7 +54,7 @@ async def chat(client: AsyncOpenAI, messages,
         message_content = ""
         async for delta in process_stream_response(response):
             _svc_print(delta.model_dump())
-            text = delta.content or delta.reasoning_content or ""
+            text = getattr(delta, "content", None) or getattr(delta, "reasoning_content", None) or ""
             message_content += text
         class DummyMsg:
             content = message_content
@@ -65,12 +65,12 @@ async def chat(client: AsyncOpenAI, messages,
 
 if __name__ == "__main__":
     client = AsyncOpenAI(
-        base_url="https://z.apiyihe.org/v1",
-        api_key="sk-TMd7SbPPbVw1JMx0GYKflkWkv8Mzi1tb0B64Y9HqBQ53TaqW",
+        base_url="https://ai.comfly.chat/v1",
+        api_key="sk-EZyThGS2JdkoxISCD7Dd64D625E94a8b9513D71aCfF6AcFc",
     )
     messages = [
         {"role": "system", "content": f"{SYSTEM_PROMPT}"},
         {"role": "user", "content": "Hello, how are you?"}
     ]
-    result = asyncio.run(chat(client, messages,stream=True))
-    _svc_print(f"receive: {result}")
+    result = asyncio.run(chat(client, messages,stream=False))
+    print(f"receive: {result}")

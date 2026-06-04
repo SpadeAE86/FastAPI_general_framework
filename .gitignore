@@ -21,7 +21,8 @@ poetry.lock
 botpy.log
 tests/
 src/data/video_analysis_uploads/
-
+src/core/memory/
+src/logs/
 # Ide
 .idea/
 .claude/

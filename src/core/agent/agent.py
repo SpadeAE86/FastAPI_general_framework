@@ -5,7 +5,7 @@
 #   消息段 (对话历史 + 当前输入)
 
 from __future__ import annotations
-from infra.logging.logger import logger as log
+from infra.logging.logger import logger as log, log_agent_debug
 import json
 import os
 import uuid
@@ -27,7 +27,7 @@ class Agent:
         max_iteration: int = 10,
         mode: str = "swarm",
         is_base: bool = True,
-        max_token: int = 409600,
+        max_token: int = 2048,
         tool_manager: Any = None,
         custom_system_prompt: str | None = None,
         language: str | None = None,
@@ -99,6 +99,8 @@ class Agent:
         sections.append(self._section_language())
         sections.append(self._section_custom())
         sections.append(self._section_agent_tool())
+        sections.append(self._section_skills())
+        sections.append(self._section_active_skills())
 
         # 过滤掉 None (未启用的段落)
         return [s for s in sections if s is not None]
@@ -153,6 +155,9 @@ class Agent:
             "Carefully consider the reversibility and blast radius of actions. "
             "For actions that are hard to reverse or affect shared systems, "
             "check with the user before proceeding.\n\n"
+            "If the user has explicitly confirmed, approved, or asked you to follow instructions "
+            "(e.g., '按照我说的来', '直接执行', '确认', '继续吧'), proceed immediately with the actions/tools "
+            "without asking for confirmation again.\n\n"
             "Examples requiring confirmation:\n"
             "- Destructive operations: deleting files/branches, dropping tables\n"
             "- Hard-to-reverse operations: force-pushing, git reset --hard\n"
@@ -273,6 +278,55 @@ class Agent:
             return None
         return None  # 已在 _section_using_tools 的 spawn_agent 段落覆盖
 
+    def _section_skills(self) -> str | None:
+        """注入智能体当前具备的所有可用技能列表（名称和描述）。"""
+        from core.skills.loader import skill_loader
+        all_skills = skill_loader.list_skills()
+        if not all_skills:
+            return None
+        
+        lines = ["# Available Skills\n", "You have access to the following skills. When the context demands it, you can act according to these skills' standard procedures:"]
+        for s in all_skills:
+            lines.append(f"- **{s['name']}**: {s['description']}")
+        return "\n".join(lines)
+
+    def _section_active_skills(self) -> str | None:
+        """如果当前有激活的技能（比如根据当前任务匹配到的，或者在 self.skills 里指定的），注入其详细的 SOP 流程。"""
+        from core.skills.loader import skill_loader
+        from core.skills.selector import skill_selector
+        
+        # 1. 收集需要激活的技能名字
+        active_names = []
+        if isinstance(self.skills, list):
+            active_names = self.skills
+        elif isinstance(self.skills, dict):
+            active_names = list(self.skills.keys())
+        
+        # 2. 如果 self.skills 未指定或为空，我们根据当前用户的最后一条提问进行自动匹配
+        if not active_names and self.messages:
+            # 找到最后一条 user message
+            last_user_msg = ""
+            for msg in reversed(self.messages):
+                if msg.get("role") == "user":
+                    last_user_msg = msg.get("content") or ""
+                    break
+            if last_user_msg:
+                matched_skills = skill_selector.select_skills(last_user_msg)
+                active_names = [s["name"] for s in matched_skills]
+                
+        if not active_names:
+            return None
+            
+        lines = ["# Active Skill SOPs\n", "You are currently performing the following skills. You must strictly follow their standard operating procedures (SOP):"]
+        for name in active_names:
+            skill = skill_loader.get_skill(name)
+            if skill:
+                lines.append(f"\n## Skill: {skill['name']}")
+                lines.append(skill["content"])
+                
+        return "\n".join(lines)
+
+
     # ═══════════════════════════════════════════════════════════════
     #  build_prompt — 组装完整的 messages 列表 (OpenAI 格式)
     # ═══════════════════════════════════════════════════════════════
@@ -292,13 +346,13 @@ class Agent:
             {"role": "user", "content": "当前输入"},
         ]
         """
-        # 1. 拼接 system prompt (各段落之间用双换行分隔)
-        system_sections = self._build_system_prompt()
-        system_content = "\n\n".join(system_sections)
-
-        # 2. 如果有新的用户输入, 追加到对话历史
+        # 1. 如果有新的用户输入, 追加到对话历史
         if input_data is not None:
             self.messages.append({"role": "user", "content": input_data})
+
+        # 2. 拼接 system prompt (各段落之间用双换行分隔)
+        system_sections = self._build_system_prompt()
+        system_content = "\n\n".join(system_sections)
 
         # 3. 组装最终 messages: system + 历史
         result: list[dict[str, str]] = [
@@ -327,8 +381,15 @@ class Agent:
         调用 LLM, 接收 build_prompt() 返回的 messages 列表。
         self.llm 格式: {"client": AsyncOpenAI, "model": str}
         """
+        import logging
+        chat_logger = logging.getLogger("agent_chat")
+        chat_logger.info(f"--- LLM Prompt Messages (Model: {self.llm.get('model', 'gpt-5.4')}): ---")
+        for i, msg in enumerate(messages):
+            chat_logger.info(f"  Msg [{i}] ({msg.get('role')}): {msg.get('content')}")
+        chat_logger.info("-----------------------------------------------------")
+
         client = self.llm["client"]
-        model = self.llm.get("model", "gemini-3-pro")
+        model = self.llm.get("model", "gpt-5.4")
         tool_schemas = self.get_tool_schemas()
 
         kwargs: dict[str, Any] = {
@@ -340,6 +401,12 @@ class Agent:
         
         if tool_schemas:
             kwargs["tools"] = tool_schemas
+
+        # Log prompt to structured debug log
+        log_agent_debug(self.session_id, "llm_prompt", {
+            "model": model,
+            "messages": messages
+        })
 
         response = await chat(**kwargs)
         
@@ -358,6 +425,13 @@ class Agent:
             ]
         
         self.messages.append(assistant_msg)
+
+        # Log assistant response to structured debug log
+        log_agent_debug(self.session_id, "llm_response", {
+            "content": getattr(response, "content", None),
+            "tool_calls": assistant_msg.get("tool_calls")
+        })
+
         return response
 
     def parse_response(self, llm_response: Any) -> list:
@@ -408,6 +482,13 @@ class Agent:
             "tool_call_id": result.call_id,
             "content": result.output if result.success else f"Error: {result.error}",
         })
+        log_agent_debug(self.session_id, "tool_result", {
+            "tool_name": result.tool_name,
+            "call_id": result.call_id,
+            "success": result.success,
+            "output": result.output,
+            "error": result.error
+        })
 
     def should_terminate(self) -> bool:
         """安全阀检查: 目前只检查连续错误。"""
@@ -420,7 +501,9 @@ class Agent:
 
     def _load_history(self) -> None:
         """从 JSONL 文件加载历史消息到 self.messages。"""
-        target = Path(f"core/memory/{self.session_id}.jsonl")
+        # CWD 独立的文件路径解析 (定位在 my_agent/src/core/memory)
+        _current_dir = Path(__file__).resolve().parent
+        target = _current_dir.parent / "memory" / f"{self.session_id}.jsonl"
         if not target.exists():
             return
         try:
@@ -428,17 +511,37 @@ class Agent:
                 for line in f:
                     try:
                         msg = json.loads(line.strip())
-                        if "role" in msg and "content" in msg:
+                        if "role" in msg:
                             self.messages.append(msg)
                     except json.JSONDecodeError:
                         continue
         except FileNotFoundError:
             pass
 
-    def save_history(self) -> None:
-        """把当前对话历史追加写入 JSONL。"""
-        target = Path(f"core/memory/{self.session_id}.jsonl")
+    def save_history(self, abstract: str | None = None) -> None:
+        """把当前对话历史覆盖写入 JSONL，防止多次追加导致重复。"""
+        # CWD 独立的文件路径解析 (定位在 my_agent/src/core/memory)
+        _current_dir = Path(__file__).resolve().parent
+        target = _current_dir.parent / "memory" / f"{self.session_id}.jsonl"
         target.parent.mkdir(parents=True, exist_ok=True)
-        with open(target, "a", encoding="utf-8") as f:
+        
+        # Preserve existing metadata if abstract is not provided
+        existing_meta = {}
+        if target.exists() and not abstract:
+            try:
+                with open(target, "r", encoding="utf-8") as f:
+                    first_line = f.readline().strip()
+                    if first_line:
+                        meta = json.loads(first_line)
+                        if "role" not in meta and "abstract" in meta:
+                            existing_meta = meta
+            except Exception:
+                pass
+                
+        with open(target, "w", encoding="utf-8") as f:
+            meta_to_write = {"abstract": abstract} if abstract else existing_meta
+            if meta_to_write and "abstract" in meta_to_write:
+                f.write(json.dumps(meta_to_write, ensure_ascii=False) + "\n")
             for msg in self.messages:
-                f.write(json.dumps(msg, ensure_ascii=False) + "\n")
+                if "role" in msg:
+                    f.write(json.dumps(msg, ensure_ascii=False) + "\n")

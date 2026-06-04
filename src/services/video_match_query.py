@@ -18,7 +18,7 @@ def shot_row_to_api_dict(row: VideoMatchShotRow) -> Dict[str, Any]:
     hits = row.match_top_hits_json
     stored_top1 = str(row.top1_obs_url or "").strip() or None
     fallback_top1 = _best_video_path_from_hits(hits)
-    top1_effective = fallback_top1 or stored_top1
+    top1_effective = stored_top1 or fallback_top1
     return {
         "id": row.id,
         "shot_order": row.shot_order,

@@ -62,6 +62,7 @@ class TextGenerateRequest(BaseModel):
     system_prompt: Optional[str] = Field(default=None, description="系统提示词")
     model: SeedTextModel = Field(default=SeedTextModel.V2_0_PRO, description="使用的模型版本")
     video_duration: Optional[int] = Field(default=None, description="视频时长(秒)，用于视频提示词美化收敛输出")
+    reference_image_list: Optional[list[str]] = Field(default=None, description="参考图公网URL列表")
 
 
 class PromptTemplateRequest(BaseModel):
@@ -75,7 +76,7 @@ class ChatRequest(BaseModel):
     message: str = Field(..., description="用户消息内容", min_length=1)
     session_id: Optional[str] = Field(default=None, description="会话 ID, 不传则新建")
     user_id: str = Field(default="default_user", description="用户标识")
-    model: str = Field(default="gemini-3-pro", description="指定模型")
+    model: str = Field(default="gpt-5.4", description="指定模型")
     max_iterations: int = Field(default=10, description="Agent 最大迭代轮次", ge=1, le=50)
 
 class VideoGenerateRequest(BaseModel):
