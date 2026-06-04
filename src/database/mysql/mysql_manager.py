@@ -63,6 +63,7 @@ class DBManager:
     async def init_db(self):
         # 导入你的所有SQLModel模型以确保它们被注册到 SQLModel.metadata
         import models.pydantic_models.db.mix_time_records
+        import models.pydantic_models.db.volcovoice_sample
         async with self.main_engine.begin() as conn:
             await conn.run_sync(SQLModel.metadata.create_all)
         log.info("Initialized Database Tables")

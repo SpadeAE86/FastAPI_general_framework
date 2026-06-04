@@ -244,3 +244,9 @@ volcano_voice_options = {
 character_options = volcano_voice_options
 
 __all__ = ["volcano_voice_options", "character_options"]
+
+if __name__ == "__main__":
+    # for name, liter in character_options.items():
+    #     print(name, liter)
+    print(character_options.keys())
+    print(f"length: {len(volcano_voice_options)}")

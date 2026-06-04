@@ -1,5 +1,7 @@
+import asyncio
 import base64
 import json
+import random
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -27,6 +29,17 @@ class VolcanoSentenceTimestamp:
     event: Optional[str]
     text: str
     words: list[VolcanoWordTimestamp] = field(default_factory=list)
+
+
+@dataclass
+class VolcanoGenerateResult:
+    output_path: str
+    audio_bytes: int
+    frontend_payloads: list[Any] = field(default_factory=list)
+    messages: list[dict[str, Any]] = field(default_factory=list)
+    request: dict[str, Any] = field(default_factory=dict)
+    host: str = ""
+    debug_dump_path: Optional[str] = None
 
 
 @dataclass
@@ -114,6 +127,58 @@ def _decode_debug_payload(payload: bytes) -> Any:
         except json.JSONDecodeError:
             return text
     return text
+
+
+def parse_frontend_words(frontend_payloads: list[Any]) -> list[VolcanoWordTimestamp]:
+    words: list[VolcanoWordTimestamp] = []
+    for payload in frontend_payloads:
+        if not isinstance(payload, dict):
+            continue
+        frontend = payload.get("frontend")
+        if isinstance(frontend, str):
+            try:
+                frontend = json.loads(frontend)
+            except json.JSONDecodeError:
+                continue
+        if not isinstance(frontend, dict):
+            continue
+        for raw_word in frontend.get("words") or []:
+            if not isinstance(raw_word, dict):
+                continue
+            words.append(
+                VolcanoWordTimestamp(
+                    word=str(raw_word.get("word", "")),
+                    start_time=float(raw_word.get("start_time", raw_word.get("startTime", 0.0))),
+                    end_time=float(raw_word.get("end_time", raw_word.get("endTime", 0.0))),
+                    confidence=float(raw_word["confidence"]) if raw_word.get("confidence") is not None else None,
+                )
+            )
+    return words
+
+
+def _parse_error_payload(payload: bytes) -> dict[str, Any]:
+    decoded = _decode_debug_payload(payload)
+    if isinstance(decoded, dict):
+        return decoded
+    return {"raw_payload": decoded}
+
+
+def _format_volcano_error_message(error_code: int, payload: bytes) -> str:
+    parsed = _parse_error_payload(payload)
+    reqid = parsed.get("reqid") or parsed.get("request_id") or parsed.get("requestId")
+    message = parsed.get("message") or parsed.get("error") or parsed.get("description")
+    code = parsed.get("code") or parsed.get("status_code") or parsed.get("statusCode") or error_code
+
+    parts = [f"error_code={code}"]
+    if reqid:
+        parts.append(f"reqid={reqid}")
+    if message:
+        parts.append(f"message={message}")
+    elif parsed.get("raw_payload") is not None:
+        parts.append(f"payload={parsed['raw_payload']}")
+    else:
+        parts.append(f"payload={json.dumps(parsed, ensure_ascii=False)}")
+    return ", ".join(parts)
 
 
 def volcano_singleton_timestamps_test(
@@ -248,12 +313,15 @@ async def volcano_generate_voice(
     emotion_active=False,
     emotion_intensity=2.5,
     debug_dump_path: Optional[str] = None,
-) -> None:
+) -> VolcanoGenerateResult:
     volcano_config = my_config.get("audio", {}).get("Volcano", {})
     appid = volcano_config.get("app_id") or volcano_config.get("appid")
     access_token = volcano_config.get("access_token")
     host = volcano_config.get("host", "wss://openspeech.bytedance.com/api/v1/tts/ws_binary")
     cluster = volcano_config.get("cluster", "volcano_tts")
+    open_timeout = float(volcano_config.get("open_timeout", 30))
+    connect_retries = max(1, int(volcano_config.get("connect_retries", 3)))
+    retry_backoff_sec = float(volcano_config.get("retry_backoff_sec", 2))
 
     if not appid or not access_token:
         raise ServiceException(code=450, message="火山音频配置缺失，请检查 audio.Volcano.app_id / access_token")
@@ -261,7 +329,33 @@ async def volcano_generate_voice(
     headers = {"Authorization": f"Bearer;{access_token}"}
     log.info(f"Connecting to {host} with headers: {headers}")
 
-    websocket = await websockets.connect(host, additional_headers=headers, max_size=10 * 1024 * 1024)
+    websocket = None
+    last_connect_error: Exception | None = None
+    for attempt in range(1, connect_retries + 1):
+        try:
+            websocket = await websockets.connect(
+                host,
+                additional_headers=headers,
+                max_size=10 * 1024 * 1024,
+                open_timeout=open_timeout,
+            )
+            break
+        except (TimeoutError, OSError, websockets.exceptions.WebSocketException) as exc:
+            last_connect_error = exc
+            if attempt >= connect_retries:
+                break
+            sleep_sec = retry_backoff_sec * attempt + random.uniform(0, 0.5)
+            log.warning(
+                f"Volcano websocket connect failed, attempt={attempt}/{connect_retries}, "
+                f"error={type(exc).__name__}: {exc}, retry in {sleep_sec:.2f}s"
+            )
+            await asyncio.sleep(sleep_sec)
+
+    if websocket is None:
+        raise RuntimeError(
+            f"Volcano websocket connect failed after {connect_retries} attempts: "
+            f"{type(last_connect_error).__name__ if last_connect_error else 'UnknownError'}: {last_connect_error}"
+        )
     response_headers = getattr(getattr(websocket, "response", None), "headers", {})
     log.info(f"Connected to WebSocket server, Logid: {response_headers.get('x-tt-logid', '')}")
 
@@ -271,7 +365,7 @@ async def volcano_generate_voice(
             "user": {"uid": str(uuid.uuid4())},
             "audio": {
                 "voice_type": voice_type,
-                "encoding": "wav",
+                "encoding": "mp3",
                 "speed_ratio": speed,
                 "loudness_ratio": volume,
                 "emotion": emotion,
@@ -315,6 +409,15 @@ async def volcano_generate_voice(
                 if msg.sequence < 0:
                     break
                 continue
+            if msg.type == MsgType.Error:
+                error_payload = _parse_error_payload(msg.payload)
+                message_record["error_code"] = msg.error_code
+                message_record["payload"] = error_payload
+                debug_messages[-1] = message_record
+                raise RuntimeError(
+                    "Volcano TTS server returned error: "
+                    f"{_format_volcano_error_message(msg.error_code, msg.payload)}"
+                )
             raise RuntimeError(f"TTS conversion failed: {msg}")
 
         if not audio_data:
@@ -340,6 +443,20 @@ async def volcano_generate_voice(
                 encoding="utf-8",
             )
             log.info(f"Debug dump written to {dump_path}")
+        return VolcanoGenerateResult(
+            output_path=filename,
+            audio_bytes=len(audio_data),
+            frontend_payloads=frontend_payloads,
+            messages=debug_messages,
+            request=request,
+            host=host,
+            debug_dump_path=debug_dump_path,
+        )
     finally:
-        await websocket.close()
-        log.info("Connection closed")
+        if websocket is not None:
+            try:
+                await websocket.close()
+            except Exception as close_err:
+                log.warning(f"Volcano websocket close failed: {type(close_err).__name__}: {close_err}")
+            else:
+                log.info("Connection closed")

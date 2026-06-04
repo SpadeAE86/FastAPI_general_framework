@@ -4,6 +4,7 @@ from sqlalchemy import text, inspect
 from database.mysql.mysql_manager import db_manager
 # 确保导入模型，使其注入到 SQLModel.metadata 中
 from models.pydantic_models.db.mix_time_records import MixVideoOverallTime, MixVideoSceneTime
+from models.pydantic_models.db.volcovoice_sample import VolcovoiceSample
 
 async def force_recreate():
     print("开始主动覆盖重建表结构...")

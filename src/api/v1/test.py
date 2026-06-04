@@ -4,7 +4,7 @@
 import json
 from datetime import datetime
 
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Header, Query
 
 from config.config import my_config
 from models.pydantic_models.request.alivoice_request import Alivoice_VO
@@ -16,11 +16,13 @@ from models.pydantic_models.response.alivoice_response import AliVoiceResponse
 from models.pydantic_models.response.mixed_video_response import MixedVideoResponse
 from models.pydantic_models.response.sprite_image_response import SpriteImageResponse
 from models.pydantic_models.response.transcode_video_response import TranscodeVideoResponse
+from models.pydantic_models.response.volcovoice_response import VolcovoiceResponse
 from service.alivoice_service import process_alivoice_task
 from service.mixed_video_service import mixed_video_service
 from service.sprite_service import sprite_service
 from service.transcode_video_service import transcode_video_service
 from service.volcovoice_service import process_volcovoice_task
+from collect_volcovoice_sample import DEFAULT_VOLCOVOICE_SAMPLE_TEXT, sample_volcovoice_voices
 from utils.general_utils import random_with_system_time
 from utils.log_utils import logger as log
 
@@ -72,9 +74,36 @@ async def test_alivoice(voice_config: Alivoice_VO, trace_id: str = Header(None))
     return await process_alivoice_task(voice_config)
 
 
-@test_router.post("/volcovoice", response_model=AliVoiceResponse)
-async def test_volcovoice(voice_config: Volcovoice_VO, trace_id: str = Header(None)) -> AliVoiceResponse:
+@test_router.post("/volcovoice", response_model=VolcovoiceResponse)
+async def test_volcovoice(voice_config: Volcovoice_VO, trace_id: str = Header(None)) -> VolcovoiceResponse:
     log.info(f"received Trace-Id: {trace_id}")
     log.info(f"volcovoice direct request: {json.dumps(voice_config.model_dump(exclude_none=True), indent=2, ensure_ascii=False)}")
     log.info(f"env: {my_config['env']}")
     return await process_volcovoice_task(voice_config)
+
+
+@test_router.post("/volcovoice_sample", response_model=dict)
+async def test_volcovoice_sample(
+    k: int = Query(..., ge=1, description="Sample the first k volcovoice characters"),
+    resample: bool = Query(False, description="Resample even if the same voice/text pair already exists"),
+    txt_content: str = Query(DEFAULT_VOLCOVOICE_SAMPLE_TEXT, description="Text used for voice sampling"),
+    concurrency: int = Query(100, ge=1, le=100, description="Concurrent volcovoice sampling workers"),
+) -> dict:
+    log.info(
+        "volcovoice sample request: "
+        + json.dumps(
+            {
+                "k": k,
+                "resample": resample,
+                "txt_content": txt_content,
+                "concurrency": concurrency,
+            },
+            ensure_ascii=False,
+        )
+    )
+    return await sample_volcovoice_voices(
+        k=k,
+        resample=resample,
+        txt_content=txt_content,
+        concurrency=concurrency,
+    )
