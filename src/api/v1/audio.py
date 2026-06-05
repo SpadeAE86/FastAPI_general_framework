@@ -1,9 +1,12 @@
-from typing import Any, Dict
+from typing import Any, Dict, Literal
 
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, Header, HTTPException, Query
+from sqlalchemy import select
 
 from celery_mq.protocols import TaskManagerProtocol
 from celery_mq.task_manager import task_manager
+from database.mysql.mysql_manager import db_manager
+from models.pydantic_models.db.volcovoice_sample import VolcovoiceSample
 from models.pydantic_models.request.alivoice_request import Alivoice_VO
 from models.pydantic_models.request.volcovoice_request import Volcovoice_VO
 from utils.log_utils import logger as log
@@ -52,6 +55,56 @@ async def create_volcovoice_task(voice_config: Volcovoice_VO, trace_id: str = He
     except Exception as e:
         log.error(f"创建火山音频任务失败: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"创建音频任务失败: {str(e)}")
+
+
+@audio_router.get("/models")
+async def list_voice_models(
+    model_type: Literal["all", "big", "small"] = Query(default="all", description="Filter model family"),
+) -> Dict[str, Any]:
+    try:
+        async with db_manager.SessionLocal() as session:
+            stmt = select(VolcovoiceSample).where(VolcovoiceSample.is_enabled == True).order_by(
+                VolcovoiceSample.voice_model_type.asc(),
+                VolcovoiceSample.voice_character.asc(),
+            )
+            if model_type != "all":
+                stmt = stmt.where(VolcovoiceSample.voice_model_type == model_type)
+            result = await session.execute(stmt)
+            rows = result.scalars().all()
+
+        # Deduplicate voice characters (in case of multiple samples for the same character)
+        seen = set()
+        unique_rows = []
+        for row in rows:
+            pair = (row.voice_character, row.voice_model_type)
+            if pair not in seen:
+                seen.add(pair)
+                unique_rows.append(row)
+
+        def _to_item(row: VolcovoiceSample) -> dict[str, Any]:
+            return {
+                "id": row.id,
+                "voice_character": row.voice_character,
+                "voice_code": row.voice_code,
+                "voice_model_type": row.voice_model_type,
+                "note": row.note,
+                "is_enabled": row.is_enabled,
+            }
+
+        if model_type == "all":
+            grouped: dict[str, list[dict[str, Any]]] = {"big": [], "small": []}
+            for row in unique_rows:
+                # Fallback model type to 'small' if not set
+                model_key = row.voice_model_type if row.voice_model_type in ("big", "small") else "small"
+                grouped.setdefault(model_key, []).append(_to_item(row))
+            data: Any = grouped
+        else:
+            data = [_to_item(row) for row in unique_rows]
+
+        return {"code": 200, "message": "ok", "data": data}
+    except Exception as e:
+        log.error(f"查询音色列表失败: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"查询音色列表失败: {str(e)}")
 
 
 @audio_router.get("/task/{task_id}")

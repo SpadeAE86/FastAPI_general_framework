@@ -46,6 +46,10 @@ COMMA_SOFT_MIN_PAUSE_MS = 260
 COMMA_HARD_MIN_CHARS = 22
 COMMA_HARD_MIN_DURATION_MS = 3600
 BOUNDARY_PADDING_MS = 40
+OUTPUT_AUDIO_FORMATS = {
+    "wav": {"suffix": ".wav", "codec": "pcm_s16le"},
+    "mp3": {"suffix": ".mp3", "codec": "libmp3lame"},
+}
 
 
 def _ensure_ascii_filename(text: str) -> str:
@@ -57,6 +61,21 @@ def _write_json(path: str, payload: dict[str, Any]) -> None:
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+def _normalize_output_format(file_format: str) -> str:
+    normalized = (file_format or "wav").lower()
+    if normalized not in OUTPUT_AUDIO_FORMATS:
+        raise ServiceException(code=450, message="file_format must be one of: wav, mp3")
+    return normalized
+
+
+def _output_suffix(file_format: str) -> str:
+    return OUTPUT_AUDIO_FORMATS[_normalize_output_format(file_format)]["suffix"]
+
+
+def _ffmpeg_audio_codec(file_format: str) -> str:
+    return OUTPUT_AUDIO_FORMATS[_normalize_output_format(file_format)]["codec"]
 
 
 def _is_strong_boundary(word: str) -> bool:
@@ -152,7 +171,7 @@ def _build_segments_from_words(words: list[VolcanoWordTimestamp]) -> tuple[list[
     return segments, decisions
 
 
-def _trim_audio_segment(source_audio: str, output_audio: str, start_ms: float, end_ms: float) -> str:
+def _trim_audio_segment(source_audio: str, output_audio: str, start_ms: float, end_ms: float, file_format: str) -> str:
     start_sec = max(0.0, (start_ms - BOUNDARY_PADDING_MS) / 1000.0)
     end_sec = max(start_sec + 0.05, (end_ms + BOUNDARY_PADDING_MS) / 1000.0)
     command = [
@@ -165,7 +184,27 @@ def _trim_audio_segment(source_audio: str, output_audio: str, start_ms: float, e
         "-to",
         f"{end_sec:.3f}",
         "-c:a",
-        "pcm_s16le",
+        _ffmpeg_audio_codec(file_format),
+        output_audio,
+    ]
+    run_ffmpeg_command(command, video_name=source_audio)
+    return output_audio
+
+
+def _transcode_audio(source_audio: str, output_audio: str, file_format: str) -> str:
+    if Path(source_audio).suffix.lower() == _output_suffix(file_format):
+        if source_audio != output_audio:
+            Path(output_audio).parent.mkdir(parents=True, exist_ok=True)
+            Path(output_audio).write_bytes(Path(source_audio).read_bytes())
+        return output_audio
+
+    command = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        source_audio,
+        "-c:a",
+        _ffmpeg_audio_codec(file_format),
         output_audio,
     ]
     run_ffmpeg_command(command, video_name=source_audio)
@@ -222,6 +261,7 @@ async def process_volcovoice_task(voice_config: Volcovoice_VO) -> VolcovoiceResp
 
         if voice_config.voice_character not in character_options:
             raise ServiceException(code=450, message="unsupported volcovoice character")
+        output_format = _normalize_output_format(voice_config.file_format)
 
         try:
             for idx, text in enumerate(voice_config.txt_str):
@@ -238,12 +278,12 @@ async def process_volcovoice_task(voice_config: Volcovoice_VO) -> VolcovoiceResp
                     )
                     continue
 
-                full_audio_output = os.path.join(output_prefix, f"volcovoice{idx}_{project_id}.wav")
+                raw_audio_output = os.path.join(output_prefix, f"volcovoice{idx}_{project_id}.wav")
                 raw_debug_json_path = os.path.join(output_prefix, f"volcovoice{idx}_{project_id}_raw.json")
                 generate_result = await volcano_generate_voice(
                     character_options[voice_config.voice_character],
                     text,
-                    full_audio_output,
+                    raw_audio_output,
                     speed=2 ** (voice_config.audio_speed_level / 500),
                     volume=voice_config.volume / 100,
                     emotion=voice_config.emotion or "neutral",
@@ -252,9 +292,18 @@ async def process_volcovoice_task(voice_config: Volcovoice_VO) -> VolcovoiceResp
                     debug_dump_path=raw_debug_json_path,
                 )
 
-                final_full_audio = full_audio_output
+                working_audio = raw_audio_output
                 if voice_config.volume == 0:
-                    final_full_audio = await mute_audio(full_audio_output, project_id)
+                    working_audio = await mute_audio(raw_audio_output, project_id)
+
+                final_full_audio = os.path.join(output_prefix, f"volcovoice{idx}_{project_id}{_output_suffix(output_format)}")
+                if output_format == "wav":
+                    if working_audio != final_full_audio:
+                        await asyncio.to_thread(_transcode_audio, working_audio, final_full_audio, output_format)
+                    else:
+                        final_full_audio = working_audio
+                else:
+                    await asyncio.to_thread(_transcode_audio, working_audio, final_full_audio, output_format)
 
                 full_duration = (await asyncio.to_thread(get_audio_info, [final_full_audio]))[0]
                 words = parse_frontend_words(generate_result.frontend_payloads)
@@ -264,13 +313,14 @@ async def process_volcovoice_task(voice_config: Volcovoice_VO) -> VolcovoiceResp
                 if segments:
                     for seg_idx, segment in enumerate(segments):
                         segment_name = _ensure_ascii_filename(f"seg_{idx}_{seg_idx}")
-                        segment_path = os.path.join(output_prefix, f"{segment_name}_{project_id}.wav")
+                        segment_path = os.path.join(output_prefix, f"{segment_name}_{project_id}{_output_suffix(output_format)}")
                         await asyncio.to_thread(
                             _trim_audio_segment,
-                            final_full_audio,
+                            working_audio,
                             segment_path,
                             float(segment["start_ms"]),
                             float(segment["end_ms"]),
+                            output_format,
                         )
                         segment_paths.append(segment_path)
                 else:

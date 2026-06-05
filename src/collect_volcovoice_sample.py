@@ -12,6 +12,7 @@ from sqlmodel import SQLModel
 from database.mysql.mysql_manager import db_manager
 from models.pydantic_models.db.volcovoice_sample import VolcovoiceSample
 from models.pydantic_models.request.volcovoice_request import Volcovoice_VO, character_options
+from models.voice_enums import get_volcano_voice_type
 from service.volcovoice_service import process_volcovoice_task
 from utils.file_utils import download_file_from_url
 from utils.log_utils import logger as log
@@ -67,6 +68,8 @@ async def _load_existing_samples(voice_names: list[str], txt_content: str) -> di
 async def _upsert_sample_record(
     *,
     voice_character: str,
+    voice_type: str | None,
+    voice_model_type: str | None,
     voice_code: str,
     txt_content: str,
     local_file_path: str,
@@ -85,11 +88,15 @@ async def _upsert_sample_record(
         if record is None:
             record = VolcovoiceSample(
                 voice_character=voice_character,
+                voice_type=voice_type,
+                voice_model_type=voice_model_type,
                 voice_code=voice_code,
                 txt_content=txt_content,
                 txt_hash=txt_hash,
             )
         record.local_file_path = local_file_path
+        record.voice_type = voice_type
+        record.voice_model_type = voice_model_type
         record.full_voice = full_voice
         record.response_json = response_json
         record.debug_json_url = debug_json_url
@@ -109,6 +116,8 @@ async def _process_single_voice_sample(
     txt_content: str,
     output_dir: Path,
 ) -> dict[str, Any]:
+    voice_model_type = get_volcano_voice_type(voice_character)
+    voice_type = voice_model_type
     request = Volcovoice_VO(
         biz_id=0,
         user_id=0,
@@ -135,6 +144,8 @@ async def _process_single_voice_sample(
 
     record = await _upsert_sample_record(
         voice_character=voice_character,
+        voice_type=voice_type,
+        voice_model_type=voice_model_type,
         voice_code=voice_code,
         txt_content=txt_content,
         local_file_path=str(local_file_path),
@@ -145,6 +156,8 @@ async def _process_single_voice_sample(
 
     return {
         "voice_character": voice_character,
+        "voice_type": voice_type,
+        "voice_model_type": voice_model_type,
         "voice_code": voice_code,
         "status": "sampled",
         "local_file_path": str(local_file_path),
@@ -160,6 +173,8 @@ def _append_error_log(
     error_log_path: Path,
     *,
     voice_character: str,
+    voice_type: str,
+    voice_model_type: str,
     voice_code: str,
     txt_content: str,
     error: Exception,
@@ -168,7 +183,7 @@ def _append_error_log(
     error_type = type(error).__name__
     error_message = str(error).replace("\n", " ").strip()
     line = (
-        f"[{timestamp}] voice_character={voice_character} | voice_code={voice_code} | "
+        f"[{timestamp}] voice_character={voice_character} | voice_type={voice_type} | voice_model_type={voice_model_type} | voice_code={voice_code} | "
         f"error_type={error_type} | error_message={error_message} | text={txt_content}\n"
     )
     error_log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -197,10 +212,14 @@ async def sample_volcovoice_voices(
     sem = asyncio.Semaphore(max(1, concurrency))
 
     async def _worker(display_name: str, voice_code: str) -> dict[str, Any]:
+        voice_model_type = get_volcano_voice_type(display_name)
+        voice_type = voice_model_type
         if not resample and display_name in existing_map:
             record = existing_map[display_name]
             return {
                 "voice_character": display_name,
+                "voice_type": record.voice_type or voice_type,
+                "voice_model_type": record.voice_model_type or voice_model_type,
                 "voice_code": voice_code,
                 "status": "skipped",
                 "local_file_path": record.local_file_path,
@@ -222,6 +241,8 @@ async def sample_volcovoice_voices(
                     _append_error_log,
                     error_log_path,
                     voice_character=display_name,
+                    voice_type=voice_type,
+                    voice_model_type=voice_model_type,
                     voice_code=voice_code,
                     txt_content=txt_content,
                     error=exc,
@@ -229,6 +250,8 @@ async def sample_volcovoice_voices(
                 log.exception(f"Volcovoice sample failed for {display_name} ({voice_code})")
                 return {
                     "voice_character": display_name,
+                    "voice_type": voice_type,
+                    "voice_model_type": voice_model_type,
                     "voice_code": voice_code,
                     "status": "failed",
                     "error_type": type(exc).__name__,

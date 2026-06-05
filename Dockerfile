@@ -1,15 +1,9 @@
 # 使用自制的python3.12 包含ffmpeg rocketmq的基础镜像
-FROM swr.cn-east-3.myhuaweicloud.com/freeuuu/python312-ffmpeg:2.1
+FROM swr.cn-east-3.myhuaweicloud.com/freeuuu/python312-ffmpeg:2.3
 
 # 复制代码文件
 COPY . /app
 WORKDIR /app
-
-#从requirements.txt里安装依赖
-RUN pip install --timeout=600 \
-    -r requirements.txt \
-    -i https://mirrors.aliyun.com/pypi/simple/
-
 
 WORKDIR /app/src
 # 设置系统时区为上海
