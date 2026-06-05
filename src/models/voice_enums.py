@@ -641,3 +641,12 @@ voice_enums_meta = {
     '鸡汤妹妹': {'gender': '女', 'age': '青年'},
     '黯刃秦主': {'gender': '女', 'age': '青年'},
 }
+
+
+if __name__ == "__main__":
+    # for name, liter in character_options.items():
+    #     print(name, liter)
+    print(f"big keys: {list(voice_options_big.keys())[:5]} ...")
+    print(f"small keys: {list(voice_options_small.keys())[:5]} ...")
+    print(character_options.keys())
+    print(f"length: {len(character_options)}")
