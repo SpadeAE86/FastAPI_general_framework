@@ -5,6 +5,12 @@ FROM swr.cn-east-3.myhuaweicloud.com/freeuuu/python312-ffmpeg:2.3
 COPY . /app
 WORKDIR /app
 
+#从requirements.txt里安装依赖
+RUN pip install --timeout=600 \
+    -r requirements.txt \
+    -i https://mirrors.aliyun.com/pypi/simple/
+
+
 WORKDIR /app/src
 # 设置系统时区为上海
 ENV TZ=Asia/Shanghai
