@@ -23,6 +23,7 @@ tests/
 src/data/video_analysis_uploads/
 src/core/memory/
 src/logs/
+src/data/
 # Ide
 .idea/
 .claude/
@@ -32,6 +33,7 @@ src/video_analysis_workspace/
 src/video_analysis_workspace/**
 **/video_analysis_workspace/
 **/video_analysis_workspace/**
+
 
 # Test outputs (large, generated)
 src/test/sample/
