@@ -7,8 +7,7 @@ WORKDIR /app
 
 #从requirements.txt里安装依赖
 RUN pip install --timeout=600 \
-    -r requirements.txt \
-    -i https://mirrors.aliyun.com/pypi/simple/
+    -r requirements.txt
 
 
 WORKDIR /app/src
