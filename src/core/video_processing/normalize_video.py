@@ -370,7 +370,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         video_filter_list.append(
             f"[{raw_audio_label}]atrim=start={raw_start_time}:end={raw_end_time},asetpts=PTS-STARTPTS[trimmed_a]"
         )
-        end_a = "trimmed_a"
+        end_a = "[trimmed_a]"
     else:
         end_a = raw_audio_label
     weights = ["1.0"]
