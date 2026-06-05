@@ -236,11 +236,11 @@ voice_options_big = {
     "擎苍": "zh_male_qingcang_mars_bigtts",
     "心灵鸡汤": "zh_female_xinlingjitang_moon_bigtts",
     "甜美悦悦": "zh_female_tianmeiyueyue_moon_bigtts",
-    "天才少女": "BV421_streaming",
 }
 
 voice_options_small = {
     # 通用场景
+    "天才少女": "BV421_streaming",
     "灿灿 2.0": "BV700_V2_streaming",
     "炀炀": "BV705_streaming",
     "擎苍 2.0": "BV701_V2_streaming",
@@ -252,7 +252,6 @@ voice_options_small = {
     "超自然音色-燃燃": "BV407_streaming",
     "通用女声": "BV001_streaming",
     "通用男声": "BV002_streaming",
-    "天才少女": "BV421_streaming",
     # 有声阅读
     "擎苍": "BV701_streaming",
     "阳光青年": "BV123_streaming",
@@ -350,15 +349,6 @@ __all__ = [
     'get_voice_options',
     'voice_enums_meta',
 ]
-
-if __name__ == "__main__":
-    # for name, liter in character_options.items():
-    #     print(name, liter)
-    print(f"big keys: {list(voice_options_big.keys())[:5]} ...")
-    print(f"small keys: {list(voice_options_small.keys())[:5]} ...")
-    print(character_options.keys())
-    print(f"length: {len(character_options)}")
-
 
 from models.voice_enums_meta import voice_enums_meta
 

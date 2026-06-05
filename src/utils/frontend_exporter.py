@@ -401,7 +401,7 @@ def build_frontend_timeline(
             ),
             effect=AudioEffectData(
                 volume=int(round(bgm_volume * 100)),
-                speed=1.0,
+                speed=float(getattr(bgm_cfg, "speed", 1.0) or 1.0),
             ),
             extra={"name": bgm_name, "cover": bgm_cover},
         )

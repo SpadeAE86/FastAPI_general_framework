@@ -68,26 +68,32 @@ async def list_voice_models(
                 VolcovoiceSample.voice_model_type.asc(),
                 VolcovoiceSample.voice_character.asc(),
             )
-            if model_type != "all":
-                stmt = stmt.where(VolcovoiceSample.voice_model_type == model_type)
             result = await session.execute(stmt)
             rows = result.scalars().all()
 
-        # Deduplicate voice characters (in case of multiple samples for the same character)
+        # Deduplicate voice characters and apply fallbacks/filtering
         seen = set()
         unique_rows = []
         for row in rows:
-            pair = (row.voice_character, row.voice_model_type)
+            # Fallback model type to 'big' if not set, except '天才少女' which goes to 'small'
+            actual_model_type = row.voice_model_type
+            if not actual_model_type:
+                actual_model_type = "small" if row.voice_character == "天才少女" else "big"
+
+            if model_type != "all" and actual_model_type != model_type:
+                continue
+
+            pair = (row.voice_character, actual_model_type)
             if pair not in seen:
                 seen.add(pair)
-                unique_rows.append(row)
+                unique_rows.append((row, actual_model_type))
 
-        def _to_item(row: VolcovoiceSample) -> dict[str, Any]:
+        def _to_item(row: VolcovoiceSample, model_type_val: str) -> dict[str, Any]:
             return {
                 "id": row.id,
                 "voice_character": row.voice_character,
                 "voice_code": row.voice_code,
-                "voice_model_type": row.voice_model_type,
+                "voice_model_type": model_type_val,
                 "note": row.note,
                 "is_enabled": row.is_enabled,
                 "priority": row.priority,
@@ -95,13 +101,11 @@ async def list_voice_models(
 
         if model_type == "all":
             grouped: dict[str, list[dict[str, Any]]] = {"big": [], "small": []}
-            for row in unique_rows:
-                # Fallback model type to 'small' if not set
-                model_key = row.voice_model_type if row.voice_model_type in ("big", "small") else "small"
-                grouped.setdefault(model_key, []).append(_to_item(row))
+            for row, model_type_val in unique_rows:
+                grouped.setdefault(model_type_val, []).append(_to_item(row, model_type_val))
             data: Any = grouped
         else:
-            data = [_to_item(row) for row in unique_rows]
+            data = [_to_item(row, model_type_val) for row, model_type_val in unique_rows]
 
         return {"code": 200, "message": "ok", "data": data}
     except Exception as e:

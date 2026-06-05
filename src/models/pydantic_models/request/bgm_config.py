@@ -6,3 +6,4 @@ from .audio_config import AudioConfig
 class BgmConfig(AudioConfig):
     ease_in: float = Field(default=0, ge=0, le=5)
     ease_out: float = Field(default=0, ge=0, le=5)
+    speed: float = Field(default=1.0, ge=0.1, le=2.0)

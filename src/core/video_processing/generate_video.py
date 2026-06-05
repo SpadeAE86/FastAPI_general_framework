@@ -4,6 +4,7 @@ from functools import lru_cache
 
 from config.config import *
 from utils.general_utils import random_with_system_time, run_ffmpeg_command
+from utils.ffmpeg_utils import build_atempo_filter
 
 
 @lru_cache(maxsize=128)
@@ -33,6 +34,7 @@ def _build_bgm_fade_filters(audio_path: str, cfg, output_duration: float) -> str
     offset = float(getattr(cfg, "offset", 0) or 0)
     ease_in = float(getattr(cfg, "ease_in", 0) or 0)
     ease_out = float(getattr(cfg, "ease_out", 0) or 0)
+    speed = float(getattr(cfg, "speed", 1.0) or 1.0)
 
     source_duration = None
     try:
@@ -44,11 +46,12 @@ def _build_bgm_fade_filters(audio_path: str, cfg, output_duration: float) -> str
         source_end = source_duration if end is None or float(end) < 0 else min(float(end), source_duration)
         trimmed_duration = max(source_end - start, 0.0)
     elif end is None or float(end) < 0:
-        trimmed_duration = max(output_duration - offset, 0.0)
+        trimmed_duration = max(output_duration - offset, 0.0) * speed
     else:
         trimmed_duration = max(float(end) - start, 0.0)
 
-    visible_duration = min(trimmed_duration, max(output_duration - offset, 0.0))
+    duration_after_speed = trimmed_duration / speed
+    visible_duration = min(duration_after_speed, max(output_duration - offset, 0.0))
     if visible_duration <= 0:
         return ""
 
@@ -103,10 +106,13 @@ def generate_video(video_path_list, len_list, project_id="test",
             volume = 2
             weight = 1
             if audio_config and audio_config[idx]:
+                speed = float(getattr(audio_config[idx], "speed", 1.0) or 1.0)
                 if audio_config[idx].end >= 0:
                     crop_offset_str += f"atrim=start={audio_config[idx].start}:end={audio_config[idx].end},asetpts=PTS-STARTPTS,"
                 else:
                     crop_offset_str += "atrim=start={0},asetpts=PTS-STARTPTS,".format(audio_config[idx].start)
+                if speed != 1.0:
+                    crop_offset_str += f"{build_atempo_filter(speed)},asetpts=PTS-STARTPTS,"
                 if audio_config[idx].offset >= 0:
                     crop_offset_str += f"adelay={audio_config[idx].offset * 1000}|{audio_config[idx].offset * 1000},"
                 volume = audio_config[idx].volume * 2

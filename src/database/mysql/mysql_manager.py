@@ -76,6 +76,16 @@ class DBManager:
             if "priority" not in existing_columns:
                 await conn.execute(text("ALTER TABLE volcovoice_sample ADD COLUMN priority INT NOT NULL DEFAULT 0"))
 
+            # Clean up/default NULL values in existing records
+            await conn.execute(text(
+                "UPDATE volcovoice_sample SET voice_model_type = 'small' "
+                "WHERE voice_character = '天才少女' AND (voice_model_type IS NULL OR voice_model_type = '')"
+            ))
+            await conn.execute(text(
+                "UPDATE volcovoice_sample SET voice_model_type = 'big' "
+                "WHERE voice_model_type IS NULL OR voice_model_type = ''"
+            ))
+
     async def init_db(self):
         import models.pydantic_models.db.mix_time_records
         import models.pydantic_models.db.volcovoice_sample
