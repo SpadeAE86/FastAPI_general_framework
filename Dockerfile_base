@@ -26,3 +26,8 @@ RUN chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe
 # pip 镜像源
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
+COPY Dockerfile /app
+#从requirements.txt里安装依赖
+RUN pip install --timeout=600 \
+    -r requirements.txt \
+    -i https://mirrors.aliyun.com/pypi/simple/

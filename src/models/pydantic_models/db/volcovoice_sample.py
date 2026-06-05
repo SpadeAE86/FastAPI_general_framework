@@ -24,6 +24,7 @@ class VolcovoiceSample(SQLModel, table=True):
     debug_json_url: Optional[str] = Field(default=None, sa_column=Column(Text), description="Debug json url returned by volcovoice service")
     is_enabled: bool = Field(default=True, index=True, description="Whether the voice character is active/enabled")
     note: Optional[str] = Field(default=None, sa_column=Column(Text), description="Optional description or grouping note")
+    priority: int = Field(default=0, index=True, description="Sorting priority, higher = higher ranking")
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 

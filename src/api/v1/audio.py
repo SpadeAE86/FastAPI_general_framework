@@ -64,6 +64,7 @@ async def list_voice_models(
     try:
         async with db_manager.SessionLocal() as session:
             stmt = select(VolcovoiceSample).where(VolcovoiceSample.is_enabled == True).order_by(
+                VolcovoiceSample.priority.desc(),
                 VolcovoiceSample.voice_model_type.asc(),
                 VolcovoiceSample.voice_character.asc(),
             )
@@ -89,6 +90,7 @@ async def list_voice_models(
                 "voice_model_type": row.voice_model_type,
                 "note": row.note,
                 "is_enabled": row.is_enabled,
+                "priority": row.priority,
             }
 
         if model_type == "all":

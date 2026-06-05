@@ -73,6 +73,8 @@ class DBManager:
                 await conn.execute(text("ALTER TABLE volcovoice_sample ADD COLUMN is_enabled TINYINT(1) NOT NULL DEFAULT 1"))
             if "note" not in existing_columns:
                 await conn.execute(text("ALTER TABLE volcovoice_sample ADD COLUMN note TEXT NULL"))
+            if "priority" not in existing_columns:
+                await conn.execute(text("ALTER TABLE volcovoice_sample ADD COLUMN priority INT NOT NULL DEFAULT 0"))
 
     async def init_db(self):
         import models.pydantic_models.db.mix_time_records
