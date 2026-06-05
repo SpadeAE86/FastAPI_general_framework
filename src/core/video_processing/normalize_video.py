@@ -370,7 +370,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         video_filter_list.append(
             f"[{raw_audio_label}]atrim=start={raw_start_time}:end={raw_end_time},asetpts=PTS-STARTPTS[trimmed_a]"
         )
-        end_a = "[trimmed_a]"
+        end_a = "trimmed_a"
     else:
         end_a = raw_audio_label
     weights = ["1.0"]
@@ -488,7 +488,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         *timebase_option,  # <--- 插入统一时基参数
         '-y',
         '-avoid_negative_ts', 'make_zero',
-        '-map', end_v, '-map', end_a,
+        '-map', end_v, '-map', f"[{end_a}]" if ":" not in end_a and not end_a.startswith("[") else end_a,
         '-shortest',
         output_name
     ]
