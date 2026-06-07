@@ -67,14 +67,18 @@ class DBManager:
             existing_columns = await conn.run_sync(_get_columns)
             if "voice_model_type" not in existing_columns:
                 await conn.execute(text("ALTER TABLE volcovoice_sample ADD COLUMN voice_model_type VARCHAR(255) NULL"))
-            if "voice_type" not in existing_columns:
-                await conn.execute(text("ALTER TABLE volcovoice_sample ADD COLUMN voice_type VARCHAR(255) NULL"))
+            if "age_type" not in existing_columns:
+                await conn.execute(text("ALTER TABLE volcovoice_sample ADD COLUMN age_type VARCHAR(255) NULL"))
+            if "sex" not in existing_columns:
+                await conn.execute(text("ALTER TABLE volcovoice_sample ADD COLUMN sex INT NULL"))
             if "is_enabled" not in existing_columns:
                 await conn.execute(text("ALTER TABLE volcovoice_sample ADD COLUMN is_enabled TINYINT(1) NOT NULL DEFAULT 1"))
             if "note" not in existing_columns:
                 await conn.execute(text("ALTER TABLE volcovoice_sample ADD COLUMN note TEXT NULL"))
             if "priority" not in existing_columns:
                 await conn.execute(text("ALTER TABLE volcovoice_sample ADD COLUMN priority INT NOT NULL DEFAULT 0"))
+            if "voice_type" in existing_columns:
+                await conn.execute(text("ALTER TABLE volcovoice_sample DROP COLUMN voice_type"))
 
             # Clean up/default NULL values in existing records
             await conn.execute(text(
@@ -85,6 +89,31 @@ class DBManager:
                 "UPDATE volcovoice_sample SET voice_model_type = 'big' "
                 "WHERE voice_model_type IS NULL OR voice_model_type = ''"
             ))
+
+            # Migrate age_type and sex using voice_enums_meta
+            from models.voice_enums_meta import voice_enums_meta
+            result = await conn.execute(text("SELECT id, voice_character, voice_code FROM volcovoice_sample"))
+            rows = result.fetchall()
+            for r_id, char_name, voice_code in rows:
+                meta = voice_enums_meta.get(char_name)
+                if meta:
+                    age = meta.get("age")
+                    gender = meta.get("gender")
+                    sex_val = 1 if gender == "男" else 0
+                    if gender == "儿童":
+                        code_lower = voice_code.lower()
+                        char_lower = char_name.lower()
+                        if "female" in code_lower or any(x in char_lower for x in ("佩奇", "丸子", "妹", "萝莉", "囡", "妞", "丫头", "姥姥", "奶奶")):
+                            sex_val = 0
+                        elif "male" in code_lower or any(x in char_lower for x in ("新", "小生", "童声", "小羊", "绵宝", "熊", "八戒", "猴", "大爷", "老者")):
+                            sex_val = 1
+                        else:
+                            sex_val = 0
+                    
+                    await conn.execute(
+                        text("UPDATE volcovoice_sample SET age_type = :age_type, sex = :sex WHERE id = :id"),
+                        {"age_type": age, "sex": sex_val, "id": r_id}
+                    )
 
     async def init_db(self):
         import models.pydantic_models.db.mix_time_records

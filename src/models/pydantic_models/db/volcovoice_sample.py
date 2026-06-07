@@ -13,7 +13,8 @@ class VolcovoiceSample(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     voice_character: str = Field(index=True, max_length=255, description="Display name of the sampled voice")
-    voice_type: Optional[str] = Field(default=None, index=True, max_length=255, description="Legacy voice category for compatibility")
+    age_type: Optional[str] = Field(default=None, index=True, max_length=255, description="Age group: 儿童, 少年/少女, 青年, 中年, 老年")
+    sex: Optional[int] = Field(default=None, index=True, description="Gender: 1 for male, 0 for female")
     voice_model_type: Optional[str] = Field(default=None, index=True, max_length=255, description="Voice model family: big or small")
     voice_code: str = Field(max_length=255, description="Underlying volcovoice code")
     txt_content: str = Field(sa_column=Column(Text), description="Text synthesized for sampling")

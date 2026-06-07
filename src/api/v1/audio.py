@@ -97,6 +97,8 @@ async def list_voice_models(
                 "note": row.note,
                 "is_enabled": row.is_enabled,
                 "priority": row.priority,
+                "age_type": row.age_type,
+                "sex": row.sex,
             }
 
         if model_type == "all":

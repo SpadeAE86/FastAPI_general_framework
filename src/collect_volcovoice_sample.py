@@ -68,7 +68,8 @@ async def _load_existing_samples(voice_names: list[str], txt_content: str) -> di
 async def _upsert_sample_record(
     *,
     voice_character: str,
-    voice_type: str | None,
+    age_type: str | None,
+    sex: int | None,
     voice_model_type: str | None,
     voice_code: str,
     txt_content: str,
@@ -88,14 +89,16 @@ async def _upsert_sample_record(
         if record is None:
             record = VolcovoiceSample(
                 voice_character=voice_character,
-                voice_type=voice_type,
+                age_type=age_type,
+                sex=sex,
                 voice_model_type=voice_model_type,
                 voice_code=voice_code,
                 txt_content=txt_content,
                 txt_hash=txt_hash,
             )
         record.local_file_path = local_file_path
-        record.voice_type = voice_type
+        record.age_type = age_type
+        record.sex = sex
         record.voice_model_type = voice_model_type
         record.full_voice = full_voice
         record.response_json = response_json
@@ -117,7 +120,26 @@ async def _process_single_voice_sample(
     output_dir: Path,
 ) -> dict[str, Any]:
     voice_model_type = get_volcano_voice_type(voice_character)
-    voice_type = voice_model_type
+    
+    # Query metadata to resolve age_type and sex
+    from models.voice_enums_meta import voice_enums_meta
+    meta = voice_enums_meta.get(voice_character)
+    age_type = None
+    sex = None
+    if meta:
+        age_type = meta.get("age")
+        gender = meta.get("gender")
+        sex = 1 if gender == "男" else 0
+        if gender == "儿童":
+            code_lower = voice_code.lower()
+            char_lower = voice_character.lower()
+            if "female" in code_lower or any(x in char_lower for x in ("佩奇", "丸子", "妹", "萝莉", "囡", "妞", "丫头", "姥姥", "奶奶")):
+                sex = 0
+            elif "male" in code_lower or any(x in char_lower for x in ("新", "小生", "童声", "小羊", "绵宝", "熊", "八戒", "猴", "大爷", "老者")):
+                sex = 1
+            else:
+                sex = 0
+
     request = Volcovoice_VO(
         biz_id=0,
         user_id=0,
@@ -144,7 +166,8 @@ async def _process_single_voice_sample(
 
     record = await _upsert_sample_record(
         voice_character=voice_character,
-        voice_type=voice_type,
+        age_type=age_type,
+        sex=sex,
         voice_model_type=voice_model_type,
         voice_code=voice_code,
         txt_content=txt_content,
@@ -156,7 +179,8 @@ async def _process_single_voice_sample(
 
     return {
         "voice_character": voice_character,
-        "voice_type": voice_type,
+        "age_type": age_type,
+        "sex": sex,
         "voice_model_type": voice_model_type,
         "voice_code": voice_code,
         "status": "sampled",
@@ -173,8 +197,9 @@ def _append_error_log(
     error_log_path: Path,
     *,
     voice_character: str,
-    voice_type: str,
-    voice_model_type: str,
+    age_type: str | None,
+    sex: int | None,
+    voice_model_type: str | None,
     voice_code: str,
     txt_content: str,
     error: Exception,
@@ -183,7 +208,7 @@ def _append_error_log(
     error_type = type(error).__name__
     error_message = str(error).replace("\n", " ").strip()
     line = (
-        f"[{timestamp}] voice_character={voice_character} | voice_type={voice_type} | voice_model_type={voice_model_type} | voice_code={voice_code} | "
+        f"[{timestamp}] voice_character={voice_character} | age_type={age_type} | sex={sex} | voice_model_type={voice_model_type} | voice_code={voice_code} | "
         f"error_type={error_type} | error_message={error_message} | text={txt_content}\n"
     )
     error_log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -213,12 +238,32 @@ async def sample_volcovoice_voices(
 
     async def _worker(display_name: str, voice_code: str) -> dict[str, Any]:
         voice_model_type = get_volcano_voice_type(display_name)
-        voice_type = voice_model_type
+        
+        # Query metadata to resolve age_type and sex
+        from models.voice_enums_meta import voice_enums_meta
+        meta = voice_enums_meta.get(display_name)
+        age_type = None
+        sex = None
+        if meta:
+            age_type = meta.get("age")
+            gender = meta.get("gender")
+            sex = 1 if gender == "男" else 0
+            if gender == "儿童":
+                code_lower = voice_code.lower()
+                char_lower = display_name.lower()
+                if "female" in code_lower or any(x in char_lower for x in ("佩奇", "丸子", "妹", "萝莉", "囡", "妞", "丫头", "姥姥", "奶奶")):
+                    sex = 0
+                elif "male" in code_lower or any(x in char_lower for x in ("新", "小生", "童声", "小羊", "绵宝", "熊", "八戒", "猴", "大爷", "老者")):
+                    sex = 1
+                else:
+                    sex = 0
+
         if not resample and display_name in existing_map:
             record = existing_map[display_name]
             return {
                 "voice_character": display_name,
-                "voice_type": record.voice_type or voice_type,
+                "age_type": record.age_type or age_type,
+                "sex": record.sex if record.sex is not None else sex,
                 "voice_model_type": record.voice_model_type or voice_model_type,
                 "voice_code": voice_code,
                 "status": "skipped",
@@ -241,7 +286,8 @@ async def sample_volcovoice_voices(
                     _append_error_log,
                     error_log_path,
                     voice_character=display_name,
-                    voice_type=voice_type,
+                    age_type=age_type,
+                    sex=sex,
                     voice_model_type=voice_model_type,
                     voice_code=voice_code,
                     txt_content=txt_content,
@@ -250,7 +296,8 @@ async def sample_volcovoice_voices(
                 log.exception(f"Volcovoice sample failed for {display_name} ({voice_code})")
                 return {
                     "voice_character": display_name,
-                    "voice_type": voice_type,
+                    "age_type": age_type,
+                    "sex": sex,
                     "voice_model_type": voice_model_type,
                     "voice_code": voice_code,
                     "status": "failed",
