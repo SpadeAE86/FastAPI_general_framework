@@ -40,10 +40,10 @@ volcovoice_semaphore = Semaphore(
 
 STRONG_PUNCTUATION = "\u3002\uff01\uff1f!?\uff1b;"
 COMMA_PUNCTUATION = "\uff0c,\u3001\uff1a:"
-COMMA_SOFT_MIN_CHARS = 8
+COMMA_SOFT_MIN_CHARS = 4
 COMMA_SOFT_MIN_DURATION_MS = 2200
-COMMA_SOFT_MIN_PAUSE_MS = 260
-COMMA_HARD_MIN_CHARS = 16
+COMMA_SOFT_MIN_PAUSE_MS = 0
+COMMA_HARD_MIN_CHARS = 10
 COMMA_HARD_MIN_DURATION_MS = 3600
 BOUNDARY_PADDING_MS = 40
 OUTPUT_AUDIO_FORMATS = {
@@ -78,6 +78,23 @@ def _ffmpeg_audio_codec(file_format: str) -> str:
     return OUTPUT_AUDIO_FORMATS[_normalize_output_format(file_format)]["codec"]
 
 
+def _strip_ending_punctuation(text: str) -> str:
+    text = text.rstrip()
+    if not text:
+        return text
+    
+    # Check if the text ends with ellipses or dashes
+    if text.endswith("...") or text.endswith("……") or text.endswith("——") or text.endswith("-"):
+        return text
+        
+    to_remove = "，。、；：,.;: "
+    while text and text[-1] in to_remove:
+        if text.endswith("...") or text.endswith("……") or text.endswith("——") or text.endswith("-"):
+            break
+        text = text[:-1]
+    return text
+
+
 def _is_strong_boundary(word: str) -> bool:
     return bool(word) and word[-1] in STRONG_PUNCTUATION
 
@@ -101,6 +118,7 @@ def _build_segments_from_words(words: list[VolcanoWordTimestamp]) -> tuple[list[
         start_ms = float(current_words[0].start_time)
         end_ms = float(current_words[-1].end_time)
         caption_text = "".join(word.word for word in current_words)
+        caption_text = _strip_ending_punctuation(caption_text)
         pause_ms = max(0.0, (next_start_ms - end_ms) if next_start_ms is not None else 0.0)
         segments.append(
             {
@@ -166,6 +184,7 @@ def _build_segments_from_words(words: list[VolcanoWordTimestamp]) -> tuple[list[
             )
             if should_split:
                 flush_segment("comma_rule", next_start_ms)
+                continue
 
     flush_segment("tail", None)
     return segments, decisions
