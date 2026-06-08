@@ -282,27 +282,30 @@ async def process_volcovoice_task(voice_config: Volcovoice_VO) -> VolcovoiceResp
             raise ServiceException(code=450, message="unsupported volcovoice character")
         output_format = _normalize_output_format(voice_config.file_format)
 
-        concurrency_sem = asyncio.Semaphore(15)
+        volcano_sem = asyncio.Semaphore(12)
+        ffmpeg_sem = asyncio.Semaphore(15)
+        obs_sem = asyncio.Semaphore(20)
 
         async def process_single_text(idx: int, text: str) -> tuple[int, VolcovoiceObject, dict[str, Any]]:
-            async with concurrency_sem:
-                # Check if the text contains any pronounceable characters (Chinese, English letters, or numbers)
-                is_pronounceable = False
-                if text:
-                    is_pronounceable = bool(re.search(r"[\u4e00-\u9fa5a-zA-Z0-9]", text))
+            # Check if the text contains any pronounceable characters (Chinese, English letters, or numbers)
+            is_pronounceable = False
+            if text:
+                is_pronounceable = bool(re.search(r"[\u4e00-\u9fa5a-zA-Z0-9]", text))
 
-                if not is_pronounceable:
-                    log.info(f"Skipping Volcano TTS for non-pronounceable/empty text at index {idx}: {repr(text)}")
-                    return idx, VolcovoiceObject(full_voice="", duration=0.0, detail_info=[]), {
-                        "index": idx,
-                        "text": text,
-                        "segments": [],
-                        "decisions": [],
-                        "detail_info": [],
-                    }
+            if not is_pronounceable:
+                log.info(f"Skipping Volcano TTS for non-pronounceable/empty text at index {idx}: {repr(text)}")
+                return idx, VolcovoiceObject(full_voice="", duration=0.0, detail_info=[]), {
+                    "index": idx,
+                    "text": text,
+                    "segments": [],
+                    "decisions": [],
+                    "detail_info": [],
+                }
 
-                raw_audio_output = os.path.join(output_prefix, f"volcovoice{idx}_{project_id}.{output_format}")
-                raw_debug_json_path = os.path.join(output_prefix, f"volcovoice{idx}_{project_id}_raw.json")
+            raw_audio_output = os.path.join(output_prefix, f"volcovoice{idx}_{project_id}.{output_format}")
+            raw_debug_json_path = os.path.join(output_prefix, f"volcovoice{idx}_{project_id}_raw.json")
+            
+            async with volcano_sem:
                 generate_result = await volcano_generate_voice(
                     character_options[voice_config.voice_character],
                     text,
@@ -316,97 +319,113 @@ async def process_volcovoice_task(voice_config: Volcovoice_VO) -> VolcovoiceResp
                     encoding=output_format,
                 )
 
-                working_audio = raw_audio_output
-                if voice_config.volume == 0:
+            working_audio = raw_audio_output
+            if voice_config.volume == 0:
+                async with ffmpeg_sem:
                     working_audio = await mute_audio(raw_audio_output, project_id)
 
-                final_full_audio = os.path.join(output_prefix, f"volcovoice{idx}_{project_id}{_output_suffix(output_format)}")
-                if output_format == "wav" or output_format == "mp3":
-                    if working_audio != final_full_audio:
+            final_full_audio = os.path.join(output_prefix, f"volcovoice{idx}_{project_id}{_output_suffix(output_format)}")
+            if output_format == "wav" or output_format == "mp3":
+                if working_audio != final_full_audio:
+                    async with ffmpeg_sem:
                         await asyncio.to_thread(_transcode_audio, working_audio, final_full_audio, output_format)
-                    else:
-                        final_full_audio = working_audio
                 else:
+                    final_full_audio = working_audio
+            else:
+                async with ffmpeg_sem:
                     await asyncio.to_thread(_transcode_audio, working_audio, final_full_audio, output_format)
 
-                full_duration = (await asyncio.to_thread(get_audio_info, [final_full_audio]))[0]
-                words = parse_frontend_words(generate_result.frontend_payloads)
-                segments, decisions = _build_segments_from_words(words)
+            words = parse_frontend_words(generate_result.frontend_payloads)
+            segments, decisions = _build_segments_from_words(words)
 
-                segment_paths: list[str] = []
-                if segments:
-                    trim_tasks = []
-                    for seg_idx, segment in enumerate(segments):
-                        segment_name = _ensure_ascii_filename(f"seg_{idx}_{seg_idx}")
-                        segment_path = os.path.join(output_prefix, f"{segment_name}_{project_id}{_output_suffix(output_format)}")
-                        segment_paths.append(segment_path)
-                        trim_tasks.append(
-                            asyncio.to_thread(
-                                _trim_audio_segment,
-                                working_audio,
-                                segment_path,
-                                float(segment["start_ms"]),
-                                float(segment["end_ms"]),
-                                output_format,
-                            )
+            segment_paths: list[str] = []
+            if segments:
+                async def run_trim(seg, path):
+                    async with ffmpeg_sem:
+                        await asyncio.to_thread(
+                            _trim_audio_segment,
+                            working_audio,
+                            path,
+                            float(seg["start_ms"]),
+                            float(seg["end_ms"]),
+                            output_format,
                         )
-                    await asyncio.gather(*trim_tasks)
-                else:
-                    segment_paths.append(final_full_audio)
-                    segments = [
-                        {
-                            "caption_text": text,
-                            "start_ms": 0.0,
-                            "end_ms": full_duration * 1000.0,
-                            "duration_ms": full_duration * 1000.0,
-                            "pause_ms": 0.0,
-                            "boundary_reason": "fallback_full_audio",
-                            "word_count": 0,
-                        }
-                    ]
-                    decisions = [{"decision": "fallback_full_audio"}]
-
-                segment_durations = await asyncio.to_thread(get_audio_info, segment_paths)
-                segment_urls = await asyncio.gather(*[upload_audio(path, project_id=project_id) for path in segment_paths])
-                full_voice_url = await upload_audio(final_full_audio, project_id=project_id)
-
-                detail_info: list[VolcovoiceDetail] = []
+                trim_tasks = []
                 for seg_idx, segment in enumerate(segments):
-                    detail_info.append(
-                        VolcovoiceDetail(
-                            segment_url=segment_urls[seg_idx] if seg_idx < len(segment_urls) else "",
-                            segment_duration=segment_durations[seg_idx] if seg_idx < len(segment_durations) else 0.0,
-                            pause=round(float(segment["pause_ms"]) / 1000.0, 3),
-                            caption_text=str(segment["caption_text"]),
-                        )
-                    )
+                    segment_name = _ensure_ascii_filename(f"seg_{idx}_{seg_idx}")
+                    segment_path = os.path.join(output_prefix, f"{segment_name}_{project_id}{_output_suffix(output_format)}")
+                    segment_paths.append(segment_path)
+                    trim_tasks.append(run_trim(segment, segment_path))
+                await asyncio.gather(*trim_tasks)
 
-                obj_res = VolcovoiceObject(
-                    full_voice=full_voice_url,
-                    duration=full_duration,
-                    detail_info=detail_info,
+                # Batch fetch durations for both segment paths and final full audio
+                all_info_paths = segment_paths + [final_full_audio]
+                all_durations = await asyncio.to_thread(get_audio_info, all_info_paths)
+                segment_durations = all_durations[:-1]
+                full_duration = all_durations[-1]
+            else:
+                segment_paths.append(final_full_audio)
+                full_duration = (await asyncio.to_thread(get_audio_info, [final_full_audio]))[0]
+                segments = [
+                    {
+                        "caption_text": text,
+                        "start_ms": 0.0,
+                        "end_ms": full_duration * 1000.0,
+                        "duration_ms": full_duration * 1000.0,
+                        "pause_ms": 0.0,
+                        "boundary_reason": "fallback_full_audio",
+                        "word_count": 0,
+                    }
+                ]
+                decisions = [{"decision": "fallback_full_audio"}]
+                segment_durations = [full_duration]
+            
+            async def run_upload(path):
+                async with obs_sem:
+                    return await upload_audio(path, project_id=project_id)
+            
+            all_paths = segment_paths + [final_full_audio]
+            all_urls = await asyncio.gather(*[run_upload(path) for path in all_paths])
+            segment_urls = all_urls[:-1]
+            full_voice_url = all_urls[-1]
+
+            detail_info: list[VolcovoiceDetail] = []
+            for seg_idx, segment in enumerate(segments):
+                detail_info.append(
+                    VolcovoiceDetail(
+                        segment_url=segment_urls[seg_idx] if seg_idx < len(segment_urls) else "",
+                        segment_duration=segment_durations[seg_idx] if seg_idx < len(segment_durations) else 0.0,
+                        pause=round(float(segment["pause_ms"]) / 1000.0, 3),
+                        caption_text=str(segment["caption_text"]),
+                    )
                 )
-                debug_obj = {
-                    "index": idx,
-                    "text": text,
-                    "full_voice_local_path": final_full_audio,
-                    "full_voice_url": full_voice_url,
-                    "full_duration": full_duration,
-                    "raw_debug_json_path": raw_debug_json_path,
-                    "frontend_words": [
-                        {
-                            "word": word.word,
-                            "start_time": word.start_time,
-                            "end_time": word.end_time,
-                            "confidence": word.confidence,
-                        }
-                        for word in words
-                    ],
-                    "segments": segments,
-                    "decisions": decisions,
-                    "detail_info": [item.model_dump() for item in detail_info],
-                }
-                return idx, obj_res, debug_obj
+
+            obj_res = VolcovoiceObject(
+                full_voice=full_voice_url,
+                duration=full_duration,
+                detail_info=detail_info,
+            )
+            debug_obj = {
+                "index": idx,
+                "text": text,
+                "full_voice_local_path": final_full_audio,
+                "full_voice_url": full_voice_url,
+                "full_duration": full_duration,
+                "raw_debug_json_path": raw_debug_json_path,
+                "frontend_words": [
+                    {
+                        "word": word.word,
+                        "start_time": word.start_time,
+                        "end_time": word.end_time,
+                        "confidence": word.confidence,
+                    }
+                    for word in words
+                ],
+                "segments": segments,
+                "decisions": decisions,
+                "detail_info": [item.model_dump() for item in detail_info],
+            }
+            return idx, obj_res, debug_obj
 
         try:
             tasks = [process_single_text(idx, text) for idx, text in enumerate(voice_config.txt_str)]
