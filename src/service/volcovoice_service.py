@@ -38,6 +38,11 @@ volcovoice_semaphore = Semaphore(
     max(1, int(my_config.get("audio", {}).get("Volcano", {}).get("max_concurrency", 20)))
 )
 
+# Global semaphore for Volcano WebSocket connections to prevent 429 concurrency quota exceeded errors
+volcano_ws_semaphore = Semaphore(
+    max(1, int(my_config.get("audio", {}).get("Volcano", {}).get("max_concurrency", 8)))
+)
+
 STRONG_PUNCTUATION = "\u3002\uff01\uff1f!?\uff1b;"
 COMMA_PUNCTUATION = "\uff0c,\u3001\uff1a:"
 COMMA_SOFT_MIN_CHARS = 4
@@ -282,7 +287,6 @@ async def process_volcovoice_task(voice_config: Volcovoice_VO) -> VolcovoiceResp
             raise ServiceException(code=450, message="unsupported volcovoice character")
         output_format = _normalize_output_format(voice_config.file_format)
 
-        volcano_sem = asyncio.Semaphore(12)
         ffmpeg_sem = asyncio.Semaphore(15)
         obs_sem = asyncio.Semaphore(20)
 
@@ -305,7 +309,7 @@ async def process_volcovoice_task(voice_config: Volcovoice_VO) -> VolcovoiceResp
             raw_audio_output = os.path.join(output_prefix, f"volcovoice{idx}_{project_id}.{output_format}")
             raw_debug_json_path = os.path.join(output_prefix, f"volcovoice{idx}_{project_id}_raw.json")
             
-            async with volcano_sem:
+            async with volcano_ws_semaphore:
                 generate_result = await volcano_generate_voice(
                     character_options[voice_config.voice_character],
                     text,
