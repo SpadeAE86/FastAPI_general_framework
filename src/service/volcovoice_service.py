@@ -309,7 +309,7 @@ async def process_volcovoice_task(voice_config: Volcovoice_VO) -> VolcovoiceResp
                     character_options[voice_config.voice_character],
                     text,
                     raw_audio_output,
-                    speed=2 ** (voice_config.audio_speed_level / 500),
+                    speed=voice_config.audio_speed_level,
                     volume=voice_config.volume / 100,
                     emotion=voice_config.emotion or "neutral",
                     emotion_active=voice_config.intensity is not None,
@@ -440,7 +440,7 @@ async def process_volcovoice_task(voice_config: Volcovoice_VO) -> VolcovoiceResp
             biz_id=voice_config.biz_id or 0,
             object_list=object_results,
             volume=int(voice_config.volume),
-            speech_rate=2 ** (voice_config.audio_speed_level / 500),
+            speech_rate=voice_config.audio_speed_level,
             voice_character=voice_config.voice_character,
             debug_json_url=debug_json_url,
         )

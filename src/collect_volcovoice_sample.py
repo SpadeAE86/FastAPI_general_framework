@@ -145,7 +145,7 @@ async def _process_single_voice_sample(
         user_id=0,
         txt_str=[txt_content],
         voice_character=voice_character,
-        audio_speed_level=0,
+        audio_speed_level=1.0,
         volume=80,
     )
     response = await process_volcovoice_task(request)
