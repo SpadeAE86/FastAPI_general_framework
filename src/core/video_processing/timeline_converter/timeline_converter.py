@@ -114,11 +114,34 @@ class TimelineConverter:
 
         # 起始点在当前片段之前
         if local_offset < 0:
+            # 判断该音频是否能在当前片段播放（即其结束时间是否晚于当前片段起始时间）
+            if src_end < 0:
+                global_end = float('inf')
+            elif src_end > global_offset:
+                # 传入的是全局结束时间
+                global_end = src_end
+            else:
+                # 传入的是资源自身裁剪区间结束值（本地相对时间）
+                global_end = global_offset + (src_end - src_start)
+
+            if global_end <= self.processed_so_far:
+                log.debug(
+                    f"map_offset_range: offset {global_offset:.3f} and end {global_end:.3f} "
+                    f"before clip start {self.processed_so_far:.3f}, skip"
+                )
+                return None
+
+            # 计算在当前片段需要裁剪跳过的时长
+            skip_duration = self.processed_so_far - global_offset
+            src_start = src_start + skip_duration
+            local_offset = 0.0
+
             log.debug(
-                f"map_offset_range: offset {global_offset:.3f} "
-                f"before clip start {self.processed_so_far:.3f}, skip"
+                f"map_offset_range: overlap offset {global_offset:.3f} "
+                f"-> local {local_offset:.3f}s, skipped {skip_duration:.3f}s, new src_start {src_start:.3f} "
+                f"[psf={self.processed_so_far:.3f}, dur={self.clip_duration:.3f}]"
             )
-            return None
+            return local_offset, src_start, src_end
 
         log.debug(
             f"map_offset_range: offset {global_offset:.3f} "

@@ -1,98 +1,147 @@
 {
   "audio_config": [
     {
-      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts0_alivoice_1780477456833_8_3170a8.wav",
-      "end": 1.13,
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts0_alivoice_1780467289858_8_1cc106.wav",
+      "end": 3.7,
       "offset": 0.0,
       "start": 0.0
     },
     {
-      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts1_alivoice_1780477456833_8_3170a8.wav",
-      "end": 2.23,
-      "offset": 1.13,
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts1_alivoice_1780467289858_8_1cc106.wav",
+      "end": 5.93,
+      "offset": 3.7,
       "start": 0.0
     },
     {
-      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts2_alivoice_1780477456833_8_3170a8.wav",
-      "end": 3.23,
-      "offset": 2.23,
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts2_alivoice_1780467289858_8_1cc106.wav",
+      "end": 7.66,
+      "offset": 5.93,
       "start": 0.0
     },
     {
-      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts3_alivoice_1780477456833_8_3170a8.wav",
-      "end": 4.4,
-      "offset": 3.23,
-      "start": 0.0
-    },
-    {
-      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts4_alivoice_1780477456833_8_3170a8.wav",
-      "end": 5.57,
-      "offset": 4.4,
-      "start": 0.0
-    },
-    {
-      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts5_alivoice_1780477456833_8_3170a8.wav",
-      "end": 6.63,
-      "offset": 5.57,
-      "start": 0.0
-    },
-    {
-      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts6_alivoice_1780477456833_8_3170a8.wav",
-      "end": 7.63,
-      "offset": 6.63,
-      "start": 0.0
-    },
-    {
-      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts7_alivoice_1780477456833_8_3170a8.wav",
-      "end": 8.87,
-      "offset": 7.63,
-      "start": 0.0
-    },
-    {
-      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts8_alivoice_1780477456833_8_3170a8.wav",
-      "end": 9.9,
-      "offset": 8.87,
-      "start": 0.0
-    },
-    {
-      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts9_alivoice_1780477456833_8_3170a8.wav",
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts3_alivoice_1780467289858_8_1cc106.wav",
       "end": 10.29,
-      "offset": 9.9,
+      "offset": 7.67,
       "start": 0.0
     },
     {
-      "audioUrl": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_feature/alivoice_1780478126951_8_e12571/alitts0_alivoice_1780478126951_8_e12571.wav",
-      "end": 8.83,
-      "offset": 8.23,
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts4_alivoice_1780467289858_8_1cc106.wav",
+      "end": 12.219999999999999,
+      "offset": 10.3,
       "start": 0.0
     },
     {
-      "audioUrl": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_feature/alivoice_1780478129927_8_d01596/alitts0_alivoice_1780478129927_8_d01596.wav",
-      "end": 9.43,
-      "offset": 8.83,
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts5_alivoice_1780467289858_8_1cc106.wav",
+      "end": 13.919999999999998,
+      "offset": 12.23,
       "start": 0.0
     },
     {
-      "audioUrl": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_feature/alivoice_1780478132515_8_d79b41/alitts0_alivoice_1780478132515_8_d79b41.wav",
-      "end": 10.03,
-      "offset": 9.43,
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts6_alivoice_1780467289858_8_1cc106.wav",
+      "end": 15.949999999999998,
+      "offset": 13.93,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts7_alivoice_1780467289858_8_1cc106.wav",
+      "end": 17.72,
+      "offset": 15.97,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts8_alivoice_1780467289858_8_1cc106.wav",
+      "end": 18.79,
+      "offset": 17.73,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts9_alivoice_1780467289858_8_1cc106.wav",
+      "end": 21.259999999999998,
+      "offset": 18.8,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts10_alivoice_1780467289858_8_1cc106.wav",
+      "end": 23.459999999999997,
+      "offset": 21.27,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts11_alivoice_1780467289858_8_1cc106.wav",
+      "end": 26.859999999999996,
+      "offset": 23.47,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts12_alivoice_1780467289858_8_1cc106.wav",
+      "end": 28.329999999999995,
+      "offset": 26.87,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts13_alivoice_1780467289858_8_1cc106.wav",
+      "end": 32.33,
+      "offset": 28.33,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts14_alivoice_1780467289858_8_1cc106.wav",
+      "end": 33.629999999999995,
+      "offset": 32.33,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts15_alivoice_1780467289858_8_1cc106.wav",
+      "end": 35.49999999999999,
+      "offset": 33.63,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts16_alivoice_1780467289858_8_1cc106.wav",
+      "end": 38.56999999999999,
+      "offset": 35.5,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts17_alivoice_1780467289858_8_1cc106.wav",
+      "end": 40.33,
+      "offset": 38.57,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts18_alivoice_1780467289858_8_1cc106.wav",
+      "end": 42.43,
+      "offset": 40.33,
       "start": 0.0
     }
   ],
-  "biz_id": 7119,
+  "bgm_config": [
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/crawl_data_base/jianying_music/有氧燃脂运动健身蓝色激情.MP3",
+      "ease_in": 0.0,
+      "ease_out": 1.0,
+      "end": 42.43,
+      "offset": 0.0,
+      "speed": 1.0,
+      "start": 0.0
+    }
+  ],
+  "biz_id": 7138,
   "cap_config": {
     "caption_list": [
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts0_alivoice_1780477456833_8_3170a8.wav",
-        "background_type": 0,
-        "cap": "是不是一到天热",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts0_alivoice_1780467289858_8_1cc106.wav",
+        "background_color": "#2A1BD2FF",
+        "background_type": 1,
+        "cap": "是不是@每次、、换画/材都要找适配的辅助‘；工具",
         "color": "#FFFFFFFF",
-        "end": 1.13,
-        "font_size": 30,
-        "font_type": "Source Han Sans CN",
+        "end": 3.7,
+        "font_size": 34,
+        "font_type": "Alibaba PuHuiTi",
         "outline_color": "transparent",
+        "outline_width": 0,
         "rotation": 0.0,
         "scale": 1.0,
         "start": 0.0
@@ -100,279 +149,279 @@
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts1_alivoice_1780477456833_8_3170a8.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts1_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "穿裤子就闷得",
+        "cap": "水彩要专门的调色盘",
         "color": "#FFFFFFFF",
-        "end": 2.23,
-        "font_size": 30,
+        "end": 5.93,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 1.13
+        "start": 3.7
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts2_alivoice_1780477456833_8_3170a8.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts2_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "腿上黏糊糊的",
+        "cap": "丙烯要换刮刀",
         "color": "#FFFFFFFF",
-        "end": 3.23,
-        "font_size": 30,
+        "end": 7.67,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 2.23
+        "start": 5.93
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts3_alivoice_1780477456833_8_3170a8.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts3_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "走两步就卡裆",
+        "cap": "马克笔还得配专属收纳盒",
         "color": "#FFFFFFFF",
-        "end": 4.4,
-        "font_size": 30,
+        "end": 10.3,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 3.23
+        "start": 7.67
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts4_alivoice_1780477456833_8_3170a8.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts4_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "磨腿出门半天",
+        "cap": "零零碎碎堆一桌子",
         "color": "#FFFFFFFF",
-        "end": 5.57,
-        "font_size": 30,
+        "end": 12.23,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 4.4
+        "start": 10.3
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts5_alivoice_1780477456833_8_3170a8.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts5_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "浑身都不舒服",
+        "cap": "找东西找半天",
         "color": "#FFFFFFFF",
-        "end": 6.63,
-        "font_size": 30,
+        "end": 13.93,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 5.57
+        "start": 12.23
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts6_alivoice_1780477456833_8_3170a8.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts6_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "别再忍了",
+        "cap": "创作灵感全磨没了",
         "color": "#FFFFFFFF",
-        "end": 7.63,
-        "font_size": 30,
+        "end": 15.97,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 6.63
+        "start": 13.93
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts7_alivoice_1780477456833_8_3170a8.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts7_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "试试ver这条裤子",
+        "cap": "钱也花了不老少",
         "color": "#FFFFFFFF",
-        "end": 8.87,
-        "font_size": 30,
+        "end": 17.73,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 7.63
+        "start": 15.97
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts8_alivoice_1780477456833_8_3170a8.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts8_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "纯棉亲肤还",
+        "cap": "别愁了",
         "color": "#FFFFFFFF",
-        "end": 9.9,
-        "font_size": 30,
+        "end": 18.8,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 8.87
+        "start": 17.73
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts9_alivoice_1780477456833_8_3170a8.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts9_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "特别透气",
+        "cap": "EIGHT就能完美解决这个问题",
         "color": "#FFFFFFFF",
-        "end": 10.9,
-        "font_size": 30,
+        "end": 21.27,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 9.9
+        "start": 18.8
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts10_alivoice_1780477456833_8_3170a8.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts10_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "穿上跟没穿似的",
+        "cap": "适配全品类创作工具",
         "color": "#FFFFFFFF",
-        "end": 12.17,
-        "font_size": 30,
+        "end": 23.47,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 10.9
+        "start": 21.27
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts11_alivoice_1780477456833_8_3170a8.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts11_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "再也不用遭那份",
+        "cap": "不管你是画水彩、玩丙烯还是写书法",
         "color": "#FFFFFFFF",
-        "end": 13.33,
-        "font_size": 30,
+        "end": 26.87,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 12.17
+        "start": 23.47
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts12_alivoice_1780477456833_8_3170a8.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts12_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "闷汗的罪",
+        "cap": "有这一套就够",
         "color": "#FFFFFFFF",
-        "end": 14.33,
-        "font_size": 30,
+        "end": 28.33,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 13.33
+        "start": 26.87
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts13_alivoice_1780477456833_8_3170a8.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts13_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "现在就给自己",
+        "cap": "以前攒的那些乱七八糟的配件全可以收起来了",
         "color": "#FFFFFFFF",
-        "end": 15.43,
-        "font_size": 30,
+        "end": 32.33,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 14.33
+        "start": 28.33
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts14_alivoice_1780477456833_8_3170a8.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts14_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "换个舒服的",
+        "cap": "桌面清爽",
         "color": "#FFFFFFFF",
-        "end": 16.43,
-        "font_size": 30,
+        "end": 33.63,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 15.43
+        "start": 32.33
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts15_alivoice_1780477456833_8_3170a8.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts15_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "穿法吧",
+        "cap": "创作起来也顺畅",
         "color": "#FFFFFFFF",
-        "end": 17.43,
-        "font_size": 30,
+        "end": 35.5,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 16.43
+        "start": 33.63
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_feature/alivoice_1780478126951_8_e12571/alitts0_alivoice_1780478126951_8_e12571.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts16_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "新字幕",
+        "cap": "别再忍那些杂七杂八的工具添乱了",
         "color": "#FFFFFFFF",
-        "end": 8.83,
-        "font_size": 30,
+        "end": 38.57,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 8.23
+        "start": 35.5
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_feature/alivoice_1780478129927_8_d01596/alitts0_alivoice_1780478129927_8_d01596.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts17_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "新字幕",
+        "cap": "现在点小黄车",
         "color": "#FFFFFFFF",
-        "end": 9.43,
-        "font_size": 30,
+        "end": 40.33,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 8.83
+        "start": 38.57
       },
       {
         "absolute_x": 0.0,
         "absolute_y": 0.2,
-        "audioUrl": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_feature/alivoice_1780478132515_8_d79b41/alitts0_alivoice_1780478132515_8_d79b41.wav",
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts18_alivoice_1780467289858_8_1cc106.wav",
         "background_type": 0,
-        "cap": "新字幕",
+        "cap": "换个省事的创作方式",
         "color": "#FFFFFFFF",
-        "end": 10.03,
-        "font_size": 30,
+        "end": 42.43,
+        "font_size": 34,
         "font_type": "Source Han Sans CN",
         "outline_color": "transparent",
         "rotation": 0.0,
         "scale": 1.0,
-        "start": 9.43
+        "start": 40.33
       }
     ]
   },
   "crop_config": [
     {
-      "end": 8.0,
-      "extend_to": 10.29,
+      "end": 32.0,
+      "extend_to": 3.6999999999999993,
       "mirror": false,
       "rotation": 0.0,
       "scale": 1.0,
@@ -382,19 +431,140 @@
       "translate_y": 0.0
     },
     {
-      "end": 1.8,
-      "extend_to": 2.25,
+      "end": 2.23,
+      "extend_to": 2.23,
       "mirror": false,
       "rotation": 0.0,
       "scale": 1.0,
       "speed": 1.0,
       "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 3.6,
+      "extend_to": 3.6,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 1.87,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 2.63,
+      "extend_to": 2.63,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 3.8,
+      "extend_to": 3.8,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 1.87,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 5.23,
+      "extend_to": 5.2299999999999995,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 3.53,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 2.03,
+      "extend_to": 2.03,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 5.3,
+      "extend_to": 5.3,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 3.53,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 4.6,
+      "extend_to": 4.6,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 3.53,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 2.47,
+      "extend_to": 2.47,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 2.2,
+      "extend_to": 2.2,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 3.4,
+      "extend_to": 3.4,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 3.33,
+      "extend_to": 3.34,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 1.87,
       "translate_x": 0.0,
       "translate_y": 0.0
     },
     {
       "end": 4.0,
-      "extend_to": 5.0,
+      "extend_to": 4.0,
       "mirror": false,
       "rotation": 0.0,
       "scale": 1.0,
@@ -404,8 +574,30 @@
       "translate_y": 0.0
     },
     {
-      "end": 4.0,
-      "extend_to": 5.0,
+      "end": 4.83,
+      "extend_to": 4.83,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 3.53,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 3.73,
+      "extend_to": 3.74,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 1.87,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 3.07,
+      "extend_to": 3.07,
       "mirror": false,
       "rotation": 0.0,
       "scale": 1.0,
@@ -415,8 +607,8 @@
       "translate_y": 0.0
     },
     {
-      "end": 5.0,
-      "extend_to": 5.0,
+      "end": 1.77,
+      "extend_to": 1.77,
       "mirror": false,
       "rotation": 0.0,
       "scale": 1.0,
@@ -426,8 +618,8 @@
       "translate_y": 0.0
     },
     {
-      "end": 9.0,
-      "extend_to": 9.0,
+      "end": 2.1,
+      "extend_to": 2.1,
       "mirror": false,
       "rotation": 0.0,
       "scale": 1.0,
@@ -533,39 +725,282 @@
           "value": 1
         }
       ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
     }
   ],
   "fps": 30,
   "mute_config": [
-    true,
-    true,
-    true,
-    true,
-    true,
-    true
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
   ],
   "obs_audio_path_list": [
-    "aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts0_alivoice_1780477456833_8_3170a8.wav",
-    "aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts1_alivoice_1780477456833_8_3170a8.wav",
-    "aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts2_alivoice_1780477456833_8_3170a8.wav",
-    "aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts3_alivoice_1780477456833_8_3170a8.wav",
-    "aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts4_alivoice_1780477456833_8_3170a8.wav",
-    "aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts5_alivoice_1780477456833_8_3170a8.wav",
-    "aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts6_alivoice_1780477456833_8_3170a8.wav",
-    "aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts7_alivoice_1780477456833_8_3170a8.wav",
-    "aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts8_alivoice_1780477456833_8_3170a8.wav",
-    "aigc/aigc_feature/alivoice_1780477456833_8_3170a8/alitts9_alivoice_1780477456833_8_3170a8.wav",
-    "aigc/aigc_feature/alivoice_1780478126951_8_e12571/alitts0_alivoice_1780478126951_8_e12571.wav",
-    "aigc/aigc_feature/alivoice_1780478129927_8_d01596/alitts0_alivoice_1780478129927_8_d01596.wav",
-    "aigc/aigc_feature/alivoice_1780478132515_8_d79b41/alitts0_alivoice_1780478132515_8_d79b41.wav"
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts0_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts1_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts2_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts3_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts4_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts5_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts6_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts7_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts8_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts9_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts10_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts11_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts12_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts13_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts14_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts15_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts16_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts17_alivoice_1780467289858_8_1cc106.wav",
+    "aigc/aigc_feature/alivoice_1780467289858_8_1cc106/alitts18_alivoice_1780467289858_8_1cc106.wav"
+  ],
+  "obs_bgm_path_list": [
+    "aigc/crawl_data_base/jianying_music/有氧燃脂运动健身蓝色激情.MP3"
   ],
   "obs_video_path_list": [
-    "aigc/aigc_test/50/2062097700845649921/0/video/transcode_2062098345636003842_1780477560980/0ee70994-9ecb-4ff4-9420-1663ae113f5b_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/50/2062097700845649921/0/video/transcode_2062098345636003843_1780477555457/4012de3a-2c16-4fa8-96aa-dce89664a733_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/50/2062097700845649921/0/video/transcode_2062097778213781506_1780477397613/f19972a4-53c2-469f-9089-b1dc63177607_H.264_1280x720_700.mp4",
-    "aigc/aigc_test/50/2062097700845649921/0/video/transcode_2062098345636003846_1780477547802/4ef18e2b-7810-4d8d-aa28-0ad6062ff5b3_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/50/2062097700845649921/0/video/transcode_2062098345640198147_1780477546902/7d594f09-4049-4f38-b4d0-2ff1d813bc85_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/50/2062097700845649921/0/video/transcode_2062098345640198147_1780477546902/7d594f09-4049-4f38-b4d0-2ff1d813bc85_H.264_1080x1920_AAC_2100.mp4"
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2063878645220270084_1780901992341/020accee-6ee3-4f0a-80f4-d7e4100972ec_H.264_1080x1920_AAC_2100.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2063878645220270083_1780901993095/a9a7b4cf-1c68-47d8-aba7-1d7c66160c28_H.264_1080x1920_AAC_2100.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4",
+    "aigc/aigc_test/41/2059934048123305986/0/video/transcode_2059934227970867201_1779961566953/87742c9a-66a3-4c3d-805e-e6836ae31731_H.264_640x360_400.mp4"
   ],
   "ratio_type": "16:9",
   "request_data": {
@@ -573,13 +1008,26 @@
     "full_mix_video": true
   },
   "resolution": "1080p",
-  "user_id": 50,
+  "user_id": 41,
   "videoMaterialIdList": [
-    "2062098345636003842",
-    "2062098345636003843",
-    "2062097778213781506",
-    "2062098345636003846",
-    "2062098345640198147",
-    "2062098345640198147"
+    "2063878645220270084",
+    "2063878645220270083",
+    "2059934227970867201",
+    "2059934227970867201",
+    "2059934227970867201",
+    "2059934227970867201",
+    "2059934227970867201",
+    "2059934227970867201",
+    "2059934227970867201",
+    "2059934227970867201",
+    "2059934227970867201",
+    "2059934227970867201",
+    "2059934227970867201",
+    "2059934227970867201",
+    "2059934227970867201",
+    "2059934227970867201",
+    "2059934227970867201",
+    "2059934227970867201",
+    "2059934227970867201"
   ]
 }

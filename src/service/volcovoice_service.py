@@ -265,7 +265,13 @@ async def process_volcovoice_task(voice_config: Volcovoice_VO) -> VolcovoiceResp
 
         try:
             for idx, text in enumerate(voice_config.txt_str):
-                if not text:
+                # Check if the text contains any pronounceable characters (Chinese, English letters, or numbers)
+                is_pronounceable = False
+                if text:
+                    is_pronounceable = bool(re.search(r"[\u4e00-\u9fa5a-zA-Z0-9]", text))
+
+                if not is_pronounceable:
+                    log.info(f"Skipping Volcano TTS for non-pronounceable/empty text at index {idx}: {repr(text)}")
                     object_results.append(VolcovoiceObject(full_voice="", duration=0.0, detail_info=[]))
                     debug_objects.append(
                         {
