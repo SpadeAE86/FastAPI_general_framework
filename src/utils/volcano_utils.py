@@ -393,6 +393,7 @@ async def volcano_generate_voice(
     emotion_active=False,
     emotion_intensity=2.5,
     debug_dump_path: Optional[str] = None,
+    encoding: str = "wav",
 ) -> VolcanoGenerateResult:
     await acquire_rate_limit_token(voice_type)
     volcano_config = my_config.get("audio", {}).get("Volcano", {})
@@ -446,7 +447,7 @@ async def volcano_generate_voice(
             "user": {"uid": str(uuid.uuid4())},
             "audio": {
                 "voice_type": voice_type,
-                "encoding": "mp3",
+                "encoding": encoding,
                 "speed_ratio": speed,
                 "loudness_ratio": volume,
                 "emotion": emotion,

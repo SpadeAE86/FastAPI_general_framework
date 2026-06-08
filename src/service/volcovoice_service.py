@@ -303,7 +303,7 @@ async def process_volcovoice_task(voice_config: Volcovoice_VO) -> VolcovoiceResp
                     )
                     continue
 
-                raw_audio_output = os.path.join(output_prefix, f"volcovoice{idx}_{project_id}.wav")
+                raw_audio_output = os.path.join(output_prefix, f"volcovoice{idx}_{project_id}.{output_format}")
                 raw_debug_json_path = os.path.join(output_prefix, f"volcovoice{idx}_{project_id}_raw.json")
                 generate_result = await volcano_generate_voice(
                     character_options[voice_config.voice_character],
@@ -315,6 +315,7 @@ async def process_volcovoice_task(voice_config: Volcovoice_VO) -> VolcovoiceResp
                     emotion_active=voice_config.intensity is not None,
                     emotion_intensity=voice_config.intensity if voice_config.intensity is not None else 2.5,
                     debug_dump_path=raw_debug_json_path,
+                    encoding=output_format,
                 )
 
                 working_audio = raw_audio_output
@@ -322,7 +323,7 @@ async def process_volcovoice_task(voice_config: Volcovoice_VO) -> VolcovoiceResp
                     working_audio = await mute_audio(raw_audio_output, project_id)
 
                 final_full_audio = os.path.join(output_prefix, f"volcovoice{idx}_{project_id}{_output_suffix(output_format)}")
-                if output_format == "wav":
+                if output_format == "wav" or output_format == "mp3":
                     if working_audio != final_full_audio:
                         await asyncio.to_thread(_transcode_audio, working_audio, final_full_audio, output_format)
                     else:
