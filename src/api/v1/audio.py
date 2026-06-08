@@ -99,6 +99,7 @@ async def list_voice_models(
                 "priority": row.priority,
                 "age_type": row.age_type,
                 "sex": row.sex,
+                "voice_sample": row.full_voice,
             }
 
         if model_type == "all":

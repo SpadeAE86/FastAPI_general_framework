@@ -2,6 +2,7 @@ import asyncio
 import base64
 import json
 import random
+import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -14,6 +15,7 @@ from config.config import my_config
 from exceptions.ServiceException import ServiceException
 from sdk.volcano_protocols import MsgType, full_client_request, receive_message
 from utils.log_utils import logger as log
+from utils.redis_client import RedisClientFactory
 
 
 @dataclass
@@ -303,6 +305,84 @@ def volcano_singleton_timestamps_test(
     )
 
 
+TOKEN_BUCKET_LUA = """
+local key = KEYS[1]
+local capacity = tonumber(ARGV[1])
+local rate = tonumber(ARGV[2])
+local now = tonumber(ARGV[3])
+local requested = tonumber(ARGV[4] or 1)
+
+local state = redis.call('HMGET', key, 'tokens', 'last_updated')
+local tokens = tonumber(state[1])
+local last_updated = tonumber(state[2])
+
+if not tokens then
+    tokens = capacity
+    last_updated = now
+else
+    local elapsed = now - last_updated
+    if elapsed > 0 then
+        tokens = math.min(capacity, tokens + elapsed * rate)
+        last_updated = now
+    end
+end
+
+if tokens >= requested then
+    tokens = tokens - requested
+    redis.call('HMSET', key, 'tokens', tokens, 'last_updated', last_updated)
+    redis.call('EXPIRE', key, 60)
+    return {1, 0}
+else
+    local wait_time = (requested - tokens) / rate
+    return {0, wait_time}
+end
+"""
+
+
+async def acquire_rate_limit_token(voice_type: str) -> None:
+    is_small = voice_type.startswith("BV")
+    if is_small:
+        key = "rate_limit:volcovoice:small"
+        capacity = 100
+        rate = 100.0
+    else:
+        key = "rate_limit:volcovoice:big"
+        capacity = 10
+        rate = 10.0
+
+    start_time = time.time()
+    max_wait = 60.0
+
+    while True:
+        if time.time() - start_time > max_wait:
+            log.warning(f"Volcano rate limit wait timeout exceeded ({max_wait}s) for {voice_type}, proceeding anyway.")
+            break
+
+        try:
+            redis_client = RedisClientFactory.get_client()
+            res = await asyncio.to_thread(
+                redis_client.eval,
+                TOKEN_BUCKET_LUA,
+                1,
+                key,
+                capacity,
+                rate,
+                time.time()
+            )
+
+            allowed = res[0]
+            wait_time = res[1]
+            if allowed == 1:
+                break
+
+            sleep_time = max(0.005, min(1.0, float(wait_time)))
+            await asyncio.sleep(sleep_time)
+
+        except Exception as e:
+            log.warning(f"Redis rate limiting failed: {e}. Falling back to no limit.")
+            break
+
+
 async def volcano_generate_voice(
     voice_type,
     text,
@@ -314,6 +394,7 @@ async def volcano_generate_voice(
     emotion_intensity=2.5,
     debug_dump_path: Optional[str] = None,
 ) -> VolcanoGenerateResult:
+    await acquire_rate_limit_token(voice_type)
     volcano_config = my_config.get("audio", {}).get("Volcano", {})
     appid = volcano_config.get("app_id") or volcano_config.get("appid")
     access_token = volcano_config.get("access_token")

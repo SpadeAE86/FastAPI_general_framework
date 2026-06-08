@@ -455,15 +455,29 @@ def quick_segment(video: Union[Path, URL],
         raise
 
 def build_atempo_filter(speed_ratio):
-    if speed_ratio >= 0.5:
+    if speed_ratio < 0.1:
+        speed_ratio = 0.1
+    elif speed_ratio > 100.0:
+        speed_ratio = 100.0
+
+    if 0.5 <= speed_ratio <= 2.0:
         return f"atempo={speed_ratio}"
+    
     filters = []
     ratio = speed_ratio
-    while ratio < 0.5:
-        filters.append("atempo=0.5")
-        ratio /= 0.5
-    if ratio > 0:
-        filters.append(f"atempo={ratio}")
+    if ratio < 0.5:
+        while ratio < 0.5:
+            filters.append("atempo=0.5")
+            ratio /= 0.5
+        if ratio > 0:
+            filters.append(f"atempo={ratio}")
+    else:
+        while ratio > 2.0:
+            filters.append("atempo=2.0")
+            ratio /= 2.0
+        if ratio > 0:
+            filters.append(f"atempo={ratio}")
+            
     return ",".join(filters)
 
 @dataclass
