@@ -1,69 +1,14 @@
 {
   "audio_config": [],
-  "biz_id": 6324,
+  "biz_id": 6330,
   "crop_config": [
     {
-      "end": 2.5,
-      "extend_to": 3.0,
+      "end": 77.33,
+      "extend_to": 116.0,
       "mirror": false,
       "rotation": 0.0,
       "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 2.5,
-      "extend_to": 3.0,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 2.5,
-      "extend_to": 3.0,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 4.0,
-      "extend_to": 4.0,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 3.97,
-      "extend_to": 3.97,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 4.0,
-      "extend_to": 4.53,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
+      "speed": 1.5,
       "start": 0.0,
       "translate_x": 0.0,
       "translate_y": 0.0
@@ -85,120 +30,24 @@
           "value": 1
         }
       ]
-    },
-    {
-      "filter_configs": [
-        {
-          "type": "tint",
-          "value": 0
-        },
-        {
-          "type": "temperature",
-          "value": 0
-        },
-        {
-          "type": "saturation",
-          "value": 1
-        }
-      ]
-    },
-    {
-      "filter_configs": [
-        {
-          "type": "tint",
-          "value": 0
-        },
-        {
-          "type": "temperature",
-          "value": 0
-        },
-        {
-          "type": "saturation",
-          "value": 1
-        }
-      ]
-    },
-    {
-      "filter_configs": [
-        {
-          "type": "tint",
-          "value": 0
-        },
-        {
-          "type": "temperature",
-          "value": 0
-        },
-        {
-          "type": "saturation",
-          "value": 1
-        }
-      ],
-      "filter_template": "warm_sun"
-    },
-    {
-      "filter_configs": [
-        {
-          "type": "tint",
-          "value": 0
-        },
-        {
-          "type": "temperature",
-          "value": 0
-        },
-        {
-          "type": "saturation",
-          "value": 1
-        }
-      ]
-    },
-    {
-      "filter_configs": [
-        {
-          "type": "tint",
-          "value": 0
-        },
-        {
-          "type": "temperature",
-          "value": 0
-        },
-        {
-          "type": "saturation",
-          "value": 1
-        }
-      ]
     }
   ],
   "fps": 30,
   "mute_config": [
-    false,
-    false,
-    false,
-    false,
-    false,
     false
   ],
   "obs_audio_path_list": [],
   "obs_video_path_list": [
-    "aigc/aigc_prod/52/2053046062099722241/0/video/transcode_2053046178147725313_1778319436466/0ec3b4bb-aacb-4a18-8c6f-c96c0bd53749_H.264_3840x2160_5600.mp4",
-    "aigc/aigc_prod/52/2053046062099722241/0/video/transcode_2053046178151919618_1778319466916/10a0eec7-e3c9-4858-8ded-6a4fe4f5fea9_H.264_1920x1080_AAC_2100.mp4",
-    "aigc/aigc_prod/52/2053046062099722241/0/video/transcode_2053046178164502531_1778319375558/5d9369c2-7f6f-43b8-80b5-4073e8c03e46_H.264_1920x1080_AAC_2100.mp4",
-    "aigc/aigc_prod/52/2053046062099722241/0/video/transcode_2053046178151919618_1778319466916/10a0eec7-e3c9-4858-8ded-6a4fe4f5fea9_H.264_1920x1080_AAC_2100.mp4",
-    "aigc/aigc_prod/52/2053046062099722241/0/video/transcode_2053046178156113922_1778319408268/670eb86f-ccdf-49b3-a466-3ab9da48d99e_H.264_3840x2160_5600.mp4",
-    "aigc/aigc_prod/52/2053046062099722241/0/video/transcode_2053046178151919617_1778319419328/cbf90893-19dd-4774-a5b3-32a2cfee2675_H.264_3840x2160_AAC_5600.mp4"
+    "aigc/aigc_prod/38/2059873227452108801/0/video/transcode_2062809911467085826_1780647184420/d926dfad-2779-4a7e-85a8-b31731d4dcce_H.264_1920x1080_AAC_2100.mp4"
   ],
   "ratio_type": "16:9",
   "request_data": {
     "bizTypeContext": "videoMixFull",
     "full_mix_video": true
   },
-  "resolution": "720p",
-  "user_id": 52,
+  "resolution": "1080p",
+  "user_id": 38,
   "videoMaterialIdList": [
-    "2053046178147725313",
-    "2053046178151919618",
-    "2053046178164502531",
-    "2053046178151919618",
-    "2053046178156113922",
-    "2053046178151919617"
+    "2062809911467085826"
   ]
 }

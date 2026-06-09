@@ -302,17 +302,18 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         video_filter_list.append(f"{end_v}{transform_str}[no_cap_v]")
         end_v = "[no_cap_v]"
 
-    # 此时start_time在后续滤镜链中都需要用到提速后的，包括duration时长也会改变
+    # 先记住目标总时长（正文 + 静帧尾部），静帧尾部不应该再被 speed 压缩
+    target_duration = max((end_time - start_time) + freeze_tail_duration, 0.0)
+    # 此时start_time在后续滤镜链中都需要用到提速后的，包括正文时长也会改变
     start_time = float(start_time/speed)
     end_time = float(end_time/speed)
-    duration = end_time - start_time
-    freeze_tail_duration = float(freeze_tail_duration / speed) if freeze_tail_duration else 0.0
-    if abs(freeze_tail_duration) < 1e-6:
-        freeze_tail_duration = 0.0
+    duration = max(end_time - start_time, 0.0)
+    freeze_tail_duration = max(target_duration - duration, 0.0)
     effective_duration = duration + freeze_tail_duration
     log.info(
         f"normalize durations: source_duration={source_duration}, clip_duration={duration}, "
-        f"freeze_tail_duration={freeze_tail_duration}, effective_duration={effective_duration}"
+        f"target_duration={target_duration}, freeze_tail_duration={freeze_tail_duration}, "
+        f"effective_duration={effective_duration}"
     )
     if duration > 0:
         video_filter_list.append(f"{end_v}trim=start=0:end={duration},setpts=PTS-STARTPTS[trim_v]")
