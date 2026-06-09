@@ -8,6 +8,7 @@ from models.pydantic_models.response.base_response import BaseResponse
 class VolcovoiceDetail(BaseModel):
     segment_url: str = ""
     segment_duration: float = 0.0
+    video_duration: float = 0.0
     pause: float = 0.0
     caption_text: str = ""
 

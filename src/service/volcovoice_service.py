@@ -399,10 +399,20 @@ async def process_volcovoice_task(voice_config: Volcovoice_VO) -> VolcovoiceResp
 
             detail_info: list[VolcovoiceDetail] = []
             for seg_idx, segment in enumerate(segments):
+                if len(segments) == 1:
+                    video_dur = full_duration
+                elif seg_idx == 0:
+                    video_dur = float(segment["end_ms"]) / 1000.0
+                elif seg_idx == len(segments) - 1:
+                    video_dur = max(0.0, (full_duration * 1000.0 - float(segment["start_ms"])) / 1000.0)
+                else:
+                    video_dur = float(segment["end_ms"] - segment["start_ms"]) / 1000.0
+
                 detail_info.append(
                     VolcovoiceDetail(
                         segment_url=segment_urls[seg_idx] if seg_idx < len(segment_urls) else "",
                         segment_duration=segment_durations[seg_idx] if seg_idx < len(segment_durations) else 0.0,
+                        video_duration=round(video_dur, 3),
                         pause=round(float(segment["pause_ms"]) / 1000.0, 3),
                         caption_text=str(segment["caption_text"]),
                     )
