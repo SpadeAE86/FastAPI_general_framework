@@ -1,366 +1,372 @@
 {
-  "audio_config": [],
-  "bgm_config": [
-    {
-      "ease_in": 0.0,
-      "ease_out": 0.0,
-      "end": -1.0,
-      "offset": 0.0,
-      "start": 0.0,
-      "volume": 1.0
-    },
-    {
-      "ease_in": 0.0,
-      "ease_out": 0.0,
-      "end": -1.0,
-      "offset": 0.0,
-      "start": 0.0,
-      "volume": 0.3
-    }
-  ],
-  "biz_id": 106882,
-  "cap_background_color": "#000000ff",
-  "cap_config": {
-    "caption_list": [
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "我是朝九晚五摸了两年鱼的策划岗",
-        "color": "#ffffff",
-        "end": 2.6599999,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 0.0
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "之前总觉得每天混日子也还行",
-        "color": "#ffffff",
-        "end": 5.2799999,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 2.6599999
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "直到上个月涨薪没轮到我才慌了",
-        "color": "#ffffff",
-        "end": 7.8899999,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 5.2799999
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "一开始刷到AUTO_TEST_202606010548的时候我还半信半疑",
-        "color": "#ffffff",
-        "end": 14.0899999,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 7.8899999
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "怕又是那种空喊口号没用的东西",
-        "color": "#ffffff",
-        "end": 16.6799999,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 14.0899999
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "抱着试试的心态跟着走了半个月",
-        "color": "#ffffff",
-        "end": 19.1699999,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 16.6799999
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "我现在每天下班能沉下心啃3小时专业书",
-        "color": "#ffffff",
-        "end": 22.6299999,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 19.1699999
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "上周做的方案还被总监点名夸了",
-        "color": "#ffffff",
-        "end": 25.3499999,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 22.6299999
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "真的不是那种割韭菜的东西",
-        "color": "#ffffff",
-        "end": 27.4899999,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 25.3499999
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "我自己用下来实打实有变化",
-        "color": "#ffffff",
-        "end": 29.8499999,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 27.4899999
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "你们要是也想摆脱浑浑噩噩的状态",
-        "color": "#ffffff",
-        "end": 32.5899999,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 29.8499999
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "真的可以试试",
-        "color": "#ffffff",
-        "end": 33.8799999,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 32.5899999
-      }
+    "audio_config": [
+
     ],
-    "font_type": "Alibaba Health Font 2.0 CN"
-  },
-  "cap_outline_color": "#000000",
-  "cap_outline_width": 1,
-  "crop_config": [
-    {
-      "end": 2.6599999999999997,
-      "extend_to": 2.6599999999999997,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
+    "bgm_config": [
+        {
+            "ease_in": 0,
+            "ease_out": 0,
+            "end": -1,
+            "offset": 0,
+            "start": 0,
+            "volume": 1
+        },
+        {
+            "ease_in": 0,
+            "ease_out": 0,
+            "end": -1,
+            "offset": 0,
+            "start": 0,
+            "volume": 0.3
+        }
+    ],
+    "biz_id": 106908,
+    "cap_background_color": "#000000ff",
+    "cap_config": {
+        "caption_list": [
+            {
+                "absolute_x": 0,
+                "absolute_y": 0.25,
+                "background_type": 0,
+                "cap": "我就是普通的上班族",
+                "color": "#ffffff",
+                "end": 1.91,
+                "font_size": 34,
+                "outline_width": 2,
+                "rotation": 0,
+                "scale": 1,
+                "start": 0
+            },
+            {
+                "absolute_x": 0,
+                "absolute_y": 0.25,
+                "background_type": 0,
+                "cap": "之前总觉得每天浑浑噩噩没方向",
+                "color": "#ffffff",
+                "end": 4.92,
+                "font_size": 34,
+                "outline_width": 2,
+                "rotation": 0,
+                "scale": 1,
+                "start": 1.91
+            },
+            {
+                "absolute_x": 0,
+                "absolute_y": 0.25,
+                "background_type": 0,
+                "cap": "刷到AUTO_TEST_202606010548的时候还犹豫了好久",
+                "color": "#ffffff",
+                "end": 12.26,
+                "font_size": 34,
+                "outline_width": 2,
+                "rotation": 0,
+                "scale": 1,
+                "start": 4.92
+            },
+            {
+                "absolute_x": 0,
+                "absolute_y": 0.25,
+                "background_type": 0,
+                "cap": "怕都是没用的空话",
+                "color": "#ffffff",
+                "end": 13.89,
+                "font_size": 34,
+                "outline_width": 2,
+                "rotation": 0,
+                "scale": 1,
+                "start": 12.26
+            },
+            {
+                "absolute_x": 0,
+                "absolute_y": 0.25,
+                "background_type": 0,
+                "cap": "抱着试试的心态跟着走了两周",
+                "color": "#ffffff",
+                "end": 16.73,
+                "font_size": 34,
+                "outline_width": 2,
+                "rotation": 0,
+                "scale": 1,
+                "start": 13.89
+            },
+            {
+                "absolute_x": 0,
+                "absolute_y": 0.25,
+                "background_type": 0,
+                "cap": "真的不一样了",
+                "color": "#ffffff",
+                "end": 18.08,
+                "font_size": 34,
+                "outline_width": 2,
+                "rotation": 0,
+                "scale": 1,
+                "start": 16.73
+            },
+            {
+                "absolute_x": 0,
+                "absolute_y": 0.25,
+                "background_type": 0,
+                "cap": "之前每天下班就瘫着刷手机",
+                "color": "#ffffff",
+                "end": 21.23,
+                "font_size": 34,
+                "outline_width": 2,
+                "rotation": 0,
+                "scale": 1,
+                "start": 18.08
+            },
+            {
+                "absolute_x": 0,
+                "absolute_y": 0.25,
+                "background_type": 0,
+                "cap": "现在每天能留出一个小时学新东西",
+                "color": "#ffffff",
+                "end": 24.26,
+                "font_size": 34,
+                "outline_width": 2,
+                "rotation": 0,
+                "scale": 1,
+                "start": 21.23
+            },
+            {
+                "absolute_x": 0,
+                "absolute_y": 0.25,
+                "background_type": 0,
+                "cap": "上周还拿下了之前想都不敢想的项目奖",
+                "color": "#ffffff",
+                "end": 28.01,
+                "font_size": 34,
+                "outline_width": 2,
+                "rotation": 0,
+                "scale": 1,
+                "start": 24.26
+            },
+            {
+                "absolute_x": 0,
+                "absolute_y": 0.25,
+                "background_type": 0,
+                "cap": "我自己用下来真的不错",
+                "color": "#ffffff",
+                "end": 29.89,
+                "font_size": 34,
+                "outline_width": 2,
+                "rotation": 0,
+                "scale": 1,
+                "start": 28.01
+            },
+            {
+                "absolute_x": 0,
+                "absolute_y": 0.25,
+                "background_type": 0,
+                "cap": "要是你也总觉得日子没奔头",
+                "color": "#ffffff",
+                "end": 31.97,
+                "font_size": 34,
+                "outline_width": 2,
+                "rotation": 0,
+                "scale": 1,
+                "start": 29.89
+            },
+            {
+                "absolute_x": 0,
+                "absolute_y": 0.25,
+                "background_type": 0,
+                "cap": "真的可以试试看",
+                "color": "#ffffff",
+                "end": 33.55,
+                "font_size": 34,
+                "outline_width": 2,
+                "rotation": 0,
+                "scale": 1,
+                "start": 31.97
+            }
+        ],
+        "font_type": "Alimama DaoLiTi"
     },
-    {
-      "end": 2.62,
-      "extend_to": 2.62,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
+    "cap_outline_color": "#000000",
+    "cap_outline_width": 1,
+    "crop_config": [
+        {
+            "end": 1.91,
+            "extend_to": 1.91,
+            "mirror": false,
+            "rotation": 0,
+            "scale": 1,
+            "speed": 1,
+            "start": 0,
+            "translate_x": 0,
+            "translate_y": 0
+        },
+        {
+            "end": 3.01,
+            "extend_to": 3.01,
+            "mirror": false,
+            "rotation": 0,
+            "scale": 1,
+            "speed": 1,
+            "start": 0,
+            "translate_x": 0,
+            "translate_y": 0
+        },
+        {
+            "end": 7.34,
+            "extend_to": 7.34,
+            "mirror": false,
+            "rotation": 0,
+            "scale": 1,
+            "speed": 1,
+            "start": 0,
+            "translate_x": 0,
+            "translate_y": 0
+        },
+        {
+            "end": 1.63,
+            "extend_to": 1.63,
+            "mirror": false,
+            "rotation": 0,
+            "scale": 1,
+            "speed": 1,
+            "start": 0,
+            "translate_x": 0,
+            "translate_y": 0
+        },
+        {
+            "end": 2.84,
+            "extend_to": 2.84,
+            "mirror": false,
+            "rotation": 0,
+            "scale": 1,
+            "speed": 1,
+            "start": 0,
+            "translate_x": 0,
+            "translate_y": 0
+        },
+        {
+            "end": 3.748648648648649,
+            "extend_to": 3.748648648648649,
+            "mirror": false,
+            "rotation": 0,
+            "scale": 1,
+            "speed": 1,
+            "start": 2.398648648648649,
+            "translate_x": 0,
+            "translate_y": 0
+        },
+        {
+            "end": 3.15,
+            "extend_to": 3.15,
+            "mirror": false,
+            "rotation": 0,
+            "scale": 1,
+            "speed": 1,
+            "start": 0,
+            "translate_x": 0,
+            "translate_y": 0
+        },
+        {
+            "end": 3.03,
+            "extend_to": 3.03,
+            "mirror": false,
+            "rotation": 0,
+            "scale": 1,
+            "speed": 1,
+            "start": 0,
+            "translate_x": 0,
+            "translate_y": 0
+        },
+        {
+            "end": 3.75,
+            "extend_to": 3.75,
+            "mirror": false,
+            "rotation": 0,
+            "scale": 1,
+            "speed": 1,
+            "start": 0,
+            "translate_x": 0,
+            "translate_y": 0
+        },
+        {
+            "end": 1.88,
+            "extend_to": 1.88,
+            "mirror": false,
+            "rotation": 0,
+            "scale": 1,
+            "speed": 1,
+            "start": 0,
+            "translate_x": 0,
+            "translate_y": 0
+        },
+        {
+            "end": 2.08,
+            "extend_to": 2.08,
+            "mirror": false,
+            "rotation": 0,
+            "scale": 1,
+            "speed": 1,
+            "start": 0,
+            "translate_x": 0,
+            "translate_y": 0
+        },
+        {
+            "end": 1.58,
+            "extend_to": 1.58,
+            "mirror": false,
+            "rotation": 0,
+            "scale": 1,
+            "speed": 1,
+            "start": 0,
+            "translate_x": 0,
+            "translate_y": 0
+        }
+    ],
+    "filter_config": [
+
+    ],
+    "fps": 30,
+    "mute_config": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+    ],
+    "obs_audio_path_list": [
+
+    ],
+    "obs_bgm_path_list": [
+        "aigc/aigc_test/volcovoice_1780986195916/volcovoice0_volcovoice_1780986195916.wav",
+        "aigc/crawl_data_base/jianying_music/早晨浓缩咖啡.MP3"
+    ],
+    "obs_video_path_list": [
+        "aigc-ai/ai-project/2026-06-01/transcode_2061334072269373441_1780297952375/1780297951965-332b_H.264_1080x1920_AAC_2100.mp4",
+        "aigc-ai/ai-project/2026-06-01/transcode_2061334072269373441_1780297952375/1780297951965-332b_H.264_1080x1920_AAC_2100.mp4",
+        "aigc-ai/ai-project/2026-06-01/transcode_2061334072269373441_1780297952375/1780297951965-332b_H.264_1080x1920_AAC_2100.mp4",
+        "aigc-ai/ai-project/2026-06-01/transcode_2061334072269373441_1780297952375/1780297951965-332b_H.264_1080x1920_AAC_2100.mp4",
+        "aigc-ai/ai-project/2026-06-01/transcode_2061334072269373441_1780297952375/1780297951965-332b_H.264_1080x1920_AAC_2100.mp4",
+        "aigc-ai/ai-project/2026-06-01/transcode_2061334072269373441_1780297952375/1780297951965-332b_H.264_1080x1920_AAC_2100.mp4",
+        "aigc-ai/ai-project/2026-06-01/transcode_2061334072269373441_1780297952375/1780297951965-332b_H.264_1080x1920_AAC_2100.mp4",
+        "aigc-ai/ai-project/2026-06-01/transcode_2061334072269373441_1780297952375/1780297951965-332b_H.264_1080x1920_AAC_2100.mp4",
+        "aigc-ai/ai-project/2026-06-01/transcode_2061334072269373441_1780297952375/1780297951965-332b_H.264_1080x1920_AAC_2100.mp4",
+        "aigc-ai/ai-project/2026-06-01/transcode_2061334072269373441_1780297952375/1780297951965-332b_H.264_1080x1920_AAC_2100.mp4",
+        "aigc-ai/ai-project/2026-06-01/transcode_2061334072269373441_1780297952375/1780297951965-332b_H.264_1080x1920_AAC_2100.mp4",
+        "aigc-ai/ai-project/2026-06-01/transcode_2061334072269373441_1780297952375/1780297951965-332b_H.264_1080x1920_AAC_2100.mp4"
+    ],
+    "request_data": {
+        "callContext": {
+            "batchRecordId": 106908,
+            "processId": 10874,
+            "projectId": 2061323944975564801,
+            "systemTaskId": 56742
+        },
+        "bizTypeContext": "aiMixFull"
     },
-    {
-      "end": 2.61,
-      "extend_to": 2.61,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 6.2,
-      "extend_to": 6.2,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 2.59,
-      "extend_to": 2.59,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 2.4899999999999998,
-      "extend_to": 2.4899999999999998,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 3.46,
-      "extend_to": 3.46,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 2.7199999999999998,
-      "extend_to": 2.7199999999999998,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 2.14,
-      "extend_to": 2.14,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 2.36,
-      "extend_to": 2.36,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 2.7399999999999998,
-      "extend_to": 2.7399999999999998,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 1.29,
-      "extend_to": 1.29,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    }
-  ],
-  "filter_config": [],
-  "fps": 30,
-  "mute_config": [
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true
-  ],
-  "obs_audio_path_list": [],
-  "obs_bgm_path_list": [
-    "aigc/aigc_test/volcovoice_1780971203719/volcovoice0_volcovoice_1780971203719.wav",
-    "aigc/crawl_data_base/jianying_music/宁静森林之音.MP3"
-  ],
-  "obs_video_path_list": [
-    "aigc-ai/ai-project/2026-06-01/transcode_2061326469585862658_1780297951359/1780297950795-7de3_H.264_1280x720_700.mp4",
-    "aigc-ai/ai-project/2026-06-01/transcode_2061326469585862658_1780297951359/1780297950795-7de3_H.264_1280x720_700.mp4",
-    "aigc-ai/ai-project/2026-06-01/transcode_2061326469585862658_1780297951359/1780297950795-7de3_H.264_1280x720_700.mp4",
-    "aigc-ai/ai-project/2026-06-01/transcode_2061326469585862658_1780297951359/1780297950795-7de3_H.264_1280x720_700.mp4",
-    "aigc-ai/ai-project/2026-06-01/transcode_2061326469585862658_1780297951359/1780297950795-7de3_H.264_1280x720_700.mp4",
-    "aigc-ai/ai-project/2026-06-01/transcode_2061326469585862658_1780297951359/1780297950795-7de3_H.264_1280x720_700.mp4",
-    "aigc-ai/ai-project/2026-06-01/transcode_2061326469585862658_1780297951359/1780297950795-7de3_H.264_1280x720_700.mp4",
-    "aigc-ai/ai-project/2026-06-01/transcode_2061326469585862658_1780297951359/1780297950795-7de3_H.264_1280x720_700.mp4",
-    "aigc-ai/ai-project/2026-06-01/transcode_2061326469585862658_1780297951359/1780297950795-7de3_H.264_1280x720_700.mp4",
-    "aigc-ai/ai-project/2026-06-01/transcode_2061326469585862658_1780297951359/1780297950795-7de3_H.264_1280x720_700.mp4",
-    "aigc-ai/ai-project/2026-06-01/transcode_2061326469585862658_1780297951359/1780297950795-7de3_H.264_1280x720_700.mp4",
-    "aigc-ai/ai-project/2026-06-01/transcode_2061326469585862658_1780297951359/1780297950795-7de3_H.264_1280x720_700.mp4"
-  ],
-  "request_data": {
-    "callContext": {
-      "batchRecordId": 106882,
-      "processId": 10860,
-      "projectId": 2061323944975564801,
-      "systemTaskId": 56680
-    },
-    "bizTypeContext": "aiMixFull"
-  },
-  "resolution": "1080p",
-  "user_id": 53
+    "resolution": "720p",
+    "user_id": 53
 }

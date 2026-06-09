@@ -1,0 +1,1311 @@
+{
+  "request": {
+    "biz_id": 0,
+    "user_id": 0,
+    "txt_str": [
+      "我就是普通的上班族，之前总觉得每天浑浑噩噩没方向，刷到AUTO_TEST_202606010548的时候还犹豫了好久，怕都是没用的空话。抱着试试的心态跟着走了两周，真的不一样了。之前每天下班就瘫着刷手机，现在每天能留出一个小时学新东西，上周还拿下了之前想都不敢想的项目奖。我自己用下来真的不错，要是你也总觉得日子没奔头，真的可以试试看。"
+    ],
+    "voice_character": "柔美女友",
+    "file_format": "wav",
+    "audio_speed_level": 1.0,
+    "volume": 80
+  },
+  "segmentation_rules": {
+    "strong_punctuation": "。！？!?；;",
+    "comma_punctuation": "，,、：:",
+    "comma_soft_min_chars": 4,
+    "comma_soft_min_duration_ms": 2200,
+    "comma_soft_min_pause_ms": 0,
+    "comma_hard_min_chars": 10,
+    "comma_hard_min_duration_ms": 3600,
+    "boundary_padding_ms": 40
+  },
+  "object_list": [
+    {
+      "full_voice": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/volcovoice0_volcovoice_1780986195916.wav",
+      "duration": 39.44,
+      "detail_info": [
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_0_volcovoice_1780986195916.wav",
+          "segment_duration": 1.91,
+          "pause": 0.57,
+          "caption_text": "我就是普通的上班族"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_1_volcovoice_1780986195916.wav",
+          "segment_duration": 3.01,
+          "pause": 0.59,
+          "caption_text": "之前总觉得每天浑浑噩噩没方向"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_2_volcovoice_1780986195916.wav",
+          "segment_duration": 7.34,
+          "pause": 0.206,
+          "caption_text": "刷到AUTO_TEST_二零二六零六零一零五四八的时候还犹豫了好久"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_3_volcovoice_1780986195916.wav",
+          "segment_duration": 1.63,
+          "pause": 0.79,
+          "caption_text": "怕都是没用的空话"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_4_volcovoice_1780986195916.wav",
+          "segment_duration": 2.84,
+          "pause": 0.5,
+          "caption_text": "抱着试试的心态跟着走了两周"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_5_volcovoice_1780986195916.wav",
+          "segment_duration": 1.35,
+          "pause": 0.7,
+          "caption_text": "真的不一样了"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_6_volcovoice_1780986195916.wav",
+          "segment_duration": 3.15,
+          "pause": 0.576,
+          "caption_text": "之前每天下班就瘫着刷手机"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_7_volcovoice_1780986195916.wav",
+          "segment_duration": 3.03,
+          "pause": 0.69,
+          "caption_text": "现在每天能留出一个小时学新东西"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_8_volcovoice_1780986195916.wav",
+          "segment_duration": 3.75,
+          "pause": 0.71,
+          "caption_text": "上周还拿下了之前想都不敢想的项目奖"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_9_volcovoice_1780986195916.wav",
+          "segment_duration": 1.88,
+          "pause": 0.69,
+          "caption_text": "我自己用下来真的不错"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_10_volcovoice_1780986195916.wav",
+          "segment_duration": 2.08,
+          "pause": 0.54,
+          "caption_text": "要是你也总觉得日子没奔头"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_11_volcovoice_1780986195916.wav",
+          "segment_duration": 1.58,
+          "pause": 0.0,
+          "caption_text": "真的可以试试看"
+        }
+      ]
+    }
+  ],
+  "debug_objects": [
+    {
+      "index": 0,
+      "text": "我就是普通的上班族，之前总觉得每天浑浑噩噩没方向，刷到AUTO_TEST_202606010548的时候还犹豫了好久，怕都是没用的空话。抱着试试的心态跟着走了两周，真的不一样了。之前每天下班就瘫着刷手机，现在每天能留出一个小时学新东西，上周还拿下了之前想都不敢想的项目奖。我自己用下来真的不错，要是你也总觉得日子没奔头，真的可以试试看。",
+      "full_voice_local_path": "./final/volcovoice_1780986195916/volcovoice0_volcovoice_1780986195916.wav",
+      "full_voice_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/volcovoice0_volcovoice_1780986195916.wav",
+      "full_duration": 39.44,
+      "raw_debug_json_path": "./final/volcovoice_1780986195916/volcovoice0_volcovoice_1780986195916_raw.json",
+      "frontend_words": [
+        {
+          "word": "我",
+          "start_time": 245.0,
+          "end_time": 425.0,
+          "confidence": 0.93324834
+        },
+        {
+          "word": "就",
+          "start_time": 425.0,
+          "end_time": 615.0,
+          "confidence": 0.9339627
+        },
+        {
+          "word": "是",
+          "start_time": 615.0,
+          "end_time": 845.0,
+          "confidence": 0.8957875
+        },
+        {
+          "word": "普",
+          "start_time": 845.0,
+          "end_time": 1035.0,
+          "confidence": 0.93827003
+        },
+        {
+          "word": "通",
+          "start_time": 1035.0,
+          "end_time": 1245.0,
+          "confidence": 0.9738845
+        },
+        {
+          "word": "的",
+          "start_time": 1245.0,
+          "end_time": 1315.0,
+          "confidence": 0.89784265
+        },
+        {
+          "word": "上",
+          "start_time": 1315.0,
+          "end_time": 1535.0,
+          "confidence": 0.9575195
+        },
+        {
+          "word": "班",
+          "start_time": 1535.0,
+          "end_time": 1735.0,
+          "confidence": 0.9616245
+        },
+        {
+          "word": "族，",
+          "start_time": 1735.0,
+          "end_time": 2075.0,
+          "confidence": 0.9632353
+        },
+        {
+          "word": "之",
+          "start_time": 2645.0,
+          "end_time": 2835.0,
+          "confidence": 0.8694691
+        },
+        {
+          "word": "前",
+          "start_time": 2835.0,
+          "end_time": 3085.0,
+          "confidence": 0.94769007
+        },
+        {
+          "word": "总",
+          "start_time": 3085.0,
+          "end_time": 3345.0,
+          "confidence": 0.9633948
+        },
+        {
+          "word": "觉",
+          "start_time": 3345.0,
+          "end_time": 3565.0,
+          "confidence": 0.93219835
+        },
+        {
+          "word": "得",
+          "start_time": 3565.0,
+          "end_time": 3785.0,
+          "confidence": 0.9076563
+        },
+        {
+          "word": "每",
+          "start_time": 3785.0,
+          "end_time": 3965.0,
+          "confidence": 0.966993
+        },
+        {
+          "word": "天",
+          "start_time": 3965.0,
+          "end_time": 4175.0,
+          "confidence": 0.97296643
+        },
+        {
+          "word": "浑",
+          "start_time": 4175.0,
+          "end_time": 4335.0,
+          "confidence": 0.7824664
+        },
+        {
+          "word": "浑",
+          "start_time": 4335.0,
+          "end_time": 4545.0,
+          "confidence": 0.693082
+        },
+        {
+          "word": "噩",
+          "start_time": 4545.0,
+          "end_time": 4575.0,
+          "confidence": 0.5348726
+        },
+        {
+          "word": "噩",
+          "start_time": 4575.0,
+          "end_time": 4885.0,
+          "confidence": 0.80053604
+        },
+        {
+          "word": "没",
+          "start_time": 4885.0,
+          "end_time": 5035.0,
+          "confidence": 0.9700889
+        },
+        {
+          "word": "方",
+          "start_time": 5035.0,
+          "end_time": 5215.0,
+          "confidence": 0.96174175
+        },
+        {
+          "word": "向，",
+          "start_time": 5215.0,
+          "end_time": 5575.0,
+          "confidence": 0.9434037
+        },
+        {
+          "word": "刷",
+          "start_time": 6165.0,
+          "end_time": 6525.0,
+          "confidence": 0.8609906
+        },
+        {
+          "word": "到",
+          "start_time": 6525.0,
+          "end_time": 6745.0,
+          "confidence": 0.93154526
+        },
+        {
+          "word": "AUTO_TEST_",
+          "start_time": 7585.0,
+          "end_time": 7615.0,
+          "confidence": 0.27678886
+        },
+        {
+          "word": "二",
+          "start_time": 7945.0,
+          "end_time": 8115.0,
+          "confidence": 0.94547707
+        },
+        {
+          "word": "零",
+          "start_time": 8115.0,
+          "end_time": 8315.0,
+          "confidence": 0.9740765
+        },
+        {
+          "word": "二",
+          "start_time": 8315.0,
+          "end_time": 8495.0,
+          "confidence": 0.95789444
+        },
+        {
+          "word": "六",
+          "start_time": 8495.0,
+          "end_time": 8805.0,
+          "confidence": 0.9515801
+        },
+        {
+          "word": "零",
+          "start_time": 9075.0,
+          "end_time": 9275.0,
+          "confidence": 0.90768075
+        },
+        {
+          "word": "六",
+          "start_time": 9275.0,
+          "end_time": 9465.0,
+          "confidence": 0.95511377
+        },
+        {
+          "word": "零",
+          "start_time": 9465.0,
+          "end_time": 9855.0,
+          "confidence": 0.8536245
+        },
+        {
+          "word": "一",
+          "start_time": 9855.0,
+          "end_time": 9995.0,
+          "confidence": 0.8180227
+        },
+        {
+          "word": "零",
+          "start_time": 9995.0,
+          "end_time": 10115.0,
+          "confidence": 0.772801
+        },
+        {
+          "word": "五",
+          "start_time": 10115.0,
+          "end_time": 10295.0,
+          "confidence": 0.96670926
+        },
+        {
+          "word": "四",
+          "start_time": 10295.0,
+          "end_time": 10475.0,
+          "confidence": 0.93290645
+        },
+        {
+          "word": "八",
+          "start_time": 10475.0,
+          "end_time": 10695.0,
+          "confidence": 0.9579932
+        },
+        {
+          "word": "的",
+          "start_time": 10695.0,
+          "end_time": 10775.0,
+          "confidence": 0.95422024
+        },
+        {
+          "word": "时",
+          "start_time": 10775.0,
+          "end_time": 10975.0,
+          "confidence": 0.93917143
+        },
+        {
+          "word": "候",
+          "start_time": 10975.0,
+          "end_time": 11265.0,
+          "confidence": 0.73676074
+        },
+        {
+          "word": "还",
+          "start_time": 11595.0,
+          "end_time": 11825.0,
+          "confidence": 0.9049407
+        },
+        {
+          "word": "犹",
+          "start_time": 11825.0,
+          "end_time": 11995.0,
+          "confidence": 0.74001753
+        },
+        {
+          "word": "豫",
+          "start_time": 11995.0,
+          "end_time": 12105.0,
+          "confidence": 0.60222906
+        },
+        {
+          "word": "了",
+          "start_time": 12105.0,
+          "end_time": 12205.0,
+          "confidence": 0.9108023
+        },
+        {
+          "word": "好",
+          "start_time": 12205.0,
+          "end_time": 12465.0,
+          "confidence": 0.77220947
+        },
+        {
+          "word": "久，",
+          "start_time": 12465.0,
+          "end_time": 13425.0,
+          "confidence": 0.9581888
+        },
+        {
+          "word": "怕",
+          "start_time": 13631.0,
+          "end_time": 13841.0,
+          "confidence": 0.87117416
+        },
+        {
+          "word": "都",
+          "start_time": 13841.0,
+          "end_time": 14001.0,
+          "confidence": 0.8554339
+        },
+        {
+          "word": "是",
+          "start_time": 14001.0,
+          "end_time": 14191.0,
+          "confidence": 0.98151726
+        },
+        {
+          "word": "没",
+          "start_time": 14191.0,
+          "end_time": 14361.0,
+          "confidence": 0.89959085
+        },
+        {
+          "word": "用",
+          "start_time": 14361.0,
+          "end_time": 14511.0,
+          "confidence": 0.9426678
+        },
+        {
+          "word": "的",
+          "start_time": 14511.0,
+          "end_time": 14611.0,
+          "confidence": 0.9085012
+        },
+        {
+          "word": "空",
+          "start_time": 14611.0,
+          "end_time": 14851.0,
+          "confidence": 0.9367136
+        },
+        {
+          "word": "话。",
+          "start_time": 14851.0,
+          "end_time": 15181.0,
+          "confidence": 0.95189935
+        },
+        {
+          "word": "抱",
+          "start_time": 15971.0,
+          "end_time": 16150.0,
+          "confidence": 0.92208755
+        },
+        {
+          "word": "着",
+          "start_time": 16150.0,
+          "end_time": 16281.0,
+          "confidence": 0.8416935
+        },
+        {
+          "word": "试",
+          "start_time": 16281.0,
+          "end_time": 16501.0,
+          "confidence": 0.90262073
+        },
+        {
+          "word": "试",
+          "start_time": 16501.0,
+          "end_time": 16671.0,
+          "confidence": 0.9006435
+        },
+        {
+          "word": "的",
+          "start_time": 16671.0,
+          "end_time": 16771.0,
+          "confidence": 0.92852515
+        },
+        {
+          "word": "心",
+          "start_time": 16771.0,
+          "end_time": 17011.0,
+          "confidence": 0.9293147
+        },
+        {
+          "word": "态",
+          "start_time": 17011.0,
+          "end_time": 17341.0,
+          "confidence": 0.9784889
+        },
+        {
+          "word": "跟",
+          "start_time": 17511.0,
+          "end_time": 17701.0,
+          "confidence": 0.8089516
+        },
+        {
+          "word": "着",
+          "start_time": 17701.0,
+          "end_time": 17851.0,
+          "confidence": 0.8429964
+        },
+        {
+          "word": "走",
+          "start_time": 17851.0,
+          "end_time": 18050.0,
+          "confidence": 0.9278687
+        },
+        {
+          "word": "了",
+          "start_time": 18050.0,
+          "end_time": 18161.0,
+          "confidence": 0.95108837
+        },
+        {
+          "word": "两",
+          "start_time": 18161.0,
+          "end_time": 18391.0,
+          "confidence": 0.9081738
+        },
+        {
+          "word": "周，",
+          "start_time": 18391.0,
+          "end_time": 18731.0,
+          "confidence": 0.938823
+        },
+        {
+          "word": "真",
+          "start_time": 19231.0,
+          "end_time": 19460.0,
+          "confidence": 0.86190677
+        },
+        {
+          "word": "的",
+          "start_time": 19460.0,
+          "end_time": 19571.0,
+          "confidence": 0.8794454
+        },
+        {
+          "word": "不",
+          "start_time": 19571.0,
+          "end_time": 19771.0,
+          "confidence": 0.9747941
+        },
+        {
+          "word": "一",
+          "start_time": 19771.0,
+          "end_time": 19981.0,
+          "confidence": 0.9477271
+        },
+        {
+          "word": "样",
+          "start_time": 19981.0,
+          "end_time": 20191.0,
+          "confidence": 0.9645157
+        },
+        {
+          "word": "了。",
+          "start_time": 20191.0,
+          "end_time": 20501.0,
+          "confidence": 0.9309647
+        },
+        {
+          "word": "之",
+          "start_time": 21201.0,
+          "end_time": 21401.0,
+          "confidence": 0.955822
+        },
+        {
+          "word": "前",
+          "start_time": 21401.0,
+          "end_time": 21611.0,
+          "confidence": 0.84126455
+        },
+        {
+          "word": "每",
+          "start_time": 21611.0,
+          "end_time": 21851.0,
+          "confidence": 0.827086
+        },
+        {
+          "word": "天",
+          "start_time": 21851.0,
+          "end_time": 22050.0,
+          "confidence": 0.973014
+        },
+        {
+          "word": "下",
+          "start_time": 22050.0,
+          "end_time": 22311.0,
+          "confidence": 0.9581956
+        },
+        {
+          "word": "班",
+          "start_time": 22311.0,
+          "end_time": 22571.0,
+          "confidence": 0.9421302
+        },
+        {
+          "word": "就",
+          "start_time": 22571.0,
+          "end_time": 22721.0,
+          "confidence": 0.9262171
+        },
+        {
+          "word": "瘫",
+          "start_time": 22721.0,
+          "end_time": 22931.0,
+          "confidence": 0.9317677
+        },
+        {
+          "word": "着",
+          "start_time": 22931.0,
+          "end_time": 23050.0,
+          "confidence": 0.9530804
+        },
+        {
+          "word": "刷",
+          "start_time": 23050.0,
+          "end_time": 23221.0,
+          "confidence": 0.8660302
+        },
+        {
+          "word": "手",
+          "start_time": 23221.0,
+          "end_time": 23431.0,
+          "confidence": 0.9004198
+        },
+        {
+          "word": "机，",
+          "start_time": 23431.0,
+          "end_time": 24272.0,
+          "confidence": 0.9630621
+        },
+        {
+          "word": "现",
+          "start_time": 24848.0,
+          "end_time": 25128.0,
+          "confidence": 0.8790248
+        },
+        {
+          "word": "在",
+          "start_time": 25128.0,
+          "end_time": 25318.0,
+          "confidence": 0.96805984
+        },
+        {
+          "word": "每",
+          "start_time": 25318.0,
+          "end_time": 25508.0,
+          "confidence": 0.92750937
+        },
+        {
+          "word": "天",
+          "start_time": 25508.0,
+          "end_time": 25778.0,
+          "confidence": 0.94070196
+        },
+        {
+          "word": "能",
+          "start_time": 25778.0,
+          "end_time": 25998.0,
+          "confidence": 0.8655515
+        },
+        {
+          "word": "留",
+          "start_time": 25998.0,
+          "end_time": 26148.0,
+          "confidence": 0.9439179
+        },
+        {
+          "word": "出",
+          "start_time": 26148.0,
+          "end_time": 26308.0,
+          "confidence": 0.93769854
+        },
+        {
+          "word": "一",
+          "start_time": 26308.0,
+          "end_time": 26468.0,
+          "confidence": 0.8990965
+        },
+        {
+          "word": "个",
+          "start_time": 26468.0,
+          "end_time": 26568.0,
+          "confidence": 0.9793505
+        },
+        {
+          "word": "小",
+          "start_time": 26568.0,
+          "end_time": 26748.0,
+          "confidence": 0.99134654
+        },
+        {
+          "word": "时",
+          "start_time": 26748.0,
+          "end_time": 26968.0,
+          "confidence": 0.9511959
+        },
+        {
+          "word": "学",
+          "start_time": 26968.0,
+          "end_time": 27108.0,
+          "confidence": 0.87272596
+        },
+        {
+          "word": "新",
+          "start_time": 27108.0,
+          "end_time": 27378.0,
+          "confidence": 0.9531474
+        },
+        {
+          "word": "东",
+          "start_time": 27378.0,
+          "end_time": 27548.0,
+          "confidence": 0.87942934
+        },
+        {
+          "word": "西，",
+          "start_time": 27548.0,
+          "end_time": 27798.0,
+          "confidence": 0.7716423
+        },
+        {
+          "word": "上",
+          "start_time": 28488.0,
+          "end_time": 28828.0,
+          "confidence": 0.8338879
+        },
+        {
+          "word": "周",
+          "start_time": 28828.0,
+          "end_time": 28998.0,
+          "confidence": 0.88780564
+        },
+        {
+          "word": "还",
+          "start_time": 28998.0,
+          "end_time": 29178.0,
+          "confidence": 0.9005944
+        },
+        {
+          "word": "拿",
+          "start_time": 29178.0,
+          "end_time": 29358.0,
+          "confidence": 0.9080797
+        },
+        {
+          "word": "下",
+          "start_time": 29358.0,
+          "end_time": 29548.0,
+          "confidence": 0.83131564
+        },
+        {
+          "word": "了",
+          "start_time": 29548.0,
+          "end_time": 29648.0,
+          "confidence": 0.8869042
+        },
+        {
+          "word": "之",
+          "start_time": 29648.0,
+          "end_time": 29828.0,
+          "confidence": 0.9476616
+        },
+        {
+          "word": "前",
+          "start_time": 29828.0,
+          "end_time": 30088.0,
+          "confidence": 0.92177814
+        },
+        {
+          "word": "想",
+          "start_time": 30288.0,
+          "end_time": 30698.0,
+          "confidence": 0.89432335
+        },
+        {
+          "word": "都",
+          "start_time": 30698.0,
+          "end_time": 30858.0,
+          "confidence": 0.85501605
+        },
+        {
+          "word": "不",
+          "start_time": 30858.0,
+          "end_time": 30988.0,
+          "confidence": 0.9721165
+        },
+        {
+          "word": "敢",
+          "start_time": 30988.0,
+          "end_time": 31128.0,
+          "confidence": 0.92542434
+        },
+        {
+          "word": "想",
+          "start_time": 31128.0,
+          "end_time": 31318.0,
+          "confidence": 0.9423048
+        },
+        {
+          "word": "的",
+          "start_time": 31318.0,
+          "end_time": 31428.0,
+          "confidence": 0.9584899
+        },
+        {
+          "word": "项",
+          "start_time": 31428.0,
+          "end_time": 31618.0,
+          "confidence": 0.9560261
+        },
+        {
+          "word": "目",
+          "start_time": 31618.0,
+          "end_time": 31768.0,
+          "confidence": 0.9404731
+        },
+        {
+          "word": "奖。",
+          "start_time": 31768.0,
+          "end_time": 32158.0,
+          "confidence": 0.89752793
+        },
+        {
+          "word": "我",
+          "start_time": 32868.0,
+          "end_time": 32998.0,
+          "confidence": 0.8669876
+        },
+        {
+          "word": "自",
+          "start_time": 32998.0,
+          "end_time": 33178.0,
+          "confidence": 0.8900492
+        },
+        {
+          "word": "己",
+          "start_time": 33178.0,
+          "end_time": 33398.0,
+          "confidence": 0.9518063
+        },
+        {
+          "word": "用",
+          "start_time": 33398.0,
+          "end_time": 33508.0,
+          "confidence": 0.89976275
+        },
+        {
+          "word": "下",
+          "start_time": 33508.0,
+          "end_time": 33668.0,
+          "confidence": 0.9365466
+        },
+        {
+          "word": "来",
+          "start_time": 33668.0,
+          "end_time": 33828.0,
+          "confidence": 0.95598817
+        },
+        {
+          "word": "真",
+          "start_time": 33828.0,
+          "end_time": 34038.0,
+          "confidence": 0.922022
+        },
+        {
+          "word": "的",
+          "start_time": 34038.0,
+          "end_time": 34128.0,
+          "confidence": 0.9065718
+        },
+        {
+          "word": "不",
+          "start_time": 34128.0,
+          "end_time": 34288.0,
+          "confidence": 0.9665784
+        },
+        {
+          "word": "错，",
+          "start_time": 34288.0,
+          "end_time": 34668.0,
+          "confidence": 0.95795584
+        },
+        {
+          "word": "要",
+          "start_time": 35358.0,
+          "end_time": 35488.0,
+          "confidence": 0.952234
+        },
+        {
+          "word": "是",
+          "start_time": 35488.0,
+          "end_time": 35688.0,
+          "confidence": 0.9372354
+        },
+        {
+          "word": "你",
+          "start_time": 35688.0,
+          "end_time": 35848.0,
+          "confidence": 0.91690964
+        },
+        {
+          "word": "也",
+          "start_time": 35848.0,
+          "end_time": 35968.0,
+          "confidence": 0.9179797
+        },
+        {
+          "word": "总",
+          "start_time": 35968.0,
+          "end_time": 36168.0,
+          "confidence": 0.9370855
+        },
+        {
+          "word": "觉",
+          "start_time": 36168.0,
+          "end_time": 36318.0,
+          "confidence": 0.934745
+        },
+        {
+          "word": "得",
+          "start_time": 36318.0,
+          "end_time": 36458.0,
+          "confidence": 0.83767474
+        },
+        {
+          "word": "日",
+          "start_time": 36458.0,
+          "end_time": 36628.0,
+          "confidence": 0.84842116
+        },
+        {
+          "word": "子",
+          "start_time": 36628.0,
+          "end_time": 36758.0,
+          "confidence": 0.91018265
+        },
+        {
+          "word": "没",
+          "start_time": 36758.0,
+          "end_time": 36898.0,
+          "confidence": 0.9410903
+        },
+        {
+          "word": "奔",
+          "start_time": 36898.0,
+          "end_time": 37118.0,
+          "confidence": 0.90340877
+        },
+        {
+          "word": "头，",
+          "start_time": 37118.0,
+          "end_time": 37358.0,
+          "confidence": 0.8245629
+        },
+        {
+          "word": "真",
+          "start_time": 37898.0,
+          "end_time": 38068.0,
+          "confidence": 0.92786205
+        },
+        {
+          "word": "的",
+          "start_time": 38068.0,
+          "end_time": 38178.0,
+          "confidence": 0.9347129
+        },
+        {
+          "word": "可",
+          "start_time": 38178.0,
+          "end_time": 38348.0,
+          "confidence": 0.9060639
+        },
+        {
+          "word": "以",
+          "start_time": 38348.0,
+          "end_time": 38438.0,
+          "confidence": 0.82806075
+        },
+        {
+          "word": "试",
+          "start_time": 38438.0,
+          "end_time": 38618.0,
+          "confidence": 0.9504913
+        },
+        {
+          "word": "试",
+          "start_time": 38618.0,
+          "end_time": 38748.0,
+          "confidence": 0.9289171
+        },
+        {
+          "word": "看。",
+          "start_time": 38748.0,
+          "end_time": 39436.0,
+          "confidence": 0.9747401
+        }
+      ],
+      "segments": [
+        {
+          "caption_text": "我就是普通的上班族",
+          "start_ms": 245.0,
+          "end_ms": 2075.0,
+          "duration_ms": 1830.0,
+          "pause_ms": 570.0,
+          "boundary_reason": "comma_rule",
+          "word_count": 9
+        },
+        {
+          "caption_text": "之前总觉得每天浑浑噩噩没方向",
+          "start_ms": 2645.0,
+          "end_ms": 5575.0,
+          "duration_ms": 2930.0,
+          "pause_ms": 590.0,
+          "boundary_reason": "comma_rule",
+          "word_count": 14
+        },
+        {
+          "caption_text": "刷到AUTO_TEST_二零二六零六零一零五四八的时候还犹豫了好久",
+          "start_ms": 6165.0,
+          "end_ms": 13425.0,
+          "duration_ms": 7260.0,
+          "pause_ms": 206.0,
+          "boundary_reason": "comma_rule",
+          "word_count": 24
+        },
+        {
+          "caption_text": "怕都是没用的空话",
+          "start_ms": 13631.0,
+          "end_ms": 15181.0,
+          "duration_ms": 1550.0,
+          "pause_ms": 790.0,
+          "boundary_reason": "strong_punctuation",
+          "word_count": 8
+        },
+        {
+          "caption_text": "抱着试试的心态跟着走了两周",
+          "start_ms": 15971.0,
+          "end_ms": 18731.0,
+          "duration_ms": 2760.0,
+          "pause_ms": 500.0,
+          "boundary_reason": "comma_rule",
+          "word_count": 13
+        },
+        {
+          "caption_text": "真的不一样了",
+          "start_ms": 19231.0,
+          "end_ms": 20501.0,
+          "duration_ms": 1270.0,
+          "pause_ms": 700.0,
+          "boundary_reason": "strong_punctuation",
+          "word_count": 6
+        },
+        {
+          "caption_text": "之前每天下班就瘫着刷手机",
+          "start_ms": 21201.0,
+          "end_ms": 24272.0,
+          "duration_ms": 3071.0,
+          "pause_ms": 576.0,
+          "boundary_reason": "comma_rule",
+          "word_count": 12
+        },
+        {
+          "caption_text": "现在每天能留出一个小时学新东西",
+          "start_ms": 24848.0,
+          "end_ms": 27798.0,
+          "duration_ms": 2950.0,
+          "pause_ms": 690.0,
+          "boundary_reason": "comma_rule",
+          "word_count": 15
+        },
+        {
+          "caption_text": "上周还拿下了之前想都不敢想的项目奖",
+          "start_ms": 28488.0,
+          "end_ms": 32158.0,
+          "duration_ms": 3670.0,
+          "pause_ms": 710.0,
+          "boundary_reason": "strong_punctuation",
+          "word_count": 17
+        },
+        {
+          "caption_text": "我自己用下来真的不错",
+          "start_ms": 32868.0,
+          "end_ms": 34668.0,
+          "duration_ms": 1800.0,
+          "pause_ms": 690.0,
+          "boundary_reason": "comma_rule",
+          "word_count": 10
+        },
+        {
+          "caption_text": "要是你也总觉得日子没奔头",
+          "start_ms": 35358.0,
+          "end_ms": 37358.0,
+          "duration_ms": 2000.0,
+          "pause_ms": 540.0,
+          "boundary_reason": "comma_rule",
+          "word_count": 12
+        },
+        {
+          "caption_text": "真的可以试试看",
+          "start_ms": 37898.0,
+          "end_ms": 39436.0,
+          "duration_ms": 1538.0,
+          "pause_ms": 0.0,
+          "boundary_reason": "strong_punctuation",
+          "word_count": 7
+        }
+      ],
+      "decisions": [
+        {
+          "token": "族，",
+          "decision": "split",
+          "reason": [
+            "hard_length_threshold",
+            "soft_length_plus_pause"
+          ],
+          "current_chars": 10,
+          "current_duration_ms": 1830.0,
+          "pause_ms": 570.0
+        },
+        {
+          "token": "向，",
+          "decision": "split",
+          "reason": [
+            "hard_length_threshold",
+            "soft_length_plus_pause"
+          ],
+          "current_chars": 15,
+          "current_duration_ms": 2930.0,
+          "pause_ms": 590.0
+        },
+        {
+          "token": "久，",
+          "decision": "split",
+          "reason": [
+            "hard_length_threshold",
+            "soft_length_plus_pause"
+          ],
+          "current_chars": 34,
+          "current_duration_ms": 7260.0,
+          "pause_ms": 206.0
+        },
+        {
+          "token": "话。",
+          "decision": "split",
+          "reason": [
+            "strong_punctuation"
+          ],
+          "current_chars": 9,
+          "current_duration_ms": 1550.0,
+          "pause_ms": 790.0
+        },
+        {
+          "token": "周，",
+          "decision": "split",
+          "reason": [
+            "hard_length_threshold",
+            "soft_length_plus_pause"
+          ],
+          "current_chars": 14,
+          "current_duration_ms": 2760.0,
+          "pause_ms": 500.0
+        },
+        {
+          "token": "了。",
+          "decision": "split",
+          "reason": [
+            "strong_punctuation"
+          ],
+          "current_chars": 7,
+          "current_duration_ms": 1270.0,
+          "pause_ms": 700.0
+        },
+        {
+          "token": "机，",
+          "decision": "split",
+          "reason": [
+            "hard_length_threshold",
+            "soft_length_plus_pause"
+          ],
+          "current_chars": 13,
+          "current_duration_ms": 3071.0,
+          "pause_ms": 576.0
+        },
+        {
+          "token": "西，",
+          "decision": "split",
+          "reason": [
+            "hard_length_threshold",
+            "soft_length_plus_pause"
+          ],
+          "current_chars": 16,
+          "current_duration_ms": 2950.0,
+          "pause_ms": 690.0
+        },
+        {
+          "token": "奖。",
+          "decision": "split",
+          "reason": [
+            "strong_punctuation"
+          ],
+          "current_chars": 18,
+          "current_duration_ms": 3670.0,
+          "pause_ms": 710.0
+        },
+        {
+          "token": "错，",
+          "decision": "split",
+          "reason": [
+            "hard_length_threshold",
+            "soft_length_plus_pause"
+          ],
+          "current_chars": 11,
+          "current_duration_ms": 1800.0,
+          "pause_ms": 690.0
+        },
+        {
+          "token": "头，",
+          "decision": "split",
+          "reason": [
+            "hard_length_threshold",
+            "soft_length_plus_pause"
+          ],
+          "current_chars": 13,
+          "current_duration_ms": 2000.0,
+          "pause_ms": 540.0
+        },
+        {
+          "token": "看。",
+          "decision": "split",
+          "reason": [
+            "strong_punctuation"
+          ],
+          "current_chars": 8,
+          "current_duration_ms": 1538.0,
+          "pause_ms": 0.0
+        }
+      ],
+      "detail_info": [
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_0_volcovoice_1780986195916.wav",
+          "segment_duration": 1.91,
+          "pause": 0.57,
+          "caption_text": "我就是普通的上班族"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_1_volcovoice_1780986195916.wav",
+          "segment_duration": 3.01,
+          "pause": 0.59,
+          "caption_text": "之前总觉得每天浑浑噩噩没方向"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_2_volcovoice_1780986195916.wav",
+          "segment_duration": 7.34,
+          "pause": 0.206,
+          "caption_text": "刷到AUTO_TEST_二零二六零六零一零五四八的时候还犹豫了好久"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_3_volcovoice_1780986195916.wav",
+          "segment_duration": 1.63,
+          "pause": 0.79,
+          "caption_text": "怕都是没用的空话"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_4_volcovoice_1780986195916.wav",
+          "segment_duration": 2.84,
+          "pause": 0.5,
+          "caption_text": "抱着试试的心态跟着走了两周"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_5_volcovoice_1780986195916.wav",
+          "segment_duration": 1.35,
+          "pause": 0.7,
+          "caption_text": "真的不一样了"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_6_volcovoice_1780986195916.wav",
+          "segment_duration": 3.15,
+          "pause": 0.576,
+          "caption_text": "之前每天下班就瘫着刷手机"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_7_volcovoice_1780986195916.wav",
+          "segment_duration": 3.03,
+          "pause": 0.69,
+          "caption_text": "现在每天能留出一个小时学新东西"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_8_volcovoice_1780986195916.wav",
+          "segment_duration": 3.75,
+          "pause": 0.71,
+          "caption_text": "上周还拿下了之前想都不敢想的项目奖"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_9_volcovoice_1780986195916.wav",
+          "segment_duration": 1.88,
+          "pause": 0.69,
+          "caption_text": "我自己用下来真的不错"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_10_volcovoice_1780986195916.wav",
+          "segment_duration": 2.08,
+          "pause": 0.54,
+          "caption_text": "要是你也总觉得日子没奔头"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_11_volcovoice_1780986195916.wav",
+          "segment_duration": 1.58,
+          "pause": 0.0,
+          "caption_text": "真的可以试试看"
+        }
+      ]
+    }
+  ]
+}

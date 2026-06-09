@@ -121,10 +121,14 @@ def _build_segments_from_words(words: list[VolcanoWordTimestamp]) -> tuple[list[
         if not current_words:
             return
         start_ms = float(current_words[0].start_time)
-        end_ms = float(current_words[-1].end_time)
+        word_end_ms = float(current_words[-1].end_time)
         caption_text = "".join(word.word for word in current_words)
         caption_text = _strip_ending_punctuation(caption_text)
-        pause_ms = max(0.0, (next_start_ms - end_ms) if next_start_ms is not None else 0.0)
+        pause_ms = max(0.0, (next_start_ms - word_end_ms) if next_start_ms is not None else 0.0)
+        
+        # 直接以下一个字的发音起点作为裁剪终点，把句间停顿静音包含在切片文件尾部
+        end_ms = next_start_ms if next_start_ms is not None else word_end_ms
+        
         segments.append(
             {
                 "caption_text": caption_text,
