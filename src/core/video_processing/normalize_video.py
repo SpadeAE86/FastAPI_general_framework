@@ -178,7 +178,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
 
     if start_time > source_duration:
         raise ServiceException(code=439, message=f"{video}起始时间{start_time}大于视频时长{source_duration}")
+    requested_final_end = end_time + freeze_tail_duration
     end_time = min(source_duration, end_time)  #主动校准结束点，不会超过视频结束时间
+    freeze_tail_duration = max(requested_final_end - end_time, 0.0)
 
     muted_audio = []
     translate_x = translate_x * video_width
