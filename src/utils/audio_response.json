@@ -1,92 +1,92 @@
 {
-  "code": 0,
-  "message": "ok",
-  "biz_id": 0,
-  "start_time": null,
-  "end_time": null,
-  "cost_time": null,
-  "object_list": [
-    {
-      "full_voice": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/volcovoice0_volcovoice_1780986195916.wav",
-      "duration": 39.44,
-      "detail_info": [
+    "code": 0,
+    "message": "ok",
+    "biz_id": 0,
+    "start_time": null,
+    "end_time": null,
+    "cost_time": null,
+    "object_list": [
         {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_0_volcovoice_1780986195916.wav",
-          "segment_duration": 1.91,
-          "pause": 0.57,
-          "caption_text": "我就是普通的上班族"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_1_volcovoice_1780986195916.wav",
-          "segment_duration": 3.01,
-          "pause": 0.59,
-          "caption_text": "之前总觉得每天浑浑噩噩没方向"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_2_volcovoice_1780986195916.wav",
-          "segment_duration": 7.34,
-          "pause": 0.206,
-          "caption_text": "刷到AUTO_TEST_二零二六零六零一零五四八的时候还犹豫了好久"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_3_volcovoice_1780986195916.wav",
-          "segment_duration": 1.63,
-          "pause": 0.79,
-          "caption_text": "怕都是没用的空话"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_4_volcovoice_1780986195916.wav",
-          "segment_duration": 2.84,
-          "pause": 0.5,
-          "caption_text": "抱着试试的心态跟着走了两周"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_5_volcovoice_1780986195916.wav",
-          "segment_duration": 1.35,
-          "pause": 0.7,
-          "caption_text": "真的不一样了"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_6_volcovoice_1780986195916.wav",
-          "segment_duration": 3.15,
-          "pause": 0.576,
-          "caption_text": "之前每天下班就瘫着刷手机"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_7_volcovoice_1780986195916.wav",
-          "segment_duration": 3.03,
-          "pause": 0.69,
-          "caption_text": "现在每天能留出一个小时学新东西"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_8_volcovoice_1780986195916.wav",
-          "segment_duration": 3.75,
-          "pause": 0.71,
-          "caption_text": "上周还拿下了之前想都不敢想的项目奖"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_9_volcovoice_1780986195916.wav",
-          "segment_duration": 1.88,
-          "pause": 0.69,
-          "caption_text": "我自己用下来真的不错"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_10_volcovoice_1780986195916.wav",
-          "segment_duration": 2.08,
-          "pause": 0.54,
-          "caption_text": "要是你也总觉得日子没奔头"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/seg_0_11_volcovoice_1780986195916.wav",
-          "segment_duration": 1.58,
-          "pause": 0,
-          "caption_text": "真的可以试试看"
+            "full_voice": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780989357800/volcovoice0_volcovoice_1780989357800.wav",
+            "duration": 39.63,
+            "detail_info": [
+                {
+                    "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780989357800/seg_0_0_volcovoice_1780989357800.wav",
+                    "segment_duration": 2.43,
+                    "pause": 0.53,
+                    "caption_text": "我就是普通的上班族"
+                },
+                {
+                    "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780989357800/seg_0_1_volcovoice_1780989357800.wav",
+                    "segment_duration": 3.89,
+                    "pause": 0.55,
+                    "caption_text": "之前总觉得每天浑浑噩噩没方向"
+                },
+                {
+                    "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780989357800/seg_0_2_volcovoice_1780989357800.wav",
+                    "segment_duration": 7.33,
+                    "pause": 0.245,
+                    "caption_text": "刷到AUTO_TEST_二零二六零六零一零五四八的时候还犹豫了好久"
+                },
+                {
+                    "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780989357800/seg_0_3_volcovoice_1780989357800.wav",
+                    "segment_duration": 2.29,
+                    "pause": 0.63,
+                    "caption_text": "怕都是没用的空话"
+                },
+                {
+                    "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780989357800/seg_0_4_volcovoice_1780989357800.wav",
+                    "segment_duration": 3.42,
+                    "pause": 0.54,
+                    "caption_text": "抱着试试的心态跟着走了两周"
+                },
+                {
+                    "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780989357800/seg_0_5_volcovoice_1780989357800.wav",
+                    "segment_duration": 1.99,
+                    "pause": 0.61,
+                    "caption_text": "真的不一样了"
+                },
+                {
+                    "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780989357800/seg_0_6_volcovoice_1780989357800.wav",
+                    "segment_duration": 3.52,
+                    "pause": 0.505,
+                    "caption_text": "之前每天下班就瘫着刷手机"
+                },
+                {
+                    "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780989357800/seg_0_7_volcovoice_1780989357800.wav",
+                    "segment_duration": 3.57,
+                    "pause": 0.62,
+                    "caption_text": "现在每天能留出一个小时学新东西"
+                },
+                {
+                    "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780989357800/seg_0_8_volcovoice_1780989357800.wav",
+                    "segment_duration": 4.34,
+                    "pause": 0.67,
+                    "caption_text": "上周还拿下了之前想都不敢想的项目奖"
+                },
+                {
+                    "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780989357800/seg_0_9_volcovoice_1780989357800.wav",
+                    "segment_duration": 2.89,
+                    "pause": 0.61,
+                    "caption_text": "我自己用下来真的不错"
+                },
+                {
+                    "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780989357800/seg_0_10_volcovoice_1780989357800.wav",
+                    "segment_duration": 2.6,
+                    "pause": 0.47,
+                    "caption_text": "要是你也总觉得日子没奔头"
+                },
+                {
+                    "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780989357800/seg_0_11_volcovoice_1780989357800.wav",
+                    "segment_duration": 1.95,
+                    "pause": 0.0,
+                    "caption_text": "真的可以试试看"
+                }
+            ]
         }
-      ]
-    }
-  ],
-  "volume": 80,
-  "speech_rate": 1,
-  "voice_character": "柔美女友",
-  "debug_json_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780986195916/volcovoice_volcovoice_1780986195916_response.json"
+    ],
+    "volume": 80,
+    "speech_rate": 1.0,
+    "voice_character": "柔美女友",
+    "debug_json_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780989357800/volcovoice_volcovoice_1780989357800_response.json"
 }
