@@ -411,7 +411,7 @@ async def process_volcovoice_task(voice_config: Volcovoice_VO) -> VolcovoiceResp
                 detail_info.append(
                     VolcovoiceDetail(
                         segment_url=segment_urls[seg_idx] if seg_idx < len(segment_urls) else "",
-                        segment_duration=segment_durations[seg_idx] if seg_idx < len(segment_durations) else 0.0,
+                        segment_duration=round(video_dur, 3),
                         video_duration=round(video_dur, 3),
                         pause=round(float(segment["pause_ms"]) / 1000.0, 3),
                         caption_text=str(segment["caption_text"]),

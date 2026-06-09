@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlmodel import SQLModel, select
 
 from config.config import ENV, log, my_config
+from models.voice_profile_utils import infer_voice_sex
 
 
 def create_url(config, async_mode=True):
@@ -96,20 +97,9 @@ class DBManager:
             rows = result.fetchall()
             for r_id, char_name, voice_code in rows:
                 meta = voice_enums_meta.get(char_name)
-                if meta:
-                    age = meta.get("age")
-                    gender = meta.get("gender")
-                    sex_val = 1 if gender == "男" else 0
-                    if gender == "儿童":
-                        code_lower = voice_code.lower()
-                        char_lower = char_name.lower()
-                        if "female" in code_lower or any(x in char_lower for x in ("佩奇", "丸子", "妹", "萝莉", "囡", "妞", "丫头", "姥姥", "奶奶")):
-                            sex_val = 0
-                        elif "male" in code_lower or any(x in char_lower for x in ("新", "小生", "童声", "小羊", "绵宝", "熊", "八戒", "猴", "大爷", "老者")):
-                            sex_val = 1
-                        else:
-                            sex_val = 0
-                    
+                age = meta.get('age') if meta else None
+                sex_val = infer_voice_sex(char_name, voice_code, meta.get('gender') if meta else None)
+                if sex_val is not None:
                     await conn.execute(
                         text("UPDATE volcovoice_sample SET age_type = :age_type, sex = :sex WHERE id = :id"),
                         {"age_type": age, "sex": sex_val, "id": r_id}

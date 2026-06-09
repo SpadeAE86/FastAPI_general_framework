@@ -13,6 +13,7 @@ from database.mysql.mysql_manager import db_manager
 from models.pydantic_models.db.volcovoice_sample import VolcovoiceSample
 from models.pydantic_models.request.volcovoice_request import Volcovoice_VO, character_options
 from models.voice_enums import get_volcano_voice_type
+from models.voice_profile_utils import infer_voice_sex
 from service.volcovoice_service import process_volcovoice_task
 from utils.file_utils import download_file_from_url
 from utils.log_utils import logger as log
@@ -120,25 +121,11 @@ async def _process_single_voice_sample(
     output_dir: Path,
 ) -> dict[str, Any]:
     voice_model_type = get_volcano_voice_type(voice_character)
-    
-    # Query metadata to resolve age_type and sex
+
     from models.voice_enums_meta import voice_enums_meta
     meta = voice_enums_meta.get(voice_character)
-    age_type = None
-    sex = None
-    if meta:
-        age_type = meta.get("age")
-        gender = meta.get("gender")
-        sex = 1 if gender == "男" else 0
-        if gender == "儿童":
-            code_lower = voice_code.lower()
-            char_lower = voice_character.lower()
-            if "female" in code_lower or any(x in char_lower for x in ("佩奇", "丸子", "妹", "萝莉", "囡", "妞", "丫头", "姥姥", "奶奶")):
-                sex = 0
-            elif "male" in code_lower or any(x in char_lower for x in ("新", "小生", "童声", "小羊", "绵宝", "熊", "八戒", "猴", "大爷", "老者")):
-                sex = 1
-            else:
-                sex = 0
+    age_type = meta.get('age') if meta else None
+    sex = infer_voice_sex(voice_character, voice_code, meta.get('gender') if meta else None)
 
     request = Volcovoice_VO(
         biz_id=0,
@@ -238,25 +225,11 @@ async def sample_volcovoice_voices(
 
     async def _worker(display_name: str, voice_code: str) -> dict[str, Any]:
         voice_model_type = get_volcano_voice_type(display_name)
-        
-        # Query metadata to resolve age_type and sex
+
         from models.voice_enums_meta import voice_enums_meta
         meta = voice_enums_meta.get(display_name)
-        age_type = None
-        sex = None
-        if meta:
-            age_type = meta.get("age")
-            gender = meta.get("gender")
-            sex = 1 if gender == "男" else 0
-            if gender == "儿童":
-                code_lower = voice_code.lower()
-                char_lower = display_name.lower()
-                if "female" in code_lower or any(x in char_lower for x in ("佩奇", "丸子", "妹", "萝莉", "囡", "妞", "丫头", "姥姥", "奶奶")):
-                    sex = 0
-                elif "male" in code_lower or any(x in char_lower for x in ("新", "小生", "童声", "小羊", "绵宝", "熊", "八戒", "猴", "大爷", "老者")):
-                    sex = 1
-                else:
-                    sex = 0
+        age_type = meta.get('age') if meta else None
+        sex = infer_voice_sex(display_name, voice_code, meta.get('gender') if meta else None)
 
         if not resample and display_name in existing_map:
             record = existing_map[display_name]

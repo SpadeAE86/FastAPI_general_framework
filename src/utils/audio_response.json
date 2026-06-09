@@ -7,134 +7,140 @@
   "cost_time": null,
   "object_list": [
     {
-      "full_voice": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/volcovoice0_volcovoice_1780992676522.wav",
-      "duration": 40.16,
+      "full_voice": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/volcovoice0_volcovoice_1781001643452.wav",
+      "duration": 38.98,
       "detail_info": [
         {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_0_volcovoice_1780992676522.wav",
-          "segment_duration": 1.91,
-          "pause": 0.29,
-          "caption_text": "敏感肌的姐妹看过来"
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_0_volcovoice_1781001643452.wav",
+          "segment_duration": 2.36,
+          "video_duration": 2.885,
+          "pause": 0.52,
+          "caption_text": "我们做过汽车内饰材质检测"
         },
         {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_1_volcovoice_1780992676522.wav",
-          "segment_duration": 3.33,
-          "pause": 0.58,
-          "caption_text": "今天拍小青蛙就送同款小样两支"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_2_volcovoice_1780992676522.wav",
-          "segment_duration": 1.91,
-          "pause": 0.4,
-          "caption_text": "再加两片修护面膜"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_3_volcovoice_1780992676522.wav",
-          "segment_duration": 2.15,
-          "pause": 0.585,
-          "caption_text": "直接省了百来块"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_4_volcovoice_1780992676522.wav",
-          "segment_duration": 1.41,
-          "pause": 0.39,
-          "caption_text": "我跟你们说啊"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_5_volcovoice_1780992676522.wav",
-          "segment_duration": 3.12,
-          "pause": 0.58,
-          "caption_text": "这个活动就今天二十四点前有效"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_6_volcovoice_1780992676522.wav",
-          "segment_duration": 2.22,
-          "pause": 0.28,
-          "caption_text": "库存只剩最后八十七份"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_7_volcovoice_1780992676522.wav",
-          "segment_duration": 1.86,
-          "pause": 0.83,
-          "caption_text": "手慢真的无"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_8_volcovoice_1780992676522.wav",
-          "segment_duration": 1.35,
-          "pause": 0.26,
-          "caption_text": "等过了今天"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_9_volcovoice_1780992676522.wav",
-          "segment_duration": 1.48,
-          "pause": 0.51,
-          "caption_text": "别说赠品了"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_10_volcovoice_1780992676522.wav",
-          "segment_duration": 1.99,
-          "pause": 0.33,
-          "caption_text": "原价比现在贵六十多"
-        },
-        {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_11_volcovoice_1780992676522.wav",
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_1_volcovoice_1781001643452.wav",
           "segment_duration": 2.78,
-          "pause": 0.415,
-          "caption_text": "相当于多花两支口红钱啊"
+          "video_duration": 2.7,
+          "pause": 0.5,
+          "caption_text": "市面上近六成普通汽车脚垫"
         },
         {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_12_volcovoice_1780992676522.wav",
-          "segment_duration": 1.69,
-          "pause": 0.35,
-          "caption_text": "它没有酒精香精"
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_2_volcovoice_1781001643452.wav",
+          "segment_duration": 2.8,
+          "video_duration": 2.724,
+          "pause": 0.806,
+          "caption_text": "高温下都会释放微量有害挥发物"
         },
         {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_13_volcovoice_1780992676522.wav",
-          "segment_duration": 1.06,
-          "pause": 0.35,
-          "caption_text": "温和得很"
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_3_volcovoice_1781001643452.wav",
+          "segment_duration": 1.77,
+          "video_duration": 1.69,
+          "pause": 0.43,
+          "caption_text": "尤其是版型不服帖的"
         },
         {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_14_volcovoice_1780992676522.wav",
-          "segment_duration": 2.09,
-          "pause": 0.86,
-          "caption_text": "上脸一点不刺激"
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_4_volcovoice_1781001643452.wav",
+          "segment_duration": 0.93,
+          "video_duration": 0.85,
+          "pause": 0.53,
+          "caption_text": "卡油门"
         },
         {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_15_volcovoice_1780992676522.wav",
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_5_volcovoice_1781001643452.wav",
+          "segment_duration": 1.7,
+          "video_duration": 1.62,
+          "pause": 0.43,
+          "caption_text": "漏碎屑进缝隙"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_6_volcovoice_1781001643452.wav",
+          "segment_duration": 2.33,
+          "video_duration": 2.25,
+          "pause": 0.61,
+          "caption_text": "清理麻烦还藏安全隐患"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_7_volcovoice_1781001643452.wav",
+          "segment_duration": 3.12,
+          "video_duration": 3.04,
+          "pause": 0.42,
+          "caption_text": "这款Car座椅专用的三百六十度全包围脚垫"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_8_volcovoice_1781001643452.wav",
+          "segment_duration": 1.18,
+          "video_duration": 1.1,
+          "pause": 0.3,
+          "caption_text": "我们专门测过"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_9_volcovoice_1781001643452.wav",
+          "segment_duration": 2.07,
+          "video_duration": 1.993,
+          "pause": 0.655,
+          "caption_text": "环保材质完全无异味"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_10_volcovoice_1781001643452.wav",
+          "segment_duration": 2.85,
+          "video_duration": 2.77,
+          "pause": 0.46,
+          "caption_text": "高温放置七十二小时也没检出有害物"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_11_volcovoice_1781001643452.wav",
           "segment_duration": 2.44,
-          "pause": 0.68,
-          "caption_text": "二十四小时长效保湿"
+          "video_duration": 2.36,
+          "pause": 0.38,
+          "caption_text": "边缘严丝合缝卡住原车凹槽"
         },
         {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_16_volcovoice_1780992676522.wav",
-          "segment_duration": 2.9,
-          "pause": 0.64,
-          "caption_text": "换季泛红干痒用它超管用"
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_12_volcovoice_1781001643452.wav",
+          "segment_duration": 2.45,
+          "video_duration": 2.37,
+          "pause": 0.63,
+          "caption_text": "不会移位也不会漏任何杂物进去"
         },
         {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_17_volcovoice_1780992676522.wav",
-          "segment_duration": 1.21,
-          "pause": 0.37,
-          "caption_text": "别犹豫了"
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_13_volcovoice_1781001643452.wav",
+          "segment_duration": 1.51,
+          "video_duration": 1.43,
+          "pause": 0.4,
+          "caption_text": "选汽车内饰"
         },
         {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_18_volcovoice_1780992676522.wav",
-          "segment_duration": 2.42,
-          "pause": 0.48,
-          "caption_text": "现在点下方小黄车直接拍"
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_14_volcovoice_1781001643452.wav",
+          "segment_duration": 2.61,
+          "video_duration": 2.526,
+          "pause": 0.725,
+          "caption_text": "安全和适配性永远是第一位的"
         },
         {
-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/seg_0_19_volcovoice_1780992676522.wav",
-          "segment_duration": 2.17,
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_15_volcovoice_1781001643452.wav",
+          "segment_duration": 1.52,
+          "video_duration": 1.44,
+          "pause": 0.28,
+          "caption_text": "如果你正挑脚垫"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_16_volcovoice_1781001643452.wav",
+          "segment_duration": 1.92,
+          "video_duration": 1.84,
+          "pause": 0.54,
+          "caption_text": "看重品质不想踩坑"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_17_volcovoice_1781001643452.wav",
+          "segment_duration": 3.43,
+          "video_duration": 3.392,
           "pause": 0,
-          "caption_text": "这波过了真的没有了"
+          "caption_text": "可以点下方链接看看详细的检测报告和实装效果"
         }
       ]
     }
   ],
   "volume": 80,
   "speech_rate": 1,
-  "voice_character": "魅力女友",
-  "debug_json_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1780992676522/volcovoice_volcovoice_1780992676522_response.json"
+  "voice_character": "天才同桌",
+  "debug_json_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/volcovoice_volcovoice_1781001643452_response.json"
 }

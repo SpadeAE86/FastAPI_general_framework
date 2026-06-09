@@ -1,53 +1,522 @@
 {
   "audio_config": [],
-  "biz_id": 6330,
+  "bgm_config": [
+    {
+      "ease_in": 0.0,
+      "ease_out": 0.0,
+      "end": -1.0,
+      "offset": 0.0,
+      "start": 0.0,
+      "volume": 1.0
+    },
+    {
+      "ease_in": 0.0,
+      "ease_out": 0.0,
+      "end": -1.0,
+      "offset": 0.0,
+      "start": 0.0,
+      "volume": 0.3
+    }
+  ],
+  "biz_id": 107037,
+  "cap_background_color": "#000000ff",
+  "cap_config": {
+    "caption_list": [
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "我们做过汽车内饰材质检测",
+        "color": "#ffffff",
+        "end": 2.36,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 0.0
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "市面上近六成普通汽车脚垫",
+        "color": "#ffffff",
+        "end": 5.14,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 2.36
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "高温下都会释放微量有害挥发物",
+        "color": "#ffffff",
+        "end": 7.94,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 5.14
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "尤其是版型不服帖的",
+        "color": "#ffffff",
+        "end": 9.71,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 7.94
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "卡油门",
+        "color": "#ffffff",
+        "end": 10.64,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 9.71
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "漏碎屑进缝隙",
+        "color": "#ffffff",
+        "end": 12.34,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 10.64
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "清理麻烦还藏安全隐患",
+        "color": "#ffffff",
+        "end": 14.67,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 12.34
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "这款Car座椅专用的三百六十度全包围脚垫",
+        "color": "#ffffff",
+        "end": 17.79,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 14.67
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "我们专门测过",
+        "color": "#ffffff",
+        "end": 18.97,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 17.79
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "环保材质完全无异味",
+        "color": "#ffffff",
+        "end": 21.04,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 18.97
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "高温放置七十二小时也没检出有害物",
+        "color": "#ffffff",
+        "end": 23.89,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 21.04
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "边缘严丝合缝卡住原车凹槽",
+        "color": "#ffffff",
+        "end": 26.33,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 23.89
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "不会移位也不会漏任何杂物进去",
+        "color": "#ffffff",
+        "end": 28.78,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 26.33
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "选汽车内饰",
+        "color": "#ffffff",
+        "end": 30.29,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 28.78
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "安全和适配性永远是第一位的",
+        "color": "#ffffff",
+        "end": 32.9,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 30.29
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "如果你正挑脚垫",
+        "color": "#ffffff",
+        "end": 34.42,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 32.9
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "看重品质不想踩坑",
+        "color": "#ffffff",
+        "end": 36.34,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 34.42
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.25,
+        "background_type": 0,
+        "cap": "可以点下方链接看看详细的检测报告和实装效果",
+        "color": "#ffffff",
+        "end": 39.77,
+        "font_size": 34,
+        "outline_width": 2,
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 36.34
+      }
+    ],
+    "font_type": "vivo Sans"
+  },
+  "cap_outline_color": "#000000",
+  "cap_outline_width": 1,
   "crop_config": [
     {
-      "end": 77.33,
-      "extend_to": 116.0,
+      "end": 2.36,
+      "extend_to": 2.36,
       "mirror": false,
       "rotation": 0.0,
       "scale": 1.0,
-      "speed": 1.5,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 2.78,
+      "extend_to": 2.78,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 2.8,
+      "extend_to": 2.8,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 1.77,
+      "extend_to": 1.77,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 0.93,
+      "extend_to": 0.93,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 1.7,
+      "extend_to": 1.7,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 2.33,
+      "extend_to": 2.33,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 3.12,
+      "extend_to": 3.12,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 1.18,
+      "extend_to": 1.18,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 2.07,
+      "extend_to": 2.07,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 2.85,
+      "extend_to": 2.85,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 2.44,
+      "extend_to": 2.44,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 2.45,
+      "extend_to": 2.45,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 1.51,
+      "extend_to": 1.51,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 2.61,
+      "extend_to": 2.61,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 1.52,
+      "extend_to": 1.52,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 1.92,
+      "extend_to": 1.92,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
+      "start": 0.0,
+      "translate_x": 0.0,
+      "translate_y": 0.0
+    },
+    {
+      "end": 3.43,
+      "extend_to": 3.43,
+      "mirror": false,
+      "rotation": 0.0,
+      "scale": 1.0,
+      "speed": 1.0,
       "start": 0.0,
       "translate_x": 0.0,
       "translate_y": 0.0
     }
   ],
-  "filter_config": [
-    {
-      "filter_configs": [
-        {
-          "type": "tint",
-          "value": 0
-        },
-        {
-          "type": "temperature",
-          "value": 0
-        },
-        {
-          "type": "saturation",
-          "value": 1
-        }
-      ]
-    }
-  ],
+  "filter_config": [],
   "fps": 30,
   "mute_config": [
-    false
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
   ],
   "obs_audio_path_list": [],
-  "obs_video_path_list": [
-    "aigc/aigc_prod/38/2059873227452108801/0/video/transcode_2062809911467085826_1780647184420/d926dfad-2779-4a7e-85a8-b31731d4dcce_H.264_1920x1080_AAC_2100.mp4"
+  "obs_bgm_path_list": [
+    "aigc/aigc_test/volcovoice_1781001643452/volcovoice0_volcovoice_1781001643452.wav",
+    "aigc/crawl_data_base/jianying_music/沙发音乐.MP3"
   ],
-  "ratio_type": "16:9",
+  "obs_video_path_list": [
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044351885029601281_1776246456170/bfbb2f76-5304-41a1-8618-558c40858099_H.264_1440x2560_AAC_4900.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044347336214638598_1776245370930/ee8502f0-4986-4a6b-b67d-c6589bb5edb8_H.264_1440x2560_AAC_4900.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044351885029601282_1776246455049/3c9e7129-cea4-4d8b-9b96-8755783ba7d3_H.264_1440x2560_AAC_4900.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044347336214638597_1776245372007/a710c758-3a13-428f-acab-8fe88440efb0_H.264_1440x2560_AAC_4900.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044347093427351556_1776245310750/130e45b5-7e7f-419a-9e76-17039d92ae15_H.264_1440x2560_AAC_4900.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044351667248754691_1776246396811/3cc3ff57-0481-4342-8093-6fd89d17d931_H.264_1080x1920_AAC_2100.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044352273023692806_1776246541115/6898749f-a75d-4d0c-8434-4991f698d17e_H.264_1440x2560_AAC_4900.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044347336214638594_1776245376982/52521b98-4e23-4d9e-b618-2ae7dd655e57_H.264_1440x2560_AAC_4900.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044347093414768643_1776245325821/f412053b-6ae8-4ef1-a989-49075b1f2a9f_H.264_1440x2560_AAC_4900.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044351885029601286_1776246448275/01ae673c-868b-4c9e-b7e9-049f8f27ae77_H.264_1440x2560_AAC_4900.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044347093410574337_1776245328627/05487567-87f2-4ec0-98f6-dc0196f78477_H.264_1440x2560_AAC_4900.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044347093423157250_1776245314569/e7976ecf-6c88-4f4a-900a-e436f5c479bc_H.264_1440x2560_AAC_4900.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044347093423157249_1776245317939/af257459-7e1b-428f-a273-18159567b74a_H.264_1440x2560_AAC_4900.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044351885029601284_1776246452584/e3c7cce9-f257-4b9f-9522-aa54b834577a_H.264_1440x2560_AAC_4900.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044352273023692804_1776246540436/47705d44-590c-46e5-929e-23b8564346b4_H.264_1080x1920_AAC_2100.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044351667248754690_1776246396276/93c2bfde-2d68-4d24-93fe-940835c5bc68_H.264_1080x1920_AAC_2100.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044347093418962947_1776245323817/b233de51-192d-43d5-a74f-6feeb40a25ad_H.264_1440x2560_AAC_4900.mp4",
+    "aigc/aigc_test/41/2041815438228172802/0/video/transcode_2044347336218832901_1776245364604/efc4ba85-3626-40af-8246-6d48c5e53944_H.264_1440x2560_AAC_4900.mp4"
+  ],
   "request_data": {
-    "bizTypeContext": "videoMixFull",
-    "full_mix_video": true
+    "callContext": {
+      "batchRecordId": 107037,
+      "processId": 10909,
+      "projectId": 2041815438228172802,
+      "systemTaskId": 56963
+    },
+    "bizTypeContext": "aiMixFull"
   },
-  "resolution": "1080p",
-  "user_id": 38,
-  "videoMaterialIdList": [
-    "2062809911467085826"
-  ]
+  "resolution": "2k",
+  "user_id": 41
 }
