@@ -423,12 +423,16 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         audio_input_option.extend(["-i", p])
     if audio_filter:
         video_filter_list.append(audio_filter)
+        audio_simple_filter = []
+        audio_filter_flag = []
     else:
         simple_audio_filters = []
         if audio_filter_str:
             simple_audio_filters.append(audio_filter_str)
-        simple_audio_filters.append(f"atrim=start=0:end={duration},asetpts=N/SR/TB,apad=whole_dur={effective_duration}")
-        audio_simple_filter = ["-af", ",".join(simple_audio_filters)]
+        simple_audio_filters.append(f"atrim=start=0:end={duration},asetpts=PTS-STARTPTS,apad=whole_dur={effective_duration}")
+        video_filter_list.append(f"[{end_a}]{','.join(simple_audio_filters)}[final_a]")
+        end_a = "final_a"
+        audio_simple_filter = []
         audio_filter_flag = []
 
     # === 新增配置：统一时基 ===

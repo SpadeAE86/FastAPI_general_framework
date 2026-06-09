@@ -411,134 +411,149 @@ async def volcano_generate_voice(
     headers = {"Authorization": f"Bearer;{access_token}"}
     log.info(f"Connecting to {host} with headers: {headers}")
 
-    websocket = None
-    last_connect_error: Exception | None = None
-    for attempt in range(1, connect_retries + 1):
+    MAX_WS_RETRIES = 3
+    last_ws_error: Exception | None = None
+    
+    for ws_attempt in range(1, MAX_WS_RETRIES + 1):
+        websocket = None
+        last_connect_error: Exception | None = None
         try:
-            websocket = await websockets.connect(
-                host,
-                additional_headers=headers,
-                max_size=10 * 1024 * 1024,
-                open_timeout=open_timeout,
-            )
-            break
-        except (TimeoutError, OSError, websockets.exceptions.WebSocketException) as exc:
-            last_connect_error = exc
-            if attempt >= connect_retries:
-                break
-            sleep_sec = retry_backoff_sec * attempt + random.uniform(0, 0.5)
-            log.warning(
-                f"Volcano websocket connect failed, attempt={attempt}/{connect_retries}, "
-                f"error={type(exc).__name__}: {exc}, retry in {sleep_sec:.2f}s"
-            )
-            await asyncio.sleep(sleep_sec)
-
-    if websocket is None:
-        raise RuntimeError(
-            f"Volcano websocket connect failed after {connect_retries} attempts: "
-            f"{type(last_connect_error).__name__ if last_connect_error else 'UnknownError'}: {last_connect_error}"
-        )
-    response_headers = getattr(getattr(websocket, "response", None), "headers", {})
-    log.info(f"Connected to WebSocket server, Logid: {response_headers.get('x-tt-logid', '')}")
-
-    try:
-        request = {
-            "app": {"appid": appid, "token": access_token, "cluster": cluster},
-            "user": {"uid": str(uuid.uuid4())},
-            "audio": {
-                "voice_type": voice_type,
-                "encoding": encoding,
-                "speed_ratio": speed,
-                "loudness_ratio": volume,
-                "emotion": emotion,
-                "enable_emotion": emotion_active,
-                "emotion_intensity": emotion_intensity,
-            },
-            "request": {
-                "reqid": str(uuid.uuid4()),
-                "text": text,
-                "operation": "submit",
-                "with_timestamp": "1",
-                "extra_param": json.dumps({"disable_markdown_filter": False}),
-            },
-        }
-        log.info(f"{request}")
-        await full_client_request(websocket, json.dumps(request).encode())
-
-        audio_data = bytearray()
-        debug_messages: list[dict[str, Any]] = []
-        frontend_payloads: list[Any] = []
-        while True:
-            msg = await receive_message(websocket)
-            decoded_payload = _decode_debug_payload(msg.payload)
-            message_record: dict[str, Any] = {
-                "type": msg.type.name,
-                "sequence": msg.sequence,
-                "event": msg.event.name if getattr(msg, "event", None) else None,
-            }
-            if decoded_payload is not None and msg.type != MsgType.AudioOnlyServer:
-                message_record["payload"] = decoded_payload
-            elif msg.type == MsgType.AudioOnlyServer:
-                message_record["payload_bytes"] = len(msg.payload)
-            debug_messages.append(message_record)
-
-            if msg.type == MsgType.FrontEndResultServer:
-                if decoded_payload is not None:
-                    frontend_payloads.append(decoded_payload)
-                continue
-            if msg.type == MsgType.AudioOnlyServer:
-                audio_data.extend(msg.payload)
-                if msg.sequence < 0:
+            for attempt in range(1, connect_retries + 1):
+                try:
+                    websocket = await websockets.connect(
+                        host,
+                        additional_headers=headers,
+                        max_size=10 * 1024 * 1024,
+                        open_timeout=open_timeout,
+                    )
                     break
-                continue
-            if msg.type == MsgType.Error:
-                error_payload = _parse_error_payload(msg.payload)
-                message_record["error_code"] = msg.error_code
-                message_record["payload"] = error_payload
-                debug_messages[-1] = message_record
+                except (TimeoutError, OSError, websockets.exceptions.WebSocketException) as exc:
+                    last_connect_error = exc
+                    if attempt >= connect_retries:
+                        break
+                    sleep_sec = retry_backoff_sec * attempt + random.uniform(0, 0.5)
+                    log.warning(
+                        f"Volcano websocket connect failed, attempt={attempt}/{connect_retries}, "
+                        f"error={type(exc).__name__}: {exc}, retry in {sleep_sec:.2f}s"
+                    )
+                    await asyncio.sleep(sleep_sec)
+
+            if websocket is None:
                 raise RuntimeError(
-                    "Volcano TTS server returned error: "
-                    f"{_format_volcano_error_message(msg.error_code, msg.payload)}"
+                    f"Volcano websocket connect failed after {connect_retries} attempts: "
+                    f"{type(last_connect_error).__name__ if last_connect_error else 'UnknownError'}: {last_connect_error}"
                 )
-            raise RuntimeError(f"TTS conversion failed: {msg}")
+            response_headers = getattr(getattr(websocket, "response", None), "headers", {})
+            log.info(f"Connected to WebSocket server, Logid: {response_headers.get('x-tt-logid', '')}")
 
-        if not audio_data:
-            raise RuntimeError("No audio data received")
-
-        with open(filename, "wb") as f:
-            f.write(audio_data)
-        log.info(f"Audio received: {len(audio_data)}, saved to {filename}")
-
-        if debug_dump_path:
-            dump_path = Path(debug_dump_path)
-            dump_path.parent.mkdir(parents=True, exist_ok=True)
-            debug_dump = {
-                "request": request,
-                "host": host,
-                "audio_output": filename,
-                "audio_bytes": len(audio_data),
-                "frontend_payloads": frontend_payloads,
-                "messages": debug_messages,
+            request = {
+                "app": {"appid": appid, "token": access_token, "cluster": cluster},
+                "user": {"uid": str(uuid.uuid4())},
+                "audio": {
+                    "voice_type": voice_type,
+                    "encoding": encoding,
+                    "speed_ratio": speed,
+                    "loudness_ratio": volume,
+                    "emotion": emotion,
+                    "enable_emotion": emotion_active,
+                    "emotion_intensity": emotion_intensity,
+                },
+                "request": {
+                    "reqid": str(uuid.uuid4()),
+                    "text": text,
+                    "operation": "submit",
+                    "with_timestamp": "1",
+                    "extra_param": json.dumps({"disable_markdown_filter": False}),
+                },
             }
-            dump_path.write_text(
-                json.dumps(debug_dump, ensure_ascii=False, indent=2),
-                encoding="utf-8",
+            log.info(f"{request}")
+            await full_client_request(websocket, json.dumps(request).encode())
+
+            audio_data = bytearray()
+            debug_messages: list[dict[str, Any]] = []
+            frontend_payloads: list[Any] = []
+            while True:
+                msg = await receive_message(websocket)
+                decoded_payload = _decode_debug_payload(msg.payload)
+                message_record: dict[str, Any] = {
+                    "type": msg.type.name,
+                    "sequence": msg.sequence,
+                    "event": msg.event.name if getattr(msg, "event", None) else None,
+                }
+                if decoded_payload is not None and msg.type != MsgType.AudioOnlyServer:
+                    message_record["payload"] = decoded_payload
+                elif msg.type == MsgType.AudioOnlyServer:
+                    message_record["payload_bytes"] = len(msg.payload)
+                debug_messages.append(message_record)
+
+                if msg.type == MsgType.FrontEndResultServer:
+                    if decoded_payload is not None:
+                        frontend_payloads.append(decoded_payload)
+                    continue
+                if msg.type == MsgType.AudioOnlyServer:
+                    audio_data.extend(msg.payload)
+                    if msg.sequence < 0:
+                        break
+                    continue
+                if msg.type == MsgType.Error:
+                    error_payload = _parse_error_payload(msg.payload)
+                    message_record["error_code"] = msg.error_code
+                    message_record["payload"] = error_payload
+                    debug_messages[-1] = message_record
+                    raise RuntimeError(
+                        "Volcano TTS server returned error: "
+                        f"{_format_volcano_error_message(msg.error_code, msg.payload)}"
+                    )
+                raise RuntimeError(f"TTS conversion failed: {msg}")
+
+            if not audio_data:
+                raise RuntimeError("No audio data received")
+
+            with open(filename, "wb") as f:
+                f.write(audio_data)
+            log.info(f"Audio received: {len(audio_data)}, saved to {filename}")
+
+            if debug_dump_path:
+                dump_path = Path(debug_dump_path)
+                dump_path.parent.mkdir(parents=True, exist_ok=True)
+                debug_dump = {
+                    "request": request,
+                    "host": host,
+                    "audio_output": filename,
+                    "audio_bytes": len(audio_data),
+                    "frontend_payloads": frontend_payloads,
+                    "messages": debug_messages,
+                }
+                dump_path.write_text(
+                    json.dumps(debug_dump, ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+                log.info(f"Debug dump written to {dump_path}")
+                
+            return VolcanoGenerateResult(
+                output_path=filename,
+                audio_bytes=len(audio_data),
+                frontend_payloads=frontend_payloads,
+                messages=debug_messages,
+                request=request,
+                host=host,
+                debug_dump_path=debug_dump_path,
             )
-            log.info(f"Debug dump written to {dump_path}")
-        return VolcanoGenerateResult(
-            output_path=filename,
-            audio_bytes=len(audio_data),
-            frontend_payloads=frontend_payloads,
-            messages=debug_messages,
-            request=request,
-            host=host,
-            debug_dump_path=debug_dump_path,
-        )
-    finally:
-        if websocket is not None:
-            try:
-                await websocket.close()
-            except Exception as close_err:
-                log.warning(f"Volcano websocket close failed: {type(close_err).__name__}: {close_err}")
-            else:
-                log.info("Connection closed")
+
+        except websockets.exceptions.ConnectionClosed as e:
+            last_ws_error = e
+            if ws_attempt >= MAX_WS_RETRIES:
+                break
+            sleep_sec = retry_backoff_sec * ws_attempt
+            log.warning(f"Volcano WebSocket connection dropped (attempt {ws_attempt}/{MAX_WS_RETRIES}), error: {e}. Retrying in {sleep_sec:.2f}s...")
+            await asyncio.sleep(sleep_sec)
+        finally:
+            if websocket is not None:
+                try:
+                    await websocket.close()
+                except Exception as close_err:
+                    log.warning(f"Volcano websocket close failed: {type(close_err).__name__}: {close_err}")
+                else:
+                    log.info("Connection closed")
+                    
+    raise RuntimeError(f"Volcano TTS failed after {MAX_WS_RETRIES} attempts. Last error: {last_ws_error}")
