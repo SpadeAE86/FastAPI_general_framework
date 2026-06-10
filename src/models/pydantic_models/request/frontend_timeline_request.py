@@ -36,8 +36,8 @@ class FrontendVideoInfo(BaseModel):
 
 
 class FrontendAudioInfo(BaseModel):
-    voice_character: str = Field(default="小仙(亲切女声)", description="AliVoice voice id")
-    audio_speed_level: int = Field(default=0, description="Voice speed level; default falls back to 1.0x")
+    voice_character: str = Field(default="Vivi", description="Volcovoice voice id")
+    audio_speed_level: float = Field(default=1.0, description="Voice speed level; default falls back to 1.0x")
     volume: int = Field(default=100, description="Volume")
     audio_url: Optional[str] = Field(
         default=None,

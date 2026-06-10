@@ -27,13 +27,13 @@ from models.pydantic_models.response.frontend_timeline_response import (
 )
 
 
-DEFAULT_VOICE_ID = "小仙(亲切女声)"
+DEFAULT_VOICE_ID = "Vivi"
 TIMELINE_FPS = 30
 
 
 def _build_voiceover(audio_info: Optional[FrontendAudioInfo], audio_url: str) -> dict:
     audio_info = audio_info or FrontendAudioInfo()
-    speed = 2 ** (audio_info.audio_speed_level / 500) if audio_info.audio_speed_level else 1.0
+    speed = audio_info.audio_speed_level if audio_info.audio_speed_level else 1.0
     return VoiceOverData(
         voiceId=audio_info.voice_character or DEFAULT_VOICE_ID,
         speed=speed,
