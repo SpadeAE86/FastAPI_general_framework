@@ -71,7 +71,7 @@ def _build_bgm_fade_filters(audio_path: str, cfg, output_duration: float) -> str
 
 def generate_video(video_path_list, len_list, project_id="test",
                    transition_config=None, audio_path_list=None, audio_config=None, bgm_path_list=None,
-                   bgm_config=None, fps=30):
+                   bgm_config=None, fps=30, bgm_source_path_list=None, bgm_audio_indices=None):
     # 生成视频和音频的代码
     random_name = str(random_with_system_time())
     save_dir = os.path.join(FINAL_DIR, project_id)
@@ -96,6 +96,7 @@ def generate_video(video_path_list, len_list, project_id="test",
     enda = "0:a"
     audio_simple_filter = []
     if audio_path_list:
+        bgm_audio_indices = set(bgm_audio_indices or [])
         weights = ["1"]
         mix_input = ["[main_audio]"]
         audio_filter += f"[{enda}]volume=3[main_audio];"
@@ -103,8 +104,11 @@ def generate_video(video_path_list, len_list, project_id="test",
         for idx, a in enumerate(audio_path_list):
             output = f"bgm{idx}"
             crop_offset_str = ""
-            is_mock_bgm = "volcovoice" in a.lower()
-            volume = 2 if is_mock_bgm else 1.5
+            source_path = bgm_source_path_list[idx] if bgm_source_path_list and idx < len(bgm_source_path_list) else None
+            cfg_audio_url = getattr(audio_config[idx], "audioUrl", None) if audio_config and audio_config[idx] else None
+            is_audio_index = idx in bgm_audio_indices
+            bgm_volume_multiplier = 2 if is_audio_index else 1.5
+            volume = bgm_volume_multiplier
             weight = 1
             if audio_config and audio_config[idx]:
                 speed = float(getattr(audio_config[idx], "speed", 1.0) or 1.0)
@@ -116,11 +120,16 @@ def generate_video(video_path_list, len_list, project_id="test",
                     crop_offset_str += f"{build_atempo_filter(speed)},asetpts=PTS-STARTPTS,"
                 if audio_config[idx].offset >= 0:
                     crop_offset_str += f"adelay={audio_config[idx].offset * 1000}|{audio_config[idx].offset * 1000},"
-                volume = audio_config[idx].volume * (2 if is_mock_bgm else 1.5)
+                volume = audio_config[idx].volume * bgm_volume_multiplier
                 weight = audio_config[idx].weight
                 fade_filter = _build_bgm_fade_filters(a, audio_config[idx], end)
                 if fade_filter:
                     crop_offset_str += f"{fade_filter},"
+            log.info(
+                f"concat bgm idx={idx}, is_audio_index={is_audio_index}, "
+                f"volume_multiplier={bgm_volume_multiplier}, volume={volume}, "
+                f"weight={weight}, local_path={a}, source_path={source_path}, cfg_audio_url={cfg_audio_url}"
+            )
             audio_filter += f"[{1 + idx}:a]{crop_offset_str}volume={volume}[{output}];"
             mix_input.append(f"[{output}]")
             weights.append(str(weight))

@@ -34,6 +34,21 @@ from models.pydantic_models.db.mix_time_records import MixVideoOverallTime
 semaphore = Semaphore(1)
 
 
+def _is_voice_like_bgm_source(*source_hints) -> bool:
+    hint = " ".join(str(s or "") for s in source_hints).lower()
+    return "volcovoice" in hint or "alivoice" in hint
+
+
+def _get_bgm_audio_indices(mixed_config: MixedVideoRequest) -> list[int]:
+    audio_indices = []
+    for idx, source_path in enumerate(mixed_config.obs_bgm_path_list or []):
+        cfg = mixed_config.bgm_config[idx] if mixed_config.bgm_config and idx < len(mixed_config.bgm_config) else None
+        cfg_audio_url = getattr(cfg, "audioUrl", None) if cfg else None
+        if _is_voice_like_bgm_source(source_path, cfg_audio_url):
+            audio_indices.append(idx)
+    return audio_indices
+
+
 async def mixed_video_service(mixed_config: MixedVideoRequest):
     project_id = (
         "mix_" + str(random_with_system_time())
@@ -389,6 +404,8 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
 
             # 拼接视频，额外加上bgm
             concat_start = time.time()
+            bgm_audio_indices = _get_bgm_audio_indices(mixed_config)
+            log.info(f"bgm audio indices: {bgm_audio_indices}")
             task = asyncio.to_thread(
                 generate_video,
                 video_list,
@@ -399,6 +416,8 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
                 audio_config=mixed_config.audio_config,
                 bgm_path_list=bgm_list,
                 bgm_config=mixed_config.bgm_config,
+                bgm_source_path_list=mixed_config.obs_bgm_path_list,
+                bgm_audio_indices=bgm_audio_indices,
                 fps=fps,
             )
 

@@ -1,6 +1,29 @@
 import sys
 from unittest.mock import MagicMock
 
+# Mock redis modules to prevent connecting to actual Redis
+mock_redis = MagicMock()
+sys.modules['redis'] = mock_redis
+sys.modules['redis.exceptions'] = mock_redis
+
+# Create mock client factory
+mock_client = MagicMock()
+mock_client.ping.return_value = True
+mock_client.get.return_value = None
+
+class MockRedisClientFactory:
+    @classmethod
+    def get_client(cls):
+        return mock_client
+
+sys.modules['utils.redis_client'] = MagicMock(RedisClientFactory=MockRedisClientFactory)
+
+# Mock health_monitor module to prevent initialization errors
+sys.modules['core.health_monitor'] = MagicMock()
+sys.modules['core.health_monitor.service'] = MagicMock()
+sys.modules['core.health_monitor.heartbeat_checker'] = MagicMock()
+sys.modules['core.health_monitor.monitor'] = MagicMock()
+
 # Mock the celery tasks module to break the circular import during setup
 sys.modules['celery_mq.task.normalize_video_tasks'] = MagicMock()
 

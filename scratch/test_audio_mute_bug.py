@@ -58,34 +58,35 @@ with open("src/utils/body.json", "r", encoding="utf-8") as f:
 
 req = MixedVideoRequest(**body_data)
 
-print("Running normalize_video_filter_complex for segment index 1...")
+print("Running normalize_video_filter_complex for segment index 0...")
 try:
     nv.normalize_video_filter_complex(
         video="dummy_video.mp4",
         video_info=MockVideoInfo(),
-        end_time=req.crop_config[1].end,
+        end_time=req.crop_config[0].end,
         width=1080,
         height=1920,
         fps=30,
         cap_config=req.cap_config,
-        start_time=req.crop_config[1].start,
-        mute_origin=req.mute_config[1],
-        rotation=req.crop_config[1].rotation,
-        translate_x=req.crop_config[1].translate_x,
-        translate_y=req.crop_config[1].translate_y,
-        scale=req.crop_config[1].scale,
-        mirror=req.crop_config[1].mirror,
-        speed=req.crop_config[1].speed,
+        start_time=req.crop_config[0].start,
+        mute_origin=req.mute_config[0],
+        rotation=req.crop_config[0].rotation,
+        translate_x=req.crop_config[0].translate_x,
+        translate_y=req.crop_config[0].translate_y,
+        scale=req.crop_config[0].scale,
+        mirror=req.crop_config[0].mirror,
+        speed=req.crop_config[0].speed,
         extra_filter="",
         project_id="test_proj",
-        processed_so_far=16.27,  # first segment effective_duration is 16.27
+        processed_so_far=0.0,
         pix_fmt="yuv420p",
         cache_hit=False,
         fade_in_duration=0.0,
         fade_out_duration=0.0,
         audio_config=req.audio_config,
         audio_path_list=req.obs_audio_path_list,
-        vindex=1,
+        vindex=0,
+        freeze_tail_duration=req.crop_config[0].extend_to - req.crop_config[0].end,
     )
     
     # Check if last_command contains amix=inputs=1
