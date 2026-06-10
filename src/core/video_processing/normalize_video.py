@@ -209,7 +209,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     pre_transform = []
     raw_start_time = start_time
     raw_end_time = end_time
-    pre_transform.append(f"trim=start={raw_start_time}:end={raw_end_time},setpts=PTS-STARTPTS")
+    pre_transform.append(f"setpts=PTS-STARTPTS,trim=start={raw_start_time}:end={raw_end_time},setpts=PTS-STARTPTS")
     # === GPU → CPU（必须最前）===
     if my_config["device"] == "gpu":
         pre_transform.extend([
@@ -316,7 +316,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         f"effective_duration={effective_duration}"
     )
     if duration > 0:
-        video_filter_list.append(f"{end_v}trim=start=0:end={duration},setpts=PTS-STARTPTS[trim_v]")
+        video_filter_list.append(f"{end_v}setpts=PTS-STARTPTS,trim=start=0:end={duration},setpts=PTS-STARTPTS[trim_v]")
         end_v = "[trim_v]"
     if freeze_tail_duration > 0:
         video_filter_list.append(f"{end_v}tpad=stop_mode=clone:stop_duration={freeze_tail_duration}[freeze_v]")
