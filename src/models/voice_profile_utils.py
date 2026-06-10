@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from typing import Optional
 
-MALE_CODE_HINTS = ("_male_", "male", "zh_male", "icl_zh_male")
-FEMALE_CODE_HINTS = ("_female_", "female", "zh_female", "icl_zh_female")
-
 CONFIRMED_MALE_VOICES = {
     "活力青年",
     "冷漠兄长",
@@ -109,19 +106,12 @@ def infer_voice_sex(
     """Infer 1 for male and 0 for female."""
 
     name = voice_character or ""
-    code = voice_code or ""
-    code_lower = code.lower()
     gender = _norm_gender(meta_gender)
 
     if name in CONFIRMED_MALE_VOICES:
         return 1
     if name in CONFIRMED_FEMALE_VOICES:
         return 0
-
-    if any(h in code_lower for h in FEMALE_CODE_HINTS):
-        return 0
-    if any(h in code_lower for h in MALE_CODE_HINTS):
-        return 1
 
     if gender in {"男", "male", "m", "man", "boy"}:
         return 1

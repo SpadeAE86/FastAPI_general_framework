@@ -91,19 +91,22 @@ class DBManager:
                 "WHERE voice_model_type IS NULL OR voice_model_type = ''"
             ))
 
-            # Migrate age_type and sex using voice_enums_meta
+            # Migrate age_type and sex using voice_enums_meta only if they are NULL in the database
             from models.voice_enums_meta import voice_enums_meta
-            result = await conn.execute(text("SELECT id, voice_character, voice_code FROM volcovoice_sample"))
+            result = await conn.execute(text("SELECT id, voice_character, voice_code, age_type, sex FROM volcovoice_sample"))
             rows = result.fetchall()
-            for r_id, char_name, voice_code in rows:
+            for r_id, char_name, voice_code, existing_age, existing_sex in rows:
+                if existing_age is not None and existing_sex is not None:
+                    continue
+
                 meta = voice_enums_meta.get(char_name)
-                age = meta.get('age') if meta else None
-                sex_val = infer_voice_sex(char_name, voice_code, meta.get('gender') if meta else None)
-                if meta:
-                    await conn.execute(
-                        text("UPDATE volcovoice_sample SET age_type = :age_type, sex = :sex WHERE id = :id"),
-                        {"age_type": age, "sex": sex_val, "id": r_id}
-                    )
+                age = existing_age if existing_age is not None else (meta.get('age') if meta else None)
+                sex_val = existing_sex if existing_sex is not None else infer_voice_sex(char_name, voice_code, meta.get('gender') if meta else None)
+
+                await conn.execute(
+                    text("UPDATE volcovoice_sample SET age_type = :age_type, sex = :sex WHERE id = :id"),
+                    {"age_type": age, "sex": sex_val, "id": r_id}
+                )
 
     async def init_db(self):
         import models.pydantic_models.db.mix_time_records
