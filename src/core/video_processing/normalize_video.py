@@ -286,6 +286,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
             c_y = (height - crop_h) / 2
             transform.append(f"crop={crop_w}:{crop_h}:{c_x}:{c_y}")
             transform.append(f"scale={width}:{height}:flags=lanczos")
+    # fix: 20260610 先旋转后定位。默认旋转是居于整体帧的中心，除非手动指定旋转支点。小图旋转后定位画黑边，减少了旋转的性能开销。
     # 旋转滤镜
     if rotation:
         transform.append(f"rotate={rotation * math.pi / 180}:fillcolor=black")
