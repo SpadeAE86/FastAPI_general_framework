@@ -417,7 +417,10 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
             supplement_audio_input_cursor += 1
         # todo: 根据官方提供的例子 ffmpeg -i VOCALS -i MUSIC -filter_complex amix=inputs=2:duration=longest:dropout_transition=0:weights="1 0.25":normalize=0 OUTPUT
         weight_str = " ".join(weights)
-        audio_filter += f'{"".join(mix_input)}amix=inputs={len(mix_input)}:duration=longest:weights="{weight_str}":normalize=0{end_a}'
+        if len(mix_input) > 1:
+            audio_filter += f'{"".join(mix_input)}amix=inputs={len(mix_input)}:duration=longest:weights="{weight_str}":normalize=0{end_a}'
+        else:
+            audio_filter += f"[main_audio]anull{end_a}"
     # 组装音频滤镜并添加到video_filter_list
     audio_input_option = []
     for p in audio_input:
