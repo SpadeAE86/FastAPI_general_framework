@@ -1,0 +1,224 @@
+diff --git a/src/utils/audio_response.json b/src/utils/audio_response.json
+index 537926f..19ae809 100644
+--- a/src/utils/audio_response.json
++++ b/src/utils/audio_response.json
+@@ -7,140 +7,119 @@
+   "cost_time": null,
+   "object_list": [
+     {
+-      "full_voice": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/volcovoice0_volcovoice_1781001643452.wav",
+-      "duration": 38.98,
++      "full_voice": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/volcovoice0_volcovoice_1781058617354.wav",
++      "duration": 33.04,
+       "detail_info": [
+         {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_0_volcovoice_1781001643452.wav",
+-          "segment_duration": 2.36,
+-          "video_duration": 2.885,
+-          "pause": 0.52,
+-          "caption_text": "鎴戜滑鍋氳繃姹借溅鍐呴グ鏉愯川妫€娴?
+-        },
+-        {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_1_volcovoice_1781001643452.wav",
+-          "segment_duration": 2.78,
+-          "video_duration": 2.7,
+-          "pause": 0.5,
+-          "caption_text": "甯傞潰涓婅繎鍏垚鏅€氭苯杞﹁剼鍨?
+-        },
+-        {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_2_volcovoice_1781001643452.wav",
+-          "segment_duration": 2.8,
+-          "video_duration": 2.724,
+-          "pause": 0.806,
+-          "caption_text": "楂樻俯涓嬮兘浼氶噴鏀惧井閲忔湁瀹虫尌鍙戠墿"
+-        },
+-        {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_3_volcovoice_1781001643452.wav",
+-          "segment_duration": 1.77,
+-          "video_duration": 1.69,
+-          "pause": 0.43,
+-          "caption_text": "灏ゅ叾鏄増鍨嬩笉鏈嶅笘鐨?
++          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/seg_0_0_volcovoice_1781058617354.wav",
++          "segment_duration": 2.865,
++          "video_duration": 2.865,
++          "pause": 0.33,
++          "caption_text": "鎴戞槸鏈濅節鏅氫簲鍧愬姙鍏鐨勬墦宸ヤ汉"
+         },
+         {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_4_volcovoice_1781001643452.wav",
+-          "segment_duration": 0.93,
+-          "video_duration": 0.85,
+-          "pause": 0.53,
+-          "caption_text": "鍗℃补闂?
++          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/seg_0_1_volcovoice_1781058617354.wav",
++          "segment_duration": 2.05,
++          "video_duration": 2.05,
++          "pause": 0.23,
++          "caption_text": "骞虫椂鍚冨鍗栧杩樹箙鍧?
+         },
+         {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_5_volcovoice_1781001643452.wav",
+-          "segment_duration": 1.7,
+-          "video_duration": 1.62,
+-          "pause": 0.43,
+-          "caption_text": "婕忕灞戣繘缂濋殭"
++          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/seg_0_2_volcovoice_1781058617354.wav",
++          "segment_duration": 2.88,
++          "video_duration": 2.88,
++          "pause": 0.57,
++          "caption_text": "鎬绘兂鐫€鎵句釜娓╁拰鐐圭殑璋冪悊鐨勪笢瑗?
+         },
+         {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_6_volcovoice_1781001643452.wav",
+-          "segment_duration": 2.33,
+-          "video_duration": 2.25,
+-          "pause": 0.61,
+-          "caption_text": "娓呯悊楹荤儲杩樿棌瀹夊叏闅愭偅"
++          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/seg_0_3_volcovoice_1781058617354.wav",
++          "segment_duration": 2.13,
++          "video_duration": 2.13,
++          "pause": 0.205,
++          "caption_text": "涔嬪墠鎬曡俯闆蜂笉鏁贡璇?
+         },
+         {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_7_volcovoice_1781001643452.wav",
+-          "segment_duration": 3.12,
+-          "video_duration": 3.04,
+-          "pause": 0.42,
+-          "caption_text": "杩欐Car搴ф涓撶敤鐨勪笁鐧惧叚鍗佸害鍏ㄥ寘鍥磋剼鍨?
++          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/seg_0_4_volcovoice_1781058617354.wav",
++          "segment_duration": 2.36,
++          "video_duration": 2.36,
++          "pause": 0.48,
++          "caption_text": "瑕佷箞鎷呭績澶埡婵€闂硅倸瀛?
+         },
+         {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_8_volcovoice_1781001643452.wav",
+-          "segment_duration": 1.18,
+-          "video_duration": 1.1,
+-          "pause": 0.3,
+-          "caption_text": "鎴戜滑涓撻棬娴嬭繃"
++          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/seg_0_5_volcovoice_1781058617354.wav",
++          "segment_duration": 1.95,
++          "video_duration": 1.95,
++          "pause": 0.39,
++          "caption_text": "瑕佷箞鎬曞姞浜嗙硸鍚冧簡鑳?
+         },
+         {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_9_volcovoice_1781001643452.wav",
+-          "segment_duration": 2.07,
+-          "video_duration": 1.993,
+-          "pause": 0.655,
+-          "caption_text": "鐜繚鏉愯川瀹屽叏鏃犲紓鍛?
++          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/seg_0_6_volcovoice_1781058617354.wav",
++          "segment_duration": 2.9,
++          "video_duration": 2.9,
++          "pause": 0.39,
++          "caption_text": "鍚庢潵鎶辩潃璇曡瘯鐨勫績鎬佸叆浜嗘竻娓呯墖"
+         },
+         {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_10_volcovoice_1781001643452.wav",
+-          "segment_duration": 2.85,
+-          "video_duration": 2.77,
+-          "pause": 0.46,
+-          "caption_text": "楂樻俯鏀剧疆涓冨崄浜屽皬鏃朵篃娌℃鍑烘湁瀹崇墿"
++          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/seg_0_7_volcovoice_1781058617354.wav",
++          "segment_duration": 2.1,
++          "video_duration": 2.1,
++          "pause": 0.56,
++          "caption_text": "姣忓ぉ鍚冧竴鐗囦篃涓嶉夯鐑?
+         },
+         {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_11_volcovoice_1781001643452.wav",
+-          "segment_duration": 2.44,
+-          "video_duration": 2.36,
+-          "pause": 0.38,
+-          "caption_text": "杈圭紭涓ヤ笣鍚堢紳鍗′綇鍘熻溅鍑规Ы"
++          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/seg_0_8_volcovoice_1781058617354.wav",
++          "segment_duration": 2.473,
++          "video_duration": 2.473,
++          "pause": 0.165,
++          "caption_text": "鍚冧簡杩欐鏃堕棿鐪熺殑寰堟俯鍜?
+         },
+         {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_12_volcovoice_1781001643452.wav",
+-          "segment_duration": 2.45,
+-          "video_duration": 2.37,
+-          "pause": 0.63,
+-          "caption_text": "涓嶄細绉讳綅涔熶笉浼氭紡浠讳綍鏉傜墿杩涘幓"
++          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/seg_0_9_volcovoice_1781058617354.wav",
++          "segment_duration": 2.78,
++          "video_duration": 2.78,
++          "pause": 0.41,
++          "caption_text": "瀹屽叏娌℃湁鍒烘縺鑲犺儍鐨勪笉鑸掓湇鐨勬劅瑙?
+         },
+         {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_13_volcovoice_1781001643452.wav",
+-          "segment_duration": 1.51,
+-          "video_duration": 1.43,
+-          "pause": 0.4,
+-          "caption_text": "閫夋苯杞﹀唴楗?
++          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/seg_0_10_volcovoice_1781058617354.wav",
++          "segment_duration": 1.42,
++          "video_duration": 1.42,
++          "pause": 0.42,
++          "caption_text": "鑰屼笖娌℃湁钄楃硸"
+         },
+         {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_14_volcovoice_1781001643452.wav",
+-          "segment_duration": 2.61,
+-          "video_duration": 2.526,
+-          "pause": 0.725,
+-          "caption_text": "瀹夊叏鍜岄€傞厤鎬ф案杩滄槸绗竴浣嶇殑"
++          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/seg_0_11_volcovoice_1781058617354.wav",
++          "segment_duration": 1.99,
++          "video_duration": 1.99,
++          "pause": 0.3,
++          "caption_text": "鎴戞帶绯栨湡鍚冧篃娌¤礋鎷?
+         },
+         {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_15_volcovoice_1781001643452.wav",
+-          "segment_duration": 1.52,
+-          "video_duration": 1.44,
+-          "pause": 0.28,
+-          "caption_text": "濡傛灉浣犳鎸戣剼鍨?
++          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/seg_0_12_volcovoice_1781058617354.wav",
++          "segment_duration": 1.34,
++          "video_duration": 1.34,
++          "pause": 0.08,
++          "caption_text": "杩樻槸钃濆附璁よ瘉鐨?
+         },
+         {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_16_volcovoice_1781001643452.wav",
+-          "segment_duration": 1.92,
+-          "video_duration": 1.84,
+-          "pause": 0.54,
+-          "caption_text": "鐪嬮噸鍝佽川涓嶆兂韪╁潙"
++          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/seg_0_13_volcovoice_1781058617354.wav",
++          "segment_duration": 1.65,
++          "video_duration": 1.65,
++          "pause": 0.56,
++          "caption_text": "鍚冪潃灏卞緢鏀惧績"
+         },
+         {
+-          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_17_volcovoice_1781001643452.wav",
+-          "segment_duration": 3.43,
+-          "video_duration": 3.392,
++          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/seg_0_14_volcovoice_1781058617354.wav",
++          "segment_duration": 2.152,
++          "video_duration": 2.152,
+           "pause": 0,
+-          "caption_text": "鍙互鐐逛笅鏂归摼鎺ョ湅鐪嬭缁嗙殑妫€娴嬫姤鍛婂拰瀹炶鏁堟灉"
++          "caption_text": "鎴戣嚜宸辩敤涓嬫潵鐪熺殑涓嶉敊"
+         }
+       ]
+     }
+   ],
+   "volume": 80,
+   "speech_rate": 1,
+-  "voice_character": "澶╂墠鍚屾",
+-  "debug_json_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/volcovoice_volcovoice_1781001643452_response.json"
++  "voice_character": "鏆栭槼濂冲０",
++  "debug_json_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781058617354/volcovoice_volcovoice_1781058617354_response.json"
+ }
+\ No newline at end of file

@@ -399,6 +399,7 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
                 audio_config=mixed_config.audio_config,
                 bgm_path_list=bgm_list,
                 bgm_config=mixed_config.bgm_config,
+                fps=fps,
             )
 
             output_file, cover_img = await task

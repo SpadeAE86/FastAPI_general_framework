@@ -5,6 +5,55 @@ from typing import Optional
 MALE_CODE_HINTS = ("_male_", "male", "zh_male", "icl_zh_male")
 FEMALE_CODE_HINTS = ("_female_", "female", "zh_female", "icl_zh_female")
 
+CONFIRMED_MALE_VOICES = {
+    "活力青年",
+    "冷漠兄长",
+    "冷脸兄长",
+    "亲切青年",
+    "温柔学长",
+    "深夜播客",
+    "东方浩然",
+    "开朗弟弟",
+    "冷峻上司",
+    "成熟总裁",
+    "傲娇精英",
+    "清新沐沐",
+    "爽朗小阳",
+    "清新波波",
+    "沉稳明仔",
+    "亲切小卓",
+    "阳光洋洋",
+    "醇厚低音",
+    "阳光青年",
+    "开朗青年",
+    "反卷青年",
+    "质朴青年",
+    "儒雅青年",
+    "纨绔青年",
+    "潇洒青年",
+    "通用赘婿",
+    "诚诚",
+    "童童",
+    "懒小羊",
+    "智慧老者",
+    "影视解说小帅",
+    "解说小帅-多情感",
+    "擎苍",
+    "炀炀",
+    "擎苍 2.0",
+}
+
+CONFIRMED_FEMALE_VOICES = {
+    "灿灿 2.0",
+    "灿灿",
+    "超自然音色-梓梓2.0",
+    "超自然音色-梓梓",
+    "超自然音色-燃燃2.0",
+    "超自然音色-燃燃",
+    "古风少御",
+    "甜宠少御",
+}
+
 MALE_NAME_HINTS = (
     "男",
     "哥",
@@ -12,38 +61,37 @@ MALE_NAME_HINTS = (
     "爷",
     "公子",
     "少爷",
+    "男友",
+    "男生",
+    "少年",
     "青年",
     "兄长",
     "学长",
-    "大叔",
-    "小哥",
-    "弟",
-    "君",
-    "先生",
-    "总裁",
     "君子",
-    "法师",
     "将军",
     "侠客",
+    "法师",
+    "总裁",
+    "小生",
+    "弟弟",
 )
 
 FEMALE_NAME_HINTS = (
     "女",
     "姐",
-    "姨",
     "妹",
-    "嫂",
-    "姑",
-    "阿姨",
-    "小姐",
-    "萝莉",
+    "姨",
     "少女",
-    "女王",
     "女友",
+    "女生",
     "学姐",
     "姐姐",
-    "妈妈",
+    "阿姨",
     "奶奶",
+    "萝莉",
+    "女王",
+    "御姐",
+    "公主",
 )
 
 
@@ -58,17 +106,17 @@ def infer_voice_sex(
     voice_code: str = "",
     meta_gender: Optional[str] = None,
 ) -> Optional[int]:
-    """
-    Infer 1 for male and 0 for female.
-
-    The underlying voice catalog is messy, so we trust explicit code hints first,
-    then metadata, then a lightweight name heuristic.
-    """
+    """Infer 1 for male and 0 for female."""
 
     name = voice_character or ""
     code = voice_code or ""
     code_lower = code.lower()
     gender = _norm_gender(meta_gender)
+
+    if name in CONFIRMED_MALE_VOICES:
+        return 1
+    if name in CONFIRMED_FEMALE_VOICES:
+        return 0
 
     if any(h in code_lower for h in FEMALE_CODE_HINTS):
         return 0
@@ -78,15 +126,6 @@ def infer_voice_sex(
     if gender in {"男", "male", "m", "man", "boy"}:
         return 1
     if gender in {"女", "female", "f", "woman", "girl"}:
-        return 0
-
-    if gender == "儿童":
-        male_score = sum(1 for hint in MALE_NAME_HINTS if hint in name)
-        female_score = sum(1 for hint in FEMALE_NAME_HINTS if hint in name)
-        if male_score > female_score:
-            return 1
-        if female_score > male_score:
-            return 0
         return 0
 
     male_score = sum(1 for hint in MALE_NAME_HINTS if hint in name)

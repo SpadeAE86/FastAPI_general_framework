@@ -1,0 +1,146 @@
+{
+  "code": 0,
+  "message": "ok",
+  "biz_id": 0,
+  "start_time": null,
+  "end_time": null,
+  "cost_time": null,
+  "object_list": [
+    {
+      "full_voice": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/volcovoice0_volcovoice_1781001643452.wav",
+      "duration": 38.98,
+      "detail_info": [
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_0_volcovoice_1781001643452.wav",
+          "segment_duration": 2.46,
+          "video_duration": 2.46,
+          "pause": 0.52,
+          "caption_text": "我们做过汽车内饰材质检测"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_1_volcovoice_1781001643452.wav",
+          "segment_duration": 2.88,
+          "video_duration": 2.88,
+          "pause": 0.5,
+          "caption_text": "市面上近六成普通汽车脚垫"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_2_volcovoice_1781001643452.wav",
+          "segment_duration": 2.9,
+          "video_duration": 2.9,
+          "pause": 0.806,
+          "caption_text": "高温下都会释放微量有害挥发物"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_3_volcovoice_1781001643452.wav",
+          "segment_duration": 1.87,
+          "video_duration": 1.87,
+          "pause": 0.43,
+          "caption_text": "尤其是版型不服帖的"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_4_volcovoice_1781001643452.wav",
+          "segment_duration": 1.03,
+          "video_duration": 1.03,
+          "pause": 0.53,
+          "caption_text": "卡油门"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_5_volcovoice_1781001643452.wav",
+          "segment_duration": 1.8,
+          "video_duration": 1.8,
+          "pause": 0.43,
+          "caption_text": "漏碎屑进缝隙"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_6_volcovoice_1781001643452.wav",
+          "segment_duration": 2.43,
+          "video_duration": 2.43,
+          "pause": 0.61,
+          "caption_text": "清理麻烦还藏安全隐患"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_7_volcovoice_1781001643452.wav",
+          "segment_duration": 3.22,
+          "video_duration": 3.22,
+          "pause": 0.42,
+          "caption_text": "这款Car座椅专用的三百六十度全包围脚垫"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_8_volcovoice_1781001643452.wav",
+          "segment_duration": 1.28,
+          "video_duration": 1.28,
+          "pause": 0.3,
+          "caption_text": "我们专门测过"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_9_volcovoice_1781001643452.wav",
+          "segment_duration": 2.17,
+          "video_duration": 2.17,
+          "pause": 0.655,
+          "caption_text": "环保材质完全无异味"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_10_volcovoice_1781001643452.wav",
+          "segment_duration": 2.95,
+          "video_duration": 2.95,
+          "pause": 0.46,
+          "caption_text": "高温放置七十二小时也没检出有害物"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_11_volcovoice_1781001643452.wav",
+          "segment_duration": 2.54,
+          "video_duration": 2.54,
+          "pause": 0.38,
+          "caption_text": "边缘严丝合缝卡住原车凹槽"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_12_volcovoice_1781001643452.wav",
+          "segment_duration": 2.55,
+          "video_duration": 2.55,
+          "pause": 0.63,
+          "caption_text": "不会移位也不会漏任何杂物进去"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_13_volcovoice_1781001643452.wav",
+          "segment_duration": 1.61,
+          "video_duration": 1.61,
+          "pause": 0.4,
+          "caption_text": "选汽车内饰"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_14_volcovoice_1781001643452.wav",
+          "segment_duration": 2.71,
+          "video_duration": 2.71,
+          "pause": 0.725,
+          "caption_text": "安全和适配性永远是第一位的"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_15_volcovoice_1781001643452.wav",
+          "segment_duration": 1.62,
+          "video_duration": 1.62,
+          "pause": 0.28,
+          "caption_text": "如果你正挑脚垫"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_16_volcovoice_1781001643452.wav",
+          "segment_duration": 2.02,
+          "video_duration": 2.02,
+          "pause": 0.54,
+          "caption_text": "看重品质不想踩坑"
+        },
+        {
+          "segment_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/seg_0_17_volcovoice_1781001643452.wav",
+          "segment_duration": 3.53,
+          "video_duration": 3.53,
+          "pause": 0,
+          "caption_text": "可以点下方链接看看详细的检测报告和实装效果"
+        }
+      ]
+    }
+  ],
+  "volume": 80,
+  "speech_rate": 1,
+  "voice_character": "天才同桌",
+  "debug_json_url": "https://freeuuu.obs.cn-east-3.myhuaweicloud.com/aigc/aigc_test/volcovoice_1781001643452/volcovoice_volcovoice_1781001643452_response.json"
+}

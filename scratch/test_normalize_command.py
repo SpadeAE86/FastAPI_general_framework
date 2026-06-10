@@ -1,153 +1,78 @@
+import subprocess
 import os
-import sys
-import unittest
-from unittest.mock import MagicMock, patch
 
-# Add src to python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
-
-from utils.redis_client import RedisClientFactory
-mock_redis = MagicMock()
-RedisClientFactory.get_client = MagicMock(return_value=mock_redis)
-
-from utils.general_utils import VideoInfo
-from core.video_processing.normalize_video import normalize_video_filter_complex
-
-class TestNormalizeVideoFFmpegCommand(unittest.TestCase):
-    def setUp(self):
-        # Create a mock VideoInfo
-        self.video_info = VideoInfo(
-            width=1920,
-            height=1080,
-            duration=15.0,
-            rotation=0,
-            pix_fmt="yuv420p",
-            codec_name="h264"
-        )
-        self.mock_commands = []
-
-    def mock_run_ffmpeg_command(self, command, video_name=""):
-        self.mock_commands.append(command)
-
-    @patch("core.video_processing.normalize_video.check_audio_stream_simple", return_value=True)
-    @patch("core.video_processing.normalize_video.run_ffmpeg_command")
-    @patch("core.video_processing.normalize_video.os.makedirs")
-    @patch("core.video_processing.normalize_video.os.path.exists", return_value=True)
-    @patch("core.video_processing.normalize_video.os.remove")
-    @patch("core.video_processing.normalize_video.split_normalize")
-    def test_normalize_command_variations(self, mock_split, mock_remove, mock_exists, mock_makedirs, mock_run, mock_check_audio):
-        mock_run.side_effect = self.mock_run_ffmpeg_command
-        mock_split.return_value = MagicMock()
-
-        test_cases = [
-            # Case 1: Mute origin, no external audio, no subtitle
-            {
-                "mute_origin": True,
-                "audio_config": None,
-                "audio_path_list": None,
-                "speed": 1.0,
-            },
-            # Case 2: Do not mute origin, no external audio, no subtitle
-            {
-                "mute_origin": False,
-                "audio_config": None,
-                "audio_path_list": None,
-                "speed": 1.0,
-            },
-            # Case 3: Mute origin, with multiple external audio bgms, no subtitle
-            {
-                "mute_origin": True,
-                "audio_config": [
-                    MagicMock(offset=0.0, start=0.0, end=5.0, volume=1.0, weight=1.0),
-                    MagicMock(offset=2.0, start=0.0, end=5.0, volume=0.8, weight=1.0),
-                ],
-                "audio_path_list": ["bgm1.wav", "bgm2.wav"],
-                "speed": 1.0,
-            },
-            # Case 4: Do not mute origin, with multiple external audio bgms, no subtitle
-            {
-                "mute_origin": False,
-                "audio_config": [
-                    MagicMock(offset=0.0, start=0.0, end=5.0, volume=1.0, weight=1.0),
-                    MagicMock(offset=2.0, start=0.0, end=5.0, volume=0.8, weight=1.0),
-                ],
-                "audio_path_list": ["bgm1.wav", "bgm2.wav"],
-                "speed": 1.0,
-            },
-            # Case 5: Speed up video and audio, mute_origin=False, with external audio
-            {
-                "mute_origin": False,
-                "audio_config": [
-                    MagicMock(offset=0.0, start=0.0, end=5.0, volume=1.0, weight=1.0),
-                ],
-                "audio_path_list": ["bgm1.wav"],
-                "speed": 1.5,
-            }
-        ]
-
-        for i, tc in enumerate(test_cases):
-            self.mock_commands.clear()
-            normalize_video_filter_complex(
-                video="dummy_video.mp4",
-                video_info=self.video_info,
-                end_time=10.0,
-                width=1920,
-                height=1080,
-                fps=30,
-                cap_config=None,
-                start_time=0.0,
-                mute_origin=tc["mute_origin"],
-                project_id=f"test_case_{i}",
-                speed=tc["speed"],
-                audio_config=tc["audio_config"],
-                audio_path_list=tc["audio_path_list"],
-                vindex=0,
-                cap_helper=None,
-            )
-
-            self.assertEqual(len(self.mock_commands), 1)
-            cmd = self.mock_commands[0]
-            cmd_str = " ".join(cmd)
+def main():
+    out_dir = r"./work/mix_107052"
+    os.makedirs(out_dir, exist_ok=True)
+    
+    # Create subtitle0.png if not exists (dummy 1080x1920 transparent image)
+    sub_path = os.path.join(out_dir, "subtitle0.png")
+    if not os.path.exists(sub_path):
+        print("Creating dummy subtitle0.png...", flush=True)
+        subprocess.run([
+            "ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=black@0:s=1080x1920",
+            "-vframes", "1", sub_path
+        ], capture_output=True)
+        
+    source_video = r"C:\Job\AI\mix\AIGC_video_mix_remake\cache\0b\f5\a14205c09d01dd730d3a8a6ae709.mp4"
+    if not os.path.exists(source_video):
+        print(f"ERROR: source_video does not exist at {source_video}", flush=True)
+        # Try relative cache
+        source_video = r"cache/0b/f5/a14205c09d01dd730d3a8a6ae709.mp4"
+        if not os.path.exists(source_video):
+            print(f"ERROR: relative source_video also does not exist!", flush=True)
+            return
             
-            # Print for inspection
-            print(f"\n--- Test Case {i+1} Command ---")
-            print(cmd_str)
-
-            # 1. Assert no double brackets in the entire command
-            self.assertNotIn("[[", cmd_str, f"Double brackets '[[' found in case {i+1}")
-            self.assertNotIn("]]", cmd_str, f"Double brackets ']]' found in case {i+1}")
-
-            # 2. Extract and check filter_complex syntax
-            try:
-                fc_index = cmd.index("-filter_complex")
-                fc_val = cmd[fc_index + 1]
-                print(f"Filter Complex: {fc_val}")
-                # Ensure no empty filters (e.g. leading or trailing commas inside a filterchain)
-                self.assertNotIn(",,", fc_val)
-                self.assertNotIn(";;", fc_val)
-                
-                # Check that if trimmed_a is in the filter graph, it's defined and used correctly
-                if "trimmed_a" in fc_val:
-                    # It must be defined as [trimmed_a]
-                    self.assertIn("[trimmed_a]", fc_val)
-            except ValueError:
-                self.fail("-filter_complex option not found in the command line")
-
-            # 3. Check mapping parameters
-            map_indices = [idx for idx, val in enumerate(cmd) if val == "-map"]
-            self.assertEqual(len(map_indices), 2, f"Should have exactly 2 '-map' options, got {len(map_indices)}")
-            
-            video_map = cmd[map_indices[0] + 1]
-            audio_map = cmd[map_indices[1] + 1]
-            
-            print(f"Video Map: {video_map} | Audio Map: {audio_map}")
-            # Ensure mapped streams are properly formatted
-            if video_map.startswith("["):
-                self.assertTrue(video_map.endswith("]"))
-                self.assertEqual(video_map.count("["), 1)
-            if audio_map.startswith("["):
-                self.assertTrue(audio_map.endswith("]"))
-                self.assertEqual(audio_map.count("["), 1)
+    output_video = os.path.join(out_dir, "test_shortest.mp4")
+    
+    # Run ffmpeg with -shortest
+    cmd = [
+        "ffmpeg", "-y", "-ignore_editlist", "1",
+        "-init_hw_device", "cuda=cuda0", "-hwaccel", "cuda", "-hwaccel_output_format", "cuda",
+        "-i", source_video, "-i", sub_path,
+        "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
+        "-fps_mode", "cfr", "-r", "30", "-c:v", "h264_nvenc", "-preset", "12",
+        "-filter_complex", 
+        "[0:v]trim=start=0.0:end=2.865,setpts=PTS-STARTPTS,hwdownload,format=nv12[v_pre];"
+        "[v_pre]scale=1080:1920:force_original_aspect_ratio=decrease:flags=lanczos,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black[no_cap_v];"
+        "[no_cap_v]trim=start=0:end=2.865,setpts=PTS-STARTPTS[trim_v];"
+        "[1:v]format=rgba,setpts=PTS-STARTPTS[sub0];"
+        "[trim_v][sub0]overlay=enable='between(t,0.0,2.8600000000000003)',format=nv12[cap_v];"
+        "[2:a]atrim=start=0:end=2.865,asetpts=PTS-STARTPTS,apad=whole_dur=2.865[final_a];"
+        "[cap_v]setpts=PTS-STARTPTS,format=nv12,hwupload=derive_device=cuda[v_post]",
+        "-ar", "44100", "-ac", "2", "-video_track_timescale", "15360",
+        "-avoid_negative_ts", "make_zero", "-map", "[v_post]", "-map", "[final_a]",
+        "-shortest", output_video
+    ]
+    
+    print("Running FFMPEG with -shortest...", flush=True)
+    res = subprocess.run(cmd, capture_output=True)
+    if res.returncode != 0:
+        print("FFMPEG failed:", res.stderr.decode('utf-8', errors='ignore'), flush=True)
+        return
+        
+    # Probe duration and frame count
+    probe_cmd = [
+        "ffprobe", "-v", "error", "-show_entries", "format=duration:stream=nb_frames,r_frame_rate",
+        "-of", "json", output_video
+    ]
+    probe_res = subprocess.run(probe_cmd, capture_output=True, text=True)
+    print("\nProbed Output (with -shortest):", flush=True)
+    print(probe_res.stdout, flush=True)
+    
+    # Let's run without -shortest
+    output_no_shortest = os.path.join(out_dir, "test_no_shortest.mp4")
+    cmd_no_shortest = [c for c in cmd if c != "-shortest"]
+    cmd_no_shortest[-1] = output_no_shortest
+    
+    print("Running FFMPEG without -shortest...", flush=True)
+    subprocess.run(cmd_no_shortest, capture_output=True)
+    probe_res_no = subprocess.run([
+        "ffprobe", "-v", "error", "-show_entries", "format=duration:stream=nb_frames,r_frame_rate",
+        "-of", "json", output_no_shortest
+    ], capture_output=True, text=True)
+    print("\nProbed Output (WITHOUT -shortest):", flush=True)
+    print(probe_res_no.stdout, flush=True)
 
 if __name__ == "__main__":
-    unittest.main()
+    main()

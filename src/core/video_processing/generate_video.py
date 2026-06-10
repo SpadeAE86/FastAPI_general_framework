@@ -71,7 +71,7 @@ def _build_bgm_fade_filters(audio_path: str, cfg, output_duration: float) -> str
 
 def generate_video(video_path_list, len_list, project_id="test",
                    transition_config=None, audio_path_list=None, audio_config=None, bgm_path_list=None,
-                   bgm_config=None):
+                   bgm_config=None, fps=30):
     # 生成视频和音频的代码
     random_name = str(random_with_system_time())
     save_dir = os.path.join(FINAL_DIR, project_id)
@@ -148,7 +148,7 @@ def generate_video(video_path_list, len_list, project_id="test",
     cover_output = f"./final/{project_id}/cover_test3.jpg"
     cover_cmd = ["-vframes", "1", cover_output]
     # [FIX-CONCAT-STUTTER] 移除 -vsync vfr 和 -fflags +genpts
-    # 原因：使用 MKV 中间格式后，每个片段的 PTS 已正确从 0 开始，
+    # 原因：使用 MKV 中间格式后，每个片段 of PTS 已正确从 0 开始，
     #       不再需要这些 workaround 参数。-vsync vfr 会导致最终视频
     #       r_frame_rate=120 而非预期的 30fps。
     ffmpeg_concat_cmd = ['ffmpeg',
@@ -158,7 +158,7 @@ def generate_video(video_path_list, len_list, project_id="test",
                          *audio_input,
                          *complex_option,
                          *audio_simple_filter,
-                         '-r', '30',  # [FIX] 强制输出 30fps 元数据，解决 60fps 假元数据导致的解析失败
+                         '-r', str(fps),  # [FIX] 动态设置拼接后的元数据帧率，防止假元数据导致的解析失败
                          *video_map,
                          *audio_map,
                          *video_encoder,
