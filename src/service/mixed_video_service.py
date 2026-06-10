@@ -263,6 +263,31 @@ async def mixed_video_service(mixed_config: MixedVideoRequest):
                                 1,
                             )
 
+                    # fix: 20260610 画幅参数实装后，前端的视频画面定位还是基于在画幅黑缩放后的视频wh做定位，前端范围[-2,2]（视频画面中心点左移半个缩放后的视频w为translate_x=-1）
+                    if not mixed_config.crop_config or video_index >= len(mixed_config.crop_config):
+                        continue
+                    crop_config = mixed_config.crop_config[video_index]
+                    if _ratio_w_divide_by_ratio_h >= 1:  # 16:9 且导出720p
+                        if video_width < video_height:  # 2160 < 3840
+                            video_width_temp = video_width / video_height * height
+                            video_height_temp = height
+                        else:
+                            video_width_temp = width
+                            video_height_temp = video_height / video_width * width
+                    else:
+                        if video_width > video_height:  # 3840 > 2160
+                            video_width_temp = width
+                            video_height_temp = video_height / video_width * width
+                        else:
+                            video_width_temp = video_width / video_height * height
+                            video_height_temp = height
+                    # crop_config.translate_x = width / 2 + video_width_temp / 2 * crop_config.translate_x - video_width_temp / 2
+                    # crop_config.translate_y = height / 2 + video_height_temp / 2 * crop_config.translate_y - video_height_temp / 2
+                    crop_config.translate_x = crop_config.translate_x * video_width_temp / 2
+                    crop_config.translate_y = - crop_config.translate_y * video_height_temp / 2
+                    log.warning(f"{width = }, {height = }, {video_width = }, {video_height = }")
+                    log.warning(
+                        f"{video_width_temp = }, {video_height_temp = }, {crop_config.translate_x = }, {crop_config.translate_y = }")
             # 打印最终参考尺幅
             log.info(f"width: {width}")
             log.info(f"height: {height}")

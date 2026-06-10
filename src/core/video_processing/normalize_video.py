@@ -183,8 +183,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     freeze_tail_duration = max(requested_final_end - end_time, 0.0)
 
     muted_audio = []
-    translate_x = translate_x * video_width
-    translate_y = -translate_y * video_height
+    # fix：20260610 视频画面相对于画幅的定位。不能使用原始视频的wh，改成由调用方统一计算好px
+    # translate_x = translate_x * video_width
+    # translate_y = -translate_y * video_height
 
 
 
@@ -285,6 +286,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
             c_y = (height - crop_h) / 2
             transform.append(f"crop={crop_w}:{crop_h}:{c_x}:{c_y}")
             transform.append(f"scale={width}:{height}:flags=lanczos")
+    # 旋转滤镜
+    if rotation:
+        transform.append(f"rotate={rotation * math.pi / 180}:fillcolor=black")
     # 位移滤镜
     if translate_x or translate_y:
         translate_x = int(translate_x)
@@ -293,9 +297,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         transform.append(
             f"crop={max(width - abs(translate_x), 2)}:{max(height - abs(translate_y), 2)}:{min(max(-translate_x, 0), width)}:{min(max(translate_y, 0), height)}")
         transform.append(f"pad={width}:{height}:{max(translate_x, 0)}:{max(-translate_y, 0)}:color=black")
-    # 旋转滤镜
-    if rotation:
-        transform.append(f"rotate={rotation * math.pi / 180}:fillcolor=black")
+
     # 组装变换滤镜链并加入video_filter_list
     transform_str = ",".join(transform)
     if transform_str:
