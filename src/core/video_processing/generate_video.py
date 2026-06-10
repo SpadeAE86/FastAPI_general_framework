@@ -104,7 +104,7 @@ def generate_video(video_path_list, len_list, project_id="test",
             output = f"bgm{idx}"
             crop_offset_str = ""
             is_mock_bgm = "volcovoice" in a.lower()
-            volume = 2 if is_mock_bgm else 1
+            volume = 2 if is_mock_bgm else 1.5
             weight = 1
             if audio_config and audio_config[idx]:
                 speed = float(getattr(audio_config[idx], "speed", 1.0) or 1.0)
@@ -116,7 +116,7 @@ def generate_video(video_path_list, len_list, project_id="test",
                     crop_offset_str += f"{build_atempo_filter(speed)},asetpts=PTS-STARTPTS,"
                 if audio_config[idx].offset >= 0:
                     crop_offset_str += f"adelay={audio_config[idx].offset * 1000}|{audio_config[idx].offset * 1000},"
-                volume = audio_config[idx].volume * (2 if is_mock_bgm else 1)
+                volume = audio_config[idx].volume * (2 if is_mock_bgm else 1.5)
                 weight = audio_config[idx].weight
                 fade_filter = _build_bgm_fade_filters(a, audio_config[idx], end)
                 if fade_filter:

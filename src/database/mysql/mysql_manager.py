@@ -99,7 +99,7 @@ class DBManager:
                 meta = voice_enums_meta.get(char_name)
                 age = meta.get('age') if meta else None
                 sex_val = infer_voice_sex(char_name, voice_code, meta.get('gender') if meta else None)
-                if sex_val is not None:
+                if meta:
                     await conn.execute(
                         text("UPDATE volcovoice_sample SET age_type = :age_type, sex = :sex WHERE id = :id"),
                         {"age_type": age, "sex": sex_val, "id": r_id}
