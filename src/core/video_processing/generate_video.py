@@ -83,8 +83,20 @@ def generate_video(video_path_list, len_list, project_id="test",
 
     audio_input = []
 
-    audio_path_list = bgm_path_list
-    audio_config = bgm_config
+    # Filter out mock BGM files containing "volcovoice"
+    filtered_bgm_paths = []
+    filtered_bgm_configs = []
+    if bgm_path_list:
+        for idx, path in enumerate(bgm_path_list):
+            if "volcovoice" not in path.lower():
+                filtered_bgm_paths.append(path)
+                if bgm_config and idx < len(bgm_config):
+                    filtered_bgm_configs.append(bgm_config[idx])
+                else:
+                    filtered_bgm_configs.append(None)
+    
+    audio_path_list = filtered_bgm_paths
+    audio_config = filtered_bgm_configs
     log.info(f"concat add bgm {audio_path_list} - {audio_config}")
     for a in audio_path_list:
         audio_input += ["-i", a]
@@ -103,7 +115,7 @@ def generate_video(video_path_list, len_list, project_id="test",
         for idx, a in enumerate(audio_path_list):
             output = f"bgm{idx}"
             crop_offset_str = ""
-            volume = 2
+            volume = 1
             weight = 1
             if audio_config and audio_config[idx]:
                 speed = float(getattr(audio_config[idx], "speed", 1.0) or 1.0)
@@ -115,7 +127,7 @@ def generate_video(video_path_list, len_list, project_id="test",
                     crop_offset_str += f"{build_atempo_filter(speed)},asetpts=PTS-STARTPTS,"
                 if audio_config[idx].offset >= 0:
                     crop_offset_str += f"adelay={audio_config[idx].offset * 1000}|{audio_config[idx].offset * 1000},"
-                volume = audio_config[idx].volume * 2
+                volume = audio_config[idx].volume
                 weight = audio_config[idx].weight
                 fade_filter = _build_bgm_fade_filters(a, audio_config[idx], end)
                 if fade_filter:
