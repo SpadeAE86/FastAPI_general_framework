@@ -1,444 +1,163 @@
 {
-  "audio_config": [],
+  "audio_config": [
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_0_volcovoice_1781059901819.wav",
+      "end": 1.07,
+      "offset": 0.0,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_1_volcovoice_1781059901819.wav",
+      "end": 2.07,
+      "offset": 1.07,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_2_volcovoice_1781059901819.wav",
+      "end": 3.53,
+      "offset": 2.07,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_3_volcovoice_1781059901819.wav",
+      "end": 4.53,
+      "offset": 3.53,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_4_volcovoice_1781059901819.wav",
+      "end": 5.53,
+      "offset": 4.53,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_5_volcovoice_1781059901819.wav",
+      "end": 6.7,
+      "offset": 5.53,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_6_volcovoice_1781059901819.wav",
+      "end": 7.7,
+      "offset": 6.7,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_7_volcovoice_1781059901819.wav",
+      "end": 9.0,
+      "offset": 7.7,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_8_volcovoice_1781059901819.wav",
+      "end": 10.7,
+      "offset": 9.0,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_9_volcovoice_1781059901819.wav",
+      "end": 11.83,
+      "offset": 10.7,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_10_volcovoice_1781059901819.wav",
+      "end": 12.83,
+      "offset": 11.83,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_11_volcovoice_1781059901819.wav",
+      "end": 13.83,
+      "offset": 12.83,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_12_volcovoice_1781059901819.wav",
+      "end": 14.93,
+      "offset": 13.83,
+      "start": 0.0
+    },
+    {
+      "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_13_volcovoice_1781059901819.wav",
+      "end": 16.27,
+      "offset": 14.93,
+      "start": 0.0
+    }
+  ],
   "bgm_config": [
     {
+      "audioUrl": "https://obs.freeuuu.com/aigc/crawl_data_base/houzi_music/美食餐饮/9f67a011108d0d5ce3a67c496cfa8335.mp3",
       "ease_in": 0.0,
-      "ease_out": 0.0,
-      "end": -1.0,
+      "ease_out": 1.0,
+      "end": 60.0,
       "offset": 0.0,
-      "start": 0.0,
-      "volume": 1.0
-    },
-    {
-      "ease_in": 0.0,
-      "ease_out": 0.0,
-      "end": -1.0,
-      "offset": 0.0,
-      "start": 0.0,
-      "volume": 0.3
+      "speed": 1.0,
+      "start": 0.0
     }
   ],
-  "biz_id": 107052,
-  "cap_background_color": "#000000ff",
-  "cap_config": {
-    "caption_list": [
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "我是朝九晚五坐办公室的打工人",
-        "color": "#ffffff",
-        "end": 2.865,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 0.0
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "平时吃外卖多还久坐",
-        "color": "#ffffff",
-        "end": 4.915,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 2.865
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "总想着找个温和点的调理的东西",
-        "color": "#ffffff",
-        "end": 7.795,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 4.915
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "之前怕踩雷不敢乱试",
-        "color": "#ffffff",
-        "end": 9.925,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 7.795
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "要么担心太刺激闹肚子",
-        "color": "#ffffff",
-        "end": 12.285,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 9.925
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "要么怕加了糖吃了胖",
-        "color": "#ffffff",
-        "end": 14.235,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 12.285
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "后来抱着试试的心态入了清清片",
-        "color": "#ffffff",
-        "end": 17.135,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 14.235
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "每天吃一片也不麻烦",
-        "color": "#ffffff",
-        "end": 19.235,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 17.135
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "吃了这段时间真的很温和",
-        "color": "#ffffff",
-        "end": 21.708,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 19.235
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "完全没有刺激肠胃的不舒服的感觉",
-        "color": "#ffffff",
-        "end": 24.488,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 21.708
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "而且没有蔗糖",
-        "color": "#ffffff",
-        "end": 25.908,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 24.488
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "我控糖期吃也没负担",
-        "color": "#ffffff",
-        "end": 27.898,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 25.908
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "还是蓝帽认证的",
-        "color": "#ffffff",
-        "end": 29.238,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 27.898
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "吃着就很放心",
-        "color": "#ffffff",
-        "end": 30.888,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 29.238
-      },
-      {
-        "absolute_x": 0.0,
-        "absolute_y": 0.25,
-        "background_type": 0,
-        "cap": "我自己用下来真的不错",
-        "color": "#ffffff",
-        "end": 33.04,
-        "font_size": 34,
-        "outline_width": 2,
-        "rotation": 0.0,
-        "scale": 1.0,
-        "start": 30.888
-      }
-    ],
-    "font_type": "Alibaba Health Font 2.0 CN"
-  },
-  "cap_outline_color": "#000000",
-  "cap_outline_width": 1,
+  "biz_id": 7169,
   "crop_config": [
     {
-      "end": 2.865,
-      "extend_to": 2.865,
+      "end": 10.4,
+      "extend_to": 16.27,
       "mirror": false,
       "rotation": 0.0,
       "scale": 1.0,
-      "speed": 1.0,
+      "speed": 4.0,
       "start": 0.0,
       "translate_x": 0.0,
       "translate_y": 0.0
     },
     {
-      "end": 2.05,
-      "extend_to": 2.05,
+      "end": 33.77,
+      "extend_to": 33.769999999999996,
       "mirror": false,
       "rotation": 0.0,
       "scale": 1.0,
       "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 2.88,
-      "extend_to": 2.88,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 2.13,
-      "extend_to": 2.13,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 2.36,
-      "extend_to": 2.36,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 1.95,
-      "extend_to": 1.95,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 2.9,
-      "extend_to": 2.9,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 2.1,
-      "extend_to": 2.1,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 2.473,
-      "extend_to": 2.473,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 2.78,
-      "extend_to": 2.78,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 1.42,
-      "extend_to": 1.42,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 1.99,
-      "extend_to": 1.99,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 1.34,
-      "extend_to": 1.34,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 1.65,
-      "extend_to": 1.65,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
-      "translate_x": 0.0,
-      "translate_y": 0.0
-    },
-    {
-      "end": 2.152,
-      "extend_to": 2.152,
-      "mirror": false,
-      "rotation": 0.0,
-      "scale": 1.0,
-      "speed": 1.0,
-      "start": 0.0,
+      "start": 10.4,
       "translate_x": 0.0,
       "translate_y": 0.0
     }
   ],
-  "filter_config": [],
   "fps": 30,
   "mute_config": [
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true
+    false,
+    false
   ],
-  "obs_audio_path_list": [],
+  "obs_audio_path_list": [
+    "aigc/aigc_test/volcovoice_1781059901819/seg_0_0_volcovoice_1781059901819.wav",
+    "aigc/aigc_test/volcovoice_1781059901819/seg_0_1_volcovoice_1781059901819.wav",
+    "aigc/aigc_test/volcovoice_1781059901819/seg_0_2_volcovoice_1781059901819.wav",
+    "aigc/aigc_test/volcovoice_1781059901819/seg_0_3_volcovoice_1781059901819.wav",
+    "aigc/aigc_test/volcovoice_1781059901819/seg_0_4_volcovoice_1781059901819.wav",
+    "aigc/aigc_test/volcovoice_1781059901819/seg_0_5_volcovoice_1781059901819.wav",
+    "aigc/aigc_test/volcovoice_1781059901819/seg_0_6_volcovoice_1781059901819.wav",
+    "aigc/aigc_test/volcovoice_1781059901819/seg_0_7_volcovoice_1781059901819.wav",
+    "aigc/aigc_test/volcovoice_1781059901819/seg_0_8_volcovoice_1781059901819.wav",
+    "aigc/aigc_test/volcovoice_1781059901819/seg_0_9_volcovoice_1781059901819.wav",
+    "aigc/aigc_test/volcovoice_1781059901819/seg_0_10_volcovoice_1781059901819.wav",
+    "aigc/aigc_test/volcovoice_1781059901819/seg_0_11_volcovoice_1781059901819.wav",
+    "aigc/aigc_test/volcovoice_1781059901819/seg_0_12_volcovoice_1781059901819.wav",
+    "aigc/aigc_test/volcovoice_1781059901819/seg_0_13_volcovoice_1781059901819.wav"
+  ],
   "obs_bgm_path_list": [
-    "aigc/aigc_test/volcovoice_1781058617354/volcovoice0_volcovoice_1781058617354.wav",
-    "aigc/crawl_data_base/jianying_music/奢侈品牌 Vogue.MP3"
+    "aigc/crawl_data_base/houzi_music/美食餐饮/9f67a011108d0d5ce3a67c496cfa8335.mp3"
   ],
   "obs_video_path_list": [
-    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2042133763201073155_1775717656920/12c9c446-a2f6-47f0-96db-ae19d4db1684_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2042133763238821892_1775717612921/ebe750ee-a7d0-4ba2-91e1-02df50b93f54_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2042133763205267461_1775717653003/4dbe9998-ed09-4c5f-9830-d250dcea4689_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2042133763209461761_1775717648978/04d9b15d-8684-47d1-ae53-f60ae7af7442_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2042133763234627587_1775717617731/f93a1389-fe86-4918-a0c5-95e031594d5b_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2042133763196878852_1775717660697/bdb3f234-da60-4c1c-a6fe-71bfac200b1a_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2042133763226238978_1775717633876/cd6073a0-80c3-4053-88d0-d99544eec117_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2042133763217850373_1775717636436/6c365ee8-caa4-479a-a88e-0edfec52dcaf_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2042133763205267459_1775717655583/d51c8eb3-f9cc-480f-9794-80b66b21daa8_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2042133763230433282_1775717629074/7e7e3d2f-976e-4618-9100-ff97487f7e76_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2042133763205267460_1775717651924/b7d2b3c9-49dd-418a-b6a4-e4b8fa388188_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2042133763171713025_1775717662610/ac0f938d-482f-4aed-887d-12a06b7ed990_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2042133763205267463_1775717648908/cbbfc49c-31bb-4ed5-97d4-9af963d2ed8d_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2042133763238821896_1775717609994/e13b72cb-3394-42e7-8ae9-92ec64018dba_H.264_1080x1920_AAC_2100.mp4",
-    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2042133763213656068_1775717642288/78a5c0f3-5d60-4c81-aca2-3c12b276e236_H.264_1080x1920_AAC_2100.mp4"
+    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2064296089795665922_1781001518045/1b2e95fd-df09-4187-b7d5-ed41aeeaa2f9_H.264_1920x1080_AAC_2100.mp4",
+    "aigc/aigc_test/41/2041812649078927362/0/video/transcode_2064296089795665922_1781001518045/1b2e95fd-df09-4187-b7d5-ed41aeeaa2f9_H.264_1920x1080_AAC_2100.mp4"
   ],
+  "ratio_type": "4:3",
   "request_data": {
-    "callContext": {
-      "batchRecordId": 107052,
-      "processId": 10918,
-      "projectId": 2041812649078927362,
-      "systemTaskId": 57006
-    },
-    "bizTypeContext": "aiMixFull"
+    "bizTypeContext": "videoMixFull",
+    "full_mix_video": true
   },
   "resolution": "1080p",
-  "user_id": 41
+  "user_id": 41,
+  "videoMaterialIdList": [
+    "2064296089795665922",
+    "2064296089795665922"
+  ]
 }
