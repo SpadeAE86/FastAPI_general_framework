@@ -371,7 +371,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     raw_audio_label = "0:a" if not mute_origin and has_audio else f"{len(subtitle_list)+1}:a"
     if not mute_origin and has_audio:
         video_filter_list.append(
-            f"[{raw_audio_label}]atrim=start={raw_start_time}:end={raw_end_time},asetpts=PTS-STARTPTS[trimmed_a]"
+            f"[{raw_audio_label}]asetpts=PTS-STARTPTS,atrim=start={raw_start_time}:end={raw_end_time},asetpts=PTS-STARTPTS[trimmed_a]"
         )
         end_a = "trimmed_a"
     else:
@@ -383,7 +383,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     if audio_config:
         mix_input = [f"[main_audio]"]
         speed_audio_str = f",{audio_filter_str}" if audio_filter_str else ""
-        audio_filter += f"[{end_a}]volume=3{speed_audio_str},atrim=start=0:end={duration},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,apad=whole_dur={effective_duration}[main_audio];"
+        audio_filter += f"[{end_a}]volume=2{speed_audio_str},atrim=start=0:end={duration},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,apad=whole_dur={effective_duration}[main_audio];"
         audio_filter_flag = []  # FFmpeg forbids combining simple (-af) and complex filtergraphs for the same mapped stream
         end_a = "[merged]"
         supplement_audio_input_base = len(subtitle_list) + 1 + int(mute_origin or not has_audio)
@@ -418,7 +418,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         # todo: 根据官方提供的例子 ffmpeg -i VOCALS -i MUSIC -filter_complex amix=inputs=2:duration=longest:dropout_transition=0:weights="1 0.25":normalize=0 OUTPUT
         weight_str = " ".join(weights)
         if len(mix_input) > 1:
-            audio_filter += f'{"".join(mix_input)}amix=inputs={len(mix_input)}:duration=longest:weights="{weight_str}":normalize=0,asetpts=PTS-STARTPTS{end_a}'
+            audio_filter += f'{"".join(mix_input)}amix=inputs={len(mix_input)}:duration=longest:weights=\'{weight_str}\':normalize=0,asetpts=PTS-STARTPTS{end_a}'
         else:
             audio_filter += f"[main_audio]anull{end_a}"
     # 组装音频滤镜并添加到video_filter_list

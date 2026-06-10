@@ -1,42 +1,7 @@
 import subprocess
 import os
-import numpy as np
-import wave
-from PIL import Image
 
-def generate_valid_pngs():
-    os.makedirs("./work/mix_7176", exist_ok=True)
-    for i in range(14):
-        p = f"./work/mix_7176/subtitle{i}.png"
-        img = Image.new('RGBA', (100, 100), (0, 0, 0, 0))
-        img.save(p, "PNG")
-
-def get_rms_and_correlation(wav_path, seg_wav_path):
-    with wave.open(wav_path, 'rb') as w:
-        params = w.getparams()
-        frames = w.readframes(params.nframes)
-        data = np.frombuffer(frames, dtype=np.int16).astype(np.float64)
-        data = data.reshape(-1, params.nchannels)
-        sig_norm = data[:, 0]
-        
-    with wave.open(seg_wav_path, 'rb') as w:
-        params = w.getparams()
-        frames = w.readframes(params.nframes)
-        data_seg = np.frombuffer(frames, dtype=np.int16).astype(np.float64)
-        data_seg = data_seg.reshape(-1, params.nchannels)
-        sig_seg = data_seg[:, 0]
-        
-    length = min(len(sig_norm), len(sig_seg), int(10.4 * 44100))
-    corr = np.corrcoef(sig_norm[:length], sig_seg[:length])[0, 1]
-    rms = np.sqrt(np.mean(sig_norm[:length]**2))
-    return rms, corr
-
-def run_test_loop(name, loop_subtitles, use_shortest):
-    out_mp4 = f"./work/mix_7176/test_sub_loop_{name}.mp4"
-    out_wav = f"./work/mix_7176/test_sub_loop_{name}.wav"
-    if os.path.exists(out_mp4): os.remove(out_mp4)
-    if os.path.exists(out_wav): os.remove(out_wav)
-    
+if __name__ == "__main__":
     seg_mp4 = r"./work/mix_7176/segment_0_000.mp4"
     cache_files = [
         "cache/9b/ee/19be254a7b21608baa66975d55e9.wav",
@@ -55,29 +20,23 @@ def run_test_loop(name, loop_subtitles, use_shortest):
         "cache/04/d2/9484c68aeeef7ed74734b77fc226.wav"
     ]
     
-    inputs = [
-        "-ignore_editlist", "1",
-        "-noautorotate",
-        "-fflags", "+genpts",
+    cmd = [
+        "ffmpeg", "-y", "-ignore_editlist", "1", "-noautorotate", "-fflags", "+genpts",
         "-i", seg_mp4
     ]
     
-    subtitles = [f"work/mix_7176/subtitle{i}.png" for i in range(14)]
-    for s in subtitles:
-        if loop_subtitles:
-            inputs.extend(["-loop", "1", "-i", s])
-        else:
-            inputs.extend(["-i", s])
-            
-    for c in cache_files:
-        inputs.extend(["-i", c])
+    for i in range(14):
+        cmd.extend(["-loop", "1", "-i", f"work/mix_7176/subtitle{i}.png"])
+        
+    for f in cache_files:
+        cmd.extend(["-i", f])
         
     filter_parts = []
     # Video filters
     filter_parts.append("[0:v]setpts=PTS-STARTPTS,trim=start=0.0:end=10.4,setpts=PTS-STARTPTS[v_pre]")
-    filter_parts.append("[v_pre]scale=1440:1080:force_original_aspect_ratio=decrease:flags=lanczos,pad=1440:1080:(ow-iw)/2:(oh-ih)/2:black[no_cap_v]")
+    filter_parts.append("[v_pre]scale=1440:1080:force_original_aspect_ratio=decrease:flags=lanczos,pad=1440:1080:(ow-iw)/2:(oh-ih)/2:black,colorbalance=rs=0.0:gs=-0.0:bs=0.0:rm=0.0:gm=-0.0:bm=0.0:rh=0.0:gh=-0.0:bh=0.0,colorbalance=rs=0.0:rm=0.0:rh=0.0:bs=-0.0:bm=-0.0:bh=-0.0,eq=saturation=1.0[no_cap_v]")
     filter_parts.append("[no_cap_v]setpts=PTS-STARTPTS,trim=start=0:end=10.4,setpts=PTS-STARTPTS[trim_v]")
-    filter_parts.append("[trim_v]tpad=stop_mode=clone:stop_duration=5.87[freeze_v]")
+    filter_parts.append("[trim_v]tpad=stop_mode=clone:stop_duration=5.869999999999999[freeze_v]")
     
     cur_v = "freeze_v"
     for i in range(14):
@@ -94,7 +53,7 @@ def run_test_loop(name, loop_subtitles, use_shortest):
         else:
             filter_parts.append(f"[{cur_v}][sub{i}]overlay=enable='between(t,{start},{end - 0.005})'[{out_label}]")
             cur_v = out_label
-        
+            
     # Audio filters
     filter_parts.append("[0:a]atrim=start=0.0:end=10.4,asetpts=PTS-STARTPTS[trimmed_a]")
     filter_parts.append("[trimmed_a]volume=3,atrim=start=0:end=10.4,asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,apad=whole_dur=16.27[main_audio]")
@@ -138,36 +97,20 @@ def run_test_loop(name, loop_subtitles, use_shortest):
     
     filter_complex = ";".join(filter_parts)
     
-    cmd = [
-        "ffmpeg", "-y",
-        *inputs,
+    cmd.extend([
         "-fps_mode", "cfr", "-r", "30",
         "-threads", "2", "-preset", "ultrafast",
         "-filter_complex", filter_complex,
         "-ar", "44100", "-ac", "2", "-video_track_timescale", "15360",
         "-avoid_negative_ts", "make_zero",
-        "-map", "[cap_v]", "-map", "[merged]"
-    ]
-    if use_shortest:
-        cmd.append("-shortest")
-    cmd.append(out_mp4)
+        "-map", "[cap_v]", "-map", "[merged]", "-shortest",
+        "./work/mix_7176/manual_norm0_test.mp4"
+    ])
     
-    with open(f"./work/mix_7176/test_{name}_ffmpeg.log", "w", encoding="utf-8") as f:
-        res = subprocess.run(cmd, stdout=f, stderr=f)
-    if res.returncode != 0:
-        print(f"Test {name} failed: check ./work/mix_7176/test_{name}_ffmpeg.log")
-        return
+    print("Running ffmpeg manually and capturing output...")
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    
+    with open("scratch/ffmpeg_stderr.log", "w", encoding="utf-8") as f:
+        f.write(res.stderr)
         
-    cmd_ext = ["ffmpeg", "-y", "-i", out_mp4, "-vn", "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2", out_wav]
-    with open(f"./work/mix_7176/test_{name}_extract_ffmpeg.log", "w", encoding="utf-8") as f:
-        subprocess.run(cmd_ext, stdout=f, stderr=f)
-    
-    rms, corr = get_rms_and_correlation(out_wav, "./work/mix_7176/seg0.wav")
-    print(f"Test {name}: RMS={rms:.2f}, Correlation={corr:.6f}")
-
-if __name__ == "__main__":
-    generate_valid_pngs()
-    # Test Case 1: loop=True, shortest=True
-    run_test_loop("loop_shortest_true", loop_subtitles=True, use_shortest=True)
-    # Test Case 2: loop=True, shortest=False
-    run_test_loop("loop_shortest_false", loop_subtitles=True, use_shortest=False)
+    print(f"Finished. Return code: {res.returncode}")
