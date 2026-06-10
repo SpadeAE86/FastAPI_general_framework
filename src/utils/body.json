@@ -96,7 +96,221 @@
       "start": 0.0
     }
   ],
-  "biz_id": 7169,
+  "biz_id": 7176,
+  "cap_config": {
+    "caption_list": [
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_0_volcovoice_1781059901819.wav",
+        "background_type": 0,
+        "cap": "是不是经常久坐不运动",
+        "color": "#FFFFFFFF",
+        "end": 1.07,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 0.0
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_1_volcovoice_1781059901819.wav",
+        "background_type": 0,
+        "cap": "吃的又重油重盐",
+        "color": "#FFFFFFFF",
+        "end": 2.07,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 1.07
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_2_volcovoice_1781059901819.wav",
+        "background_type": 0,
+        "cap": "好几天不上厕所肚子胀得难受",
+        "color": "#FFFFFFFF",
+        "end": 3.53,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 2.07
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_3_volcovoice_1781059901819.wav",
+        "background_type": 0,
+        "cap": "脸上还动不动冒痘",
+        "color": "#FFFFFFFF",
+        "end": 4.53,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 3.53
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_4_volcovoice_1781059901819.wav",
+        "background_type": 0,
+        "cap": "连吃饭都没胃口？",
+        "color": "#FFFFFFFF",
+        "end": 5.53,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 4.53
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_5_volcovoice_1781059901819.wav",
+        "background_type": 0,
+        "cap": "别再硬扛着遭罪了",
+        "color": "#FFFFFFFF",
+        "end": 6.7,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 5.53
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_6_volcovoice_1781059901819.wav",
+        "background_type": 0,
+        "cap": "试试清清片",
+        "color": "#FFFFFFFF",
+        "end": 7.7,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 6.7
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_7_volcovoice_1781059901819.wav",
+        "background_type": 0,
+        "cap": "它是蓝帽认证的保健食品",
+        "color": "#FFFFFFFF",
+        "end": 9.0,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 7.7
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_8_volcovoice_1781059901819.wav",
+        "background_type": 0,
+        "cap": "药食同源配方温和不刺激肠胃",
+        "color": "#FFFFFFFF",
+        "end": 10.7,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 9.0
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_9_volcovoice_1781059901819.wav",
+        "background_type": 0,
+        "cap": "也没添加蔗糖没负担",
+        "color": "#FFFFFFFF",
+        "end": 11.83,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 10.7
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_10_volcovoice_1781059901819.wav",
+        "background_type": 0,
+        "cap": "每天吃一片就够",
+        "color": "#FFFFFFFF",
+        "end": 12.83,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 11.83
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_11_volcovoice_1781059901819.wav",
+        "background_type": 0,
+        "cap": "好吸收还省事",
+        "color": "#FFFFFFFF",
+        "end": 13.83,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 12.83
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_12_volcovoice_1781059901819.wav",
+        "background_type": 0,
+        "cap": "现在就别再忍了",
+        "color": "#FFFFFFFF",
+        "end": 14.93,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 13.83
+      },
+      {
+        "absolute_x": 0.0,
+        "absolute_y": 0.2,
+        "audioUrl": "https://obs.freeuuu.com/aigc/aigc_test/volcovoice_1781059901819/seg_0_13_volcovoice_1781059901819.wav",
+        "background_type": 0,
+        "cap": "赶紧给自己安排上试试吧",
+        "color": "#FFFFFFFF",
+        "end": 16.27,
+        "font_size": 30,
+        "font_type": "Source Han Sans CN",
+        "outline_color": "transparent",
+        "rotation": 0.0,
+        "scale": 1.0,
+        "start": 14.93
+      }
+    ]
+  },
   "crop_config": [
     {
       "end": 10.4,
@@ -104,7 +318,7 @@
       "mirror": false,
       "rotation": 0.0,
       "scale": 1.0,
-      "speed": 4.0,
+      "speed": 1.0,
       "start": 0.0,
       "translate_x": 0.0,
       "translate_y": 0.0
@@ -119,6 +333,40 @@
       "start": 10.4,
       "translate_x": 0.0,
       "translate_y": 0.0
+    }
+  ],
+  "filter_config": [
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "filter_configs": [
+        {
+          "type": "tint",
+          "value": 0
+        },
+        {
+          "type": "temperature",
+          "value": 0
+        },
+        {
+          "type": "saturation",
+          "value": 1
+        }
+      ]
     }
   ],
   "fps": 30,
