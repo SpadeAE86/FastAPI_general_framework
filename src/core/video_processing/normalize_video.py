@@ -386,7 +386,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
     if audio_config:
         mix_input = [f"[main_audio]"]
         speed_audio_str = f",{audio_filter_str}" if audio_filter_str else ""
-        audio_filter += f"[{end_a}]volume=2{speed_audio_str},atrim=start=0:end={duration},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,apad=whole_dur={effective_duration}[main_audio];"
+        audio_filter += f"[{end_a}]volume=2{speed_audio_str},atrim=start=0:end={duration:.4f},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,apad=whole_dur={effective_duration:.4f}[main_audio];"
         audio_filter_flag = []  # FFmpeg forbids combining simple (-af) and complex filtergraphs for the same mapped stream
         end_a = "[merged]"
         supplement_audio_input_base = len(subtitle_list) + 1 + int(mute_origin or not has_audio)
@@ -405,18 +405,18 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
             if mapped is None:
                 continue
             local_offset, src_start, src_end = mapped
-            local_delay_ms = local_offset * 1000
+            local_delay_ms = int(local_offset * 1000)
 
             audio_input.append(a)
             if src_end >= 0:
-                crop_offset_str += f"atrim=start={src_start}:end={src_end},asetpts=PTS-STARTPTS,"
+                crop_offset_str += f"atrim=start={src_start:.4f}:end={src_end:.4f},asetpts=PTS-STARTPTS,"
             elif src_start > 0:
-                crop_offset_str += f"atrim=start={src_start},asetpts=PTS-STARTPTS,"
+                crop_offset_str += f"atrim=start={src_start:.4f},asetpts=PTS-STARTPTS,"
             crop_offset_str += f"adelay={local_delay_ms}|{local_delay_ms},"
             volume = audio_config[idx].volume * 2
             weight = audio_config[idx].weight
             audio_stream_index = supplement_audio_input_cursor
-            audio_filter += f"[{audio_stream_index}:a]{crop_offset_str}aformat=sample_rates=44100:channel_layouts=stereo,apad=whole_dur={effective_duration},volume={volume}[{output}];"
+            audio_filter += f"[{audio_stream_index}:a]{crop_offset_str}aformat=sample_rates=44100:channel_layouts=stereo,apad=whole_dur={effective_duration:.4f},volume={volume}[{output}];"
             mix_input.append(f"[{output}]")
             weights.append(str(weight))
             supplement_audio_input_cursor += 1
@@ -438,7 +438,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         simple_audio_filters = []
         if audio_filter_str:
             simple_audio_filters.append(audio_filter_str)
-        simple_audio_filters.append(f"atrim=start=0:end={duration},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,apad=whole_dur={effective_duration}")
+        simple_audio_filters.append(f"atrim=start=0:end={duration:.4f},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,apad=whole_dur={effective_duration:.4f}")
         video_filter_list.append(f"[{end_a}]{','.join(simple_audio_filters)}[final_a]")
         end_a = "final_a"
         audio_simple_filter = []
