@@ -352,7 +352,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
             cap_end = subtitle_config["end"]
             subtitle_png_input.extend(["-loop", "1", "-i", p])
             vf_text += f"[{1 + idx}:v]format=rgba,setpts=PTS-STARTPTS[sub{idx}];"
-            vf_text += f"{cur_stream}[sub{idx}]overlay=enable='between(t,{cap_start},{cap_end - 0.005})'"
+            vf_text += f"{cur_stream}[sub{idx}]overlay=shortest=1:enable='between(t,{cap_start},{cap_end - 0.005})'"
             end_label = f"overlay{idx}"
             cur_stream = f"[{end_label}]"
             if idx == len(subtitle_list) - 1:
@@ -421,7 +421,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         # todo: 根据官方提供的例子 ffmpeg -i VOCALS -i MUSIC -filter_complex amix=inputs=2:duration=longest:dropout_transition=0:weights="1 0.25":normalize=0 OUTPUT
         weight_str = " ".join(weights)
         if len(mix_input) > 1:
-            audio_filter += f'{"".join(mix_input)}amix=inputs={len(mix_input)}:duration=longest:weights=\'{weight_str}\':normalize=0,asetpts=PTS-STARTPTS{end_a}'
+            audio_filter += f'{"".join(mix_input)}amix=inputs={len(mix_input)}:duration=first:weights=\'{weight_str}\':normalize=0,asetpts=PTS-STARTPTS{end_a}'
         else:
             audio_filter += f"[main_audio]anull{end_a}"
     # 组装音频滤镜并添加到video_filter_list
