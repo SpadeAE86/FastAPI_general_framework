@@ -319,10 +319,10 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
         f"effective_duration={effective_duration}"
     )
     if duration > 0:
-        video_filter_list.append(f"{end_v}setpts=PTS-STARTPTS,trim=start=0:end={duration},setpts=PTS-STARTPTS[trim_v]")
+        video_filter_list.append(f"{end_v}setpts=PTS-STARTPTS,trim=start=0:end={duration:.4f},setpts=PTS-STARTPTS[trim_v]")
         end_v = "[trim_v]"
-    if freeze_tail_duration > 0:
-        video_filter_list.append(f"{end_v}tpad=stop_mode=clone:stop_duration={freeze_tail_duration}[freeze_v]")
+    if freeze_tail_duration > 0.001:
+        video_filter_list.append(f"{end_v}tpad=stop_mode=clone:stop_duration={freeze_tail_duration:.4f}[freeze_v]")
         end_v = "[freeze_v]"
     converter = TimelineConverter(processed_so_far, effective_duration, start_time)
 
@@ -350,9 +350,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
             p = subtitle_config["path"]
             cap_start = subtitle_config["start"]
             cap_end = subtitle_config["end"]
-            subtitle_png_input.extend(["-loop", "1", "-t", str(effective_duration), "-i", p])
+            subtitle_png_input.extend(["-loop", "1", "-t", f"{effective_duration:.4f}", "-i", p])
             vf_text += f"[{1 + idx}:v]format=rgba,setpts=PTS-STARTPTS[sub{idx}];"
-            vf_text += f"{cur_stream}[sub{idx}]overlay=shortest=1:enable='between(t,{cap_start},{cap_end - 0.005})'"
+            vf_text += f"{cur_stream}[sub{idx}]overlay=shortest=1:enable='between(t,{cap_start:.4f},{cap_end - 0.005:.4f})'"
             end_label = f"overlay{idx}"
             cur_stream = f"[{end_label}]"
             if idx == len(subtitle_list) - 1:
