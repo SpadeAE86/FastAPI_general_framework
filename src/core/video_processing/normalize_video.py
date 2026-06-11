@@ -350,7 +350,7 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
             p = subtitle_config["path"]
             cap_start = subtitle_config["start"]
             cap_end = subtitle_config["end"]
-            subtitle_png_input.extend(["-loop", "1", "-i", p])
+            subtitle_png_input.extend(["-loop", "1", "-t", str(effective_duration), "-i", p])
             vf_text += f"[{1 + idx}:v]format=rgba,setpts=PTS-STARTPTS[sub{idx}];"
             vf_text += f"{cur_stream}[sub{idx}]overlay=shortest=1:enable='between(t,{cap_start},{cap_end - 0.005})'"
             end_label = f"overlay{idx}"
@@ -409,7 +409,9 @@ def normalize_video_filter_complex(video, video_info: VideoInfo, end_time, width
 
             audio_input.append(a)
             if src_end >= 0:
-                crop_offset_str += f"atrim=start={src_start}:end={src_end},"
+                crop_offset_str += f"atrim=start={src_start}:end={src_end},asetpts=PTS-STARTPTS,"
+            elif src_start > 0:
+                crop_offset_str += f"atrim=start={src_start},asetpts=PTS-STARTPTS,"
             crop_offset_str += f"adelay={local_delay_ms}|{local_delay_ms},"
             volume = audio_config[idx].volume * 2
             weight = audio_config[idx].weight
