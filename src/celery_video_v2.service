@@ -1,0 +1,43 @@
+[Unit]
+Description=Celery Worker for AIGC Video Mix
+After=network.target
+
+[Service]
+Type=simple
+
+# ====== 运行用户（根据你当前环境：root + conda在/root）======
+User=root
+Group=root
+
+# ====== 项目路径（必须是真实路径）======
+WorkingDirectory=/home/ubuntu/AIGC_video_mix_remake
+
+# ====== 环境变量（防止日志/编码问题）======
+Environment="PYTHONUNBUFFERED=1"
+Environment="LANG=C.UTF-8"
+Environment="LC_ALL=C.UTF-8"
+
+# ====== 启动命令（建议 bash -lc）======
+ExecStart=/bin/bash /home/ubuntu/AIGC_video_mix_remake/start_celery_worker_v2.sh
+
+
+# ====== 优雅关闭 Celery ======
+ExecStop=/bin/bash -c 'cd /home/ubuntu/AIGC_video_mix_remake/src && /home/ubuntu/miniconda3/envs/test_gpu/bin/python -m celery -A celery_mq.celery_app control shutdown'
+
+# ====== 崩溃自动重启 ======
+Restart=always
+RestartSec=10s
+
+# ====== 防止启动过慢被判失败 ======
+TimeoutStartSec=60
+
+# ====== 日志 ======
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=celery-video-worker
+
+# ====== 资源限制（可选，但推荐）======
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

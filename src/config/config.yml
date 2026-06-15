@@ -3,14 +3,6 @@ audio:
     access_key_id: LTAI5tAGcBFi9pg4oFrHbtTV
     access_key_secret: REDACTED
     app_key: UwjC1qMrxjoKRbzV
-  Volcano:
-    app_id: YOUR_VOLCANO_APP_ID
-    access_token: YOUR_VOLCANO_ACCESS_TOKEN
-    api_key: YOUR_VOLCANO_API_KEY
-    resource_id: YOUR_VOLCANO_RESOURCE_ID
-    cluster: volcano_tts
-    host: wss://openspeech.bytedance.com/api/v1/tts/ws_binary
-    v3_sse_host: https://openspeech.bytedance.com/api/v3/tts/unidirectional/sse
   Azure:
     service_region: SERVICE_REGION
     speech_key: SPEECH_KEY
@@ -113,52 +105,77 @@ video: null
 #=============================================================================
 cache: false
 env: test
-device: cpu
+device: gpu
 feishu_robot: "https://open.feishu.cn/open-apis/bot/v2/hook/c004bc00-bcc5-416a-a1c3-c53b607da620"
 error_at: "49f92f95"
 
-redis:
-  local:
-    host: 127.0.0.1
-    database: 0
-    port: 6379
-    password: RootDev123
-  test:
+huawei:
+  redis:
+    local:
+      host: 127.0.0.1
+      database: 0
+      port: 6379
+      password: RootDev123
+    test:
       host: 192.168.0.27
       database: 0
       port: 6480
       password: freeu@123
-  prod:
-    host: 192.168.0.149
-    database: 1
-    port: 6379
-    password: RootDev123
+    prod:
+      host: 192.168.0.149
+      database: 1
+      port: 6379
+      password: RootDev123
 
-rabbitmq:
-  local:
-    host: 123.60.104.114
-    port: 5672
-    username: root
-    password: RootDev123
-    vhost: /
-    use_ssl: false
-    management_port: 15672
-  test:
-    host: 123.60.104.114
-    port: 5672
-    username: root
-    password: RootDev123
-    vhost: /
-    use_ssl: false
-    management_port: 15672
-  prod:
-    host: 192.168.0.209
-    port: 5671
-    username: freeu-rabbit
-    password: RootDev123
-    vhost: /
-    use_ssl: true
-    management_port: 15671
+  rabbitmq:
+    local:
+      host: 123.60.104.114
+      port: 5672
+      username: root
+      password: RootDev123
+      vhost: /
+      use_ssl: false
+      management_port: 15672
+    test:
+      host: 123.60.104.114
+      port: 5672
+      username: root
+      password: RootDev123
+      vhost: /
+      use_ssl: false
+      management_port: 15672
+    prod:
+      host: 192.168.0.209
+      port: 5671
+      username: freeu-rabbit
+      password: RootDev123
+      vhost: /
+      use_ssl: true
+      management_port: 15671
+
+  mysql:
+    local:
+      host: 1.94.143.208
+      username: freeu
+      database: ai_recommend_test
+      port: 3306
+      password: RootDev123
+    test:
+      host: 1.94.143.208
+      username: freeu
+      database: ai_recommend_test
+      port: 3306
+      password: RootDev123
+    prod:
+      host: 1.94.143.208
+      username: freeu_prod
+      database: ai_recommend_prod
+      port: 3306
+      password: Prod~!@#189
+
+  object_storage:
+    bucket: freeuuu
+    region: cn-east-3
 
 huawei_ces:
   local:
@@ -207,6 +224,72 @@ pbase: https://freeuuu.obs.cn-east-3.myhuaweicloud.com/
 direct_download: True
 
 tencent:
+  redis:
+    local:
+      host: 127.0.0.1
+      database: 0
+      port: 6379
+      password: RootDev123
+    test:
+      host: 172.16.5.8
+      database: 0
+      port: 6379
+      password: RootDev123
+    prod:
+      host: 172.16.5.8
+      database: 1
+      port: 6379
+      password: ""
+
+  rabbitmq:
+    local:
+      host: amqp-54bpzgak-nj-kx6nkjoz-jwtg8mli-d.amqp.tencenttdmq.com
+      port: 5672
+      username: admin
+      password: RootDev123
+      vhost: /
+      use_ssl: false
+      management_port: 15672
+    test:
+      host: amqp-54bpzgak-nj-kx6nkjoz-jwtg8mli-d.amqp.tencenttdmq.com
+      port: 5672
+      username: admin
+      password: ogeHAl0bvDG4WtVf
+      vhost: /
+      use_ssl: false
+      management_port: 15672
+    prod:
+      host: amqp-54bpzgak-nj-kx6nkjoz-jwtg8mli-d.amqp.tencenttdmq.com
+      port: 5672
+      username: freeu-rabbit
+      password: RootDev123
+      vhost: /
+      use_ssl: false
+      management_port: 15672
+
+  mysql:
+    local:
+      host: 172.16.5.4
+      username: freeu
+      database: ai_recommend_test
+      port: 3306
+      password: RootDev123
+    test:
+      host: 172.16.5.4
+      username: freeu
+      database: ai_recommend_test
+      port: 3306
+      password: RootDev123
+    prod:
+      host: 172.16.5.4
+      username: freeu_prod
+      database: ai_recommend_prod
+      port: 3306
+      password: Prod~!@#189
+
+  object_storage:
+    bucket: freeuuu-1394787485
+    region: ap-nanjing
   vod:
     secret_id: REDACTED
     secret_key: REDACTED
@@ -238,25 +321,7 @@ callback:
     transcode: https://gateway.freeuuu.com/api/aigc/video/transcode/callback
     sprite: https://gateway-test.freeuuu.com:18080/api/aigc/video/sprite/callback
 
-mysql:
-  local:
-    host: 1.94.143.208
-    username: freeu
-    database: ai_recommend_test
-    port: 3306
-    password: RootDev123
-  test:
-    host: 1.94.143.208
-    username: freeu
-    database: ai_recommend_test
-    port: 3306
-    password: RootDev123
-  prod:
-    host: 192.168.0.3
-    username: freeu_prod
-    database: ai_recommend_prod
-    port: 3306
-    password: Prod~!@#189
+
 
 process_health:
   heartbeat_interval: 10  # 心跳间隔（秒）
@@ -273,14 +338,12 @@ task_type:
   sprite: sprite_queue
   transcode: transcode_queue
   voice: voice_queue
-  volcovoice: volcovoice_queue
 
 result_queue:
   mix: video_result_queue
   sprite: sprite_result_queue
   transcode: transcode_result_queue
   voice: voice_result_queue
-  volcovoice: volcovoice_result_queue
 
 # Celery 和消息队列配置
 celery:
