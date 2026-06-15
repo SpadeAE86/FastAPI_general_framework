@@ -106,8 +106,13 @@ def generate_video(video_path_list, len_list, project_id="test",
             crop_offset_str = ""
             source_path = bgm_source_path_list[idx] if bgm_source_path_list and idx < len(bgm_source_path_list) else None
             cfg_audio_url = getattr(audio_config[idx], "audioUrl", None) if audio_config and audio_config[idx] else None
+            # 使用传入的 bgm_audio_indices 严格判定是否为纯人声轨（完美适配本地缓存后的 UUID 乱码文件名）
             is_audio_index = idx in bgm_audio_indices
-            bgm_volume_multiplier = 2 if is_audio_index else 1.5
+            
+            # 为了在 normalize=1 开启时补偿音量衰减并确保绝对不炸麦：
+            # - 人声轨使用 18.0 倍率进行增幅，除以3后实得为 6.0（完全还原原 audio_config 时 2.0*3=6.0 的绝佳听感）
+            # - BGM 轨使用 6.0 倍率进行增幅，除以3后实得为 2.0 倍的配比量（还原原 BGM 0.3*2=0.6 的听感）
+            bgm_volume_multiplier = 18.0 if is_audio_index else 6.0
             volume = bgm_volume_multiplier
             weight = 1
             if audio_config and audio_config[idx]:
@@ -115,7 +120,7 @@ def generate_video(video_path_list, len_list, project_id="test",
                 if audio_config[idx].end >= 0:
                     crop_offset_str += f"atrim=start={audio_config[idx].start}:end={audio_config[idx].end},asetpts=PTS-STARTPTS,"
                 else:
-                    crop_offset_str += "atrim=start={0},asetpts=PTS-STARTPTS,".format(audio_config[idx].start)
+                    crop_offset_str += f"atrim=start={audio_config[idx].start},asetpts=PTS-STARTPTS,"
                 if speed != 1.0:
                     crop_offset_str += f"{build_atempo_filter(speed)},asetpts=PTS-STARTPTS,"
                 if audio_config[idx].offset >= 0:
