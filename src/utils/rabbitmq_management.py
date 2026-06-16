@@ -31,11 +31,14 @@ class RabbitMQManagementClient:
             15671 if self.use_ssl else 15672
         )
 
+        # 新增：支持独立的 Management API 主机名（如腾讯云 TDMQ 独立的 Web 控制台内网/外网域名）
+        self.management_host = rabbitmq_config.get("management_host", self.host)
+
         # 根据 use_ssl 选择 scheme
         scheme = "https" if self.use_ssl else "http"
 
         # 构建基础 URL（关键点）
-        self.base_url = f"{scheme}://{self.host}:{self.management_port}/api"
+        self.base_url = f"{scheme}://{self.management_host}:{self.management_port}/api"
 
         # HTTP Basic Auth
         self.auth = HTTPBasicAuth(self.username, self.password)

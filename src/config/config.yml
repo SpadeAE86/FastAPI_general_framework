@@ -250,6 +250,7 @@ tencent:
       vhost: /
       use_ssl: false
       management_port: 15672
+      management_host: amqp-54bpzgak-nj-public-c.amqp.tencenttdmq.com
     test:
       host: amqp-54bpzgak-nj-kx6nkjoz-jwtg8mli-d.amqp.tencenttdmq.com
       port: 5672
@@ -258,6 +259,7 @@ tencent:
       vhost: /
       use_ssl: false
       management_port: 15672
+      management_host: amqp-54bpzgak-nj-kx6nkjoz-kk7e2g74-c.amqp.tencenttdmq.com
     prod:
       host: amqp-54bpzgak-nj-kx6nkjoz-jwtg8mli-d.amqp.tencenttdmq.com
       port: 5672
@@ -266,6 +268,7 @@ tencent:
       vhost: /
       use_ssl: false
       management_port: 15672
+      management_host: amqp-54bpzgak-nj-kx6nkjoz-kk7e2g74-c.amqp.tencenttdmq.com
 
   mysql:
     local:
